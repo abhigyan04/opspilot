@@ -1,0 +1,8 @@
+[
+    {
+        "timestamp": "2026-09-28T14:02:13Z",
+        "service": "checkout-service",
+        "level": "ERROR",
+        "message": "Attribute Error: 'NoneType' object has no attribute 'customer_id'"
+    }
+]

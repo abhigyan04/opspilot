@@ -1,0 +1,14 @@
+[
+    {
+        "service": "checkout-service",
+        "metric":   "error_rate",
+        "timestamp": "2026-09-28T13:55:00Z",
+        "value": 0.4
+    },
+    {
+        "service": "checkout-service",
+        "metric":   "response_time",
+        "timestamp": "2026-09-28T14:05:0Z",
+        "value": 19.1
+    }
+]
