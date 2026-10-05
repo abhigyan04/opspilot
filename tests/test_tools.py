@@ -4,7 +4,6 @@ from app.tools.logs import search_logs
 from app.tools.metrics import query_metrics
 
 def test_checkout_incident_is_diagnosable():
-    # Check if the deployment information is available
     deployments = get_deployments("checkout-service")
     
     assert deployments[0]["version"] == "1.7.4", "Expected version 1.7.4 for checkout-service"
@@ -23,4 +22,4 @@ def test_checkout_incident_is_diagnosable():
     
     metrics =  query_metrics("checkout-service", "error_rate")
     
-    assert metrics[-1]["value"] > 0, "Expected error rate to be greater than 0 for checkout-service"
+    assert metrics[-1]["value"] > 0.3, "Expected error rate to be greater than 0 for checkout-service"
