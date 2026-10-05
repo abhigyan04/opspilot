@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -44,21 +45,26 @@ def test_all_tools_execute_with_validated_arguments():
     assert "request.user.customer_id" in commit["diff"]
 
 
-def test_model_arguments_are_used_without_hardcoding(monkeypatch):
+@pytest.mark.parametrize("tool, arguments", [
+    ("search_logs", {"service": "payment-service", "level": "WARNING"}),
+    ("query_metrics", {"service": "inventory-service", "metric_name": "latency"}),
+    ("get_deployments", {"service": "payment-service"}),
+    ("get_commit", {"commit_hash": "b82e5d3"}),
+])
+def test_model_arguments_are_used_without_hardcoding(monkeypatch, tool, arguments):
+    incident = f"Investigate using these known values: {json.dumps(arguments)}"
+
     def fake_chat(**kwargs):
         assert kwargs["format"] == tool_call_adapter.json_schema()
-        assert kwargs["messages"][-1]["content"] == "Inspect payment-service warnings."
+        assert kwargs["messages"][-1]["content"] == incident
         return SimpleNamespace(message=SimpleNamespace(content=
-            '{"tool":"search_logs","arguments":{"service":"payment-service",'
-            '"level":"WARNING"},"reason":"Inspect warnings."}'
+            json.dumps({"tool": tool, "arguments": arguments, "reason": "Inspect evidence."})
         ))
 
     monkeypatch.setattr(agent, "chat", fake_chat)
-    monkeypatch.setattr(agent, "search_logs", lambda **kwargs: kwargs)
-    decision = agent.choose_next_tool("Inspect payment-service warnings.")
-    assert agent.execute_tool(decision) == {
-        "service": "payment-service", "level": "WARNING",
-    }
+    monkeypatch.setattr(agent, tool, lambda **kwargs: kwargs)
+    decision = agent.choose_next_tool(incident)
+    assert agent.execute_tool(decision) == arguments
 
 
 def test_invalid_model_response_is_rejected(monkeypatch):

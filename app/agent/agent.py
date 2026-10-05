@@ -20,7 +20,7 @@ Arguments:
 query_metrics
 Arguments:
 - service
-- metric
+- metric_name
 
 get_deployments
 Arguments:
