@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.agent import agent
-from app.agent.schemas import tool_call_adapter
+from app.agent.schemas import tool_call_adapter, agent_decision_adapter
 
 
 def make_call(tool, arguments):
@@ -47,7 +47,7 @@ def test_all_tools_execute_with_validated_arguments():
 
 @pytest.mark.parametrize("tool, arguments", [
     ("search_logs", {"service": "payment-service", "level": "WARNING"}),
-    ("query_metrics", {"service": "inventory-service", "metric_name": "latency"}),
+    ("query_metrics", {"service": "inventory-service", "metric_name": "error_rate"}),
     ("get_deployments", {"service": "payment-service"}),
     ("get_commit", {"commit_hash": "b82e5d3"}),
 ])
@@ -55,7 +55,7 @@ def test_model_arguments_are_used_without_hardcoding(monkeypatch, tool, argument
     incident = f"Investigate using these known values: {json.dumps(arguments)}"
 
     def fake_chat(**kwargs):
-        assert kwargs["format"] == tool_call_adapter.json_schema()
+        assert kwargs["format"] == agent_decision_adapter.json_schema()
         assert kwargs["messages"][-1]["content"] == incident
         return SimpleNamespace(message=SimpleNamespace(content=
             json.dumps({"tool": tool, "arguments": arguments, "reason": "Inspect evidence."})
@@ -63,7 +63,7 @@ def test_model_arguments_are_used_without_hardcoding(monkeypatch, tool, argument
 
     monkeypatch.setattr(agent, "chat", fake_chat)
     monkeypatch.setattr(agent, tool, lambda **kwargs: kwargs)
-    decision = agent.choose_next_tool(incident)
+    decision = agent.choose_next_tool(messages=[{"role": "system", "content": agent.SYSTEM_PROMPT}, {"role": "user", "content": incident}])
     assert agent.execute_tool(decision) == arguments
 
 
@@ -74,4 +74,100 @@ def test_invalid_model_response_is_rejected(monkeypatch):
         )
     ))
     with pytest.raises(ValidationError):
-        agent.choose_next_tool("Investigate checkout-service errors.")
+        agent.choose_next_tool([{"role": "system", "content": agent.SYSTEM_PROMPT},
+                                {"role": "user", "content": "Investigate checkout-service errors."}])
+
+
+def test_investigation_passes_evidence_to_next_decision(monkeypatch):
+    deployment_result = [{"commit_hash": "abc1234"}]
+    calls = []
+
+    def fake_choose(messages):
+        # Snapshot history: investigate mutates the original list afterward.
+        calls.append([message.copy() for message in messages])
+
+        if len(calls) == 1:
+            return agent_decision_adapter.validate_python({
+                "tool": "get_deployments",
+                "arguments": {"service": "checkout-service"},
+                "reason": "Inspect recent deployments.",
+            })
+
+        previous_decision = json.loads(messages[-2]["content"])
+        assert previous_decision["tool"] == "get_deployments"
+        assert messages[-2]["role"] == "assistant"
+        assert messages[-1]["role"] == "user"
+        assert messages[-1]["content"] == (
+            "Result from get_deployments:\n"
+            + json.dumps(deployment_result)
+        )
+
+        return agent_decision_adapter.validate_python({
+            "tool": "finish",
+            "reason": "Stop after inspecting the returned evidence.",
+        })
+
+    monkeypatch.setattr(agent, "choose_next_tool", fake_choose)
+    monkeypatch.setattr(
+        agent, "get_deployments", lambda service: deployment_result
+    )
+
+    result = agent.investigate("Investigate checkout-service.")
+
+    assert result["status"] == "finished"
+    assert len(calls) == 2
+    assert calls[0][-1]["content"] == "Investigate checkout-service."
+    assert len(result["steps"]) == 1
+    assert result["steps"][0]["result"] == deployment_result
+
+
+def test_finish_does_not_execute_a_tool(monkeypatch):
+    finish = agent_decision_adapter.validate_python({
+        "tool": "finish",
+        "reason": "No useful next action.",
+    })
+
+    monkeypatch.setattr(agent, "choose_next_tool", lambda messages: finish)
+
+    def unexpected_execution(decision):
+        pytest.fail("A finish decision must not execute a tool.")
+
+    monkeypatch.setattr(agent, "execute_tool", unexpected_execution)
+
+    result = agent.investigate("Investigate checkout-service.")
+
+    assert result == {
+        "status": "finished",
+        "reason": "No useful next action.",
+        "steps": [],
+    }
+
+
+def test_investigation_stops_at_step_limit(monkeypatch):
+    decision = make_call(
+        "get_deployments",
+        {"service": "checkout-service"},
+    )
+    selections = []
+    executions = []
+
+    def fake_choose(messages):
+        selections.append(True)
+        return decision
+
+    def fake_execute(decision):
+        executions.append(decision)
+        return []
+
+    monkeypatch.setattr(agent, "choose_next_tool", fake_choose)
+    monkeypatch.setattr(agent, "execute_tool", fake_execute)
+
+    result = agent.investigate(
+        "Investigate checkout-service.",
+        max_steps=2,
+    )
+
+    assert result["status"] == "step_limit"
+    assert len(result["steps"]) == 2
+    assert len(selections) == 2
+    assert len(executions) == 2

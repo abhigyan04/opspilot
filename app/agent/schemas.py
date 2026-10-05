@@ -14,7 +14,7 @@ class SearchLogsArguments(StrictModel):
 
 class QueryMetricsArguments(StrictModel):
     service: str
-    metric_name: str
+    metric_name: Literal["error_rate"]
 
 
 class GetDeploymentsArguments(StrictModel):
@@ -54,3 +54,19 @@ ToolCall = Annotated[
     Field(discriminator="tool"),
 ]
 tool_call_adapter = TypeAdapter(ToolCall)
+
+class FinishInvestigation(StrictModel):
+    tool: Literal["finish"]
+    reason: str
+
+
+AgentDecision = Annotated[
+    SearchLogsCall
+    | QueryMetricsCall
+    | GetDeploymentsCall
+    | GetCommitCall
+    | FinishInvestigation,
+    Field(discriminator="tool"),
+]
+
+agent_decision_adapter = TypeAdapter(AgentDecision)
