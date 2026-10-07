@@ -154,10 +154,17 @@ CI run passed on `master` for commit `31f816c` on 7 October 2026, completing in
 17 seconds. CI currently runs tests only; it does not deploy OpsPilot or
 execute the interactive remediation CLI.
 
+On 7 October 2026, a failure-and-recovery exercise on `codex/ci-learning`
+verified that an intentional assertion failure made CI fail with exit code 1
+(1 failed, 56 passed). Removing the temporary test restored a successful
+hosted run at commit `15bad7f`. The exercise also exposed a test-discovery
+mistake: a file missing the `.py` extension was skipped, leaving a green run
+with only the original 56 tests. A passing check covers collected tests, not
+necessarily every intended test. The exercise was kept off `master`.
+
 ## Next milestone
 
-Practice diagnosing a failed check on a separate branch. Then extend the
-incident simulation with post-remediation recovery
-verification. Keep diagnosis accuracy and unsupported causal claims visible
+Extend the incident simulation with post-remediation recovery verification.
+Keep diagnosis accuracy and unsupported causal claims visible
 as evaluation concerns. Automated deployment of OpsPilot will follow once
 there is a deployable service.
