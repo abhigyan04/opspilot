@@ -7,6 +7,32 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class EvidenceClaim(StrictModel):
+    statement: str = Field(min_length=1)
+    evidence_ids: list[str] = Field(min_length=1)
+
+
+class SupportedDiagnosis(StrictModel):
+    status: Literal["supported"]
+    root_cause: EvidenceClaim
+    supporting_claims: list[EvidenceClaim]
+    limitations: list[str]
+
+
+class InsufficientEvidence(StrictModel):
+    status: Literal["insufficient_evidence"]
+    reason: str = Field(min_length=1)
+    missing_evidence: list[str] = Field(min_length=1)
+
+
+Diagnosis = Annotated[
+    SupportedDiagnosis | InsufficientEvidence,
+    Field(discriminator="status"),
+]
+
+diagnosis_adapter = TypeAdapter(Diagnosis)
+
+
 class SearchLogsArguments(StrictModel):
     service: str
     level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
