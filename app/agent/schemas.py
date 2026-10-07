@@ -96,3 +96,11 @@ AgentDecision = Annotated[
 ]
 
 agent_decision_adapter = TypeAdapter(AgentDecision)
+
+class RollbackProposal(StrictModel):
+    action: Literal["rollback_service"]
+    service: str = Field(min_length=1)
+    current_version: str = Field(min_length=1)
+    target_version: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    evidence_ids: list[str] = Field(min_length=1)

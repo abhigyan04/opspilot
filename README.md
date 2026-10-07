@@ -4,7 +4,8 @@ An evaluation-driven incident investigation agent for the fictional Acme
 Commerce platform. The agent investigates synthetic incidents through a bounded
 loop, selecting operational tools with model-generated, validated arguments
 and feeding their results back into subsequent decisions. It then generates a
-structured diagnosis and validates its evidence references.
+structured diagnosis and validates its evidence references. A human can review
+and approve a rollback candidate for in-memory simulation.
 
 ## Run locally
 
@@ -19,7 +20,11 @@ ollama pull qwen3:4b
 
 Ollama must be running locally. The example incident explicitly identifies
 `checkout-service`; the agent prints JSON containing `investigation` and
-`diagnosis` records.
+`diagnosis` records. If a rollback candidate is available, the CLI displays
+its proposal ID and contents, then prompts for approval. Enter
+`approve <proposal-id>` using the displayed ID to simulate execution, or press
+Enter to decline. It then prints a separate `remediation` record. Output
+includes interactive text and multiple JSON records, not a single JSON document.
 
 ## Investigation loop
 
@@ -81,7 +86,32 @@ assessment. A live run incorrectly described the refactor as causing
 `request.user` to become `None`, rather than introducing an access that fails
 when it is already `None`. Diagnosis accuracy remains an evaluation concern.
 
-The agent does not perform remediation.
+## Human-approved simulated remediation
+
+A supported diagnosis and exactly one collected deployment record for the
+requested service can produce a rollback candidate. The target comes from the
+fixture's explicit `rollback_target_version`; it is not inferred from version
+numbers. Missing targets, ambiguous records, or insufficient diagnoses produce
+no candidate. This rule does not establish that rollback is the appropriate
+remedy; the human must assess the diagnosis and its limitations.
+
+Before submission, Python validates the service, current version, available
+target, and evidence references. A session stores a JSON snapshot of the proposal
+under a generated ID. Editing the original object does not change that snapshot.
+Approval is granted through the CLI, outside the model's available tools.
+
+Only the approval phrase containing the displayed proposal ID authorizes
+execution (surrounding whitespace is ignored). Other answers, end-of-input,
+or Ctrl+C at the approval prompt decline the proposal. Execution rechecks the
+supplied simulation state, requires approval, and prevents repeat execution
+of the same proposal. It consumes approval and reports `status: simulated`;
+declining reports `status: declined`.
+
+The CLI initializes simulation state from the deployment fixture before review.
+Execution changes only this in-memory version and clears its rollback target.
+It does not alter fixtures, call deployment infrastructure, or re-read external
+state at execution time. Sessions are not persisted or authenticated, and a
+successful simulation does not demonstrate incident recovery.
 
 ## Tests
 
@@ -100,8 +130,14 @@ rejection of unknown citations, the observations sent to diagnosis generation,
 and the no-evidence fallback without a model call. These deterministic tests
 verify orchestration and citation integrity, not model diagnosis accuracy.
 
+Remediation tests cover target and evidence validation, proposal snapshot
+isolation, explicit approval, rejection of changed simulation state, prevention
+of repeat execution, proposal eligibility, and CLI approval versus decline.
+
 ## Next milestone
 
-Add human-approved remediation, starting with a structured proposal and
-explicit approval before simulated execution. Keep diagnosis accuracy and
-unsupported causal claims visible as evaluation concerns.
+Add GitHub Actions CI to install dependencies and run the deterministic test
+suite on pushes and pull requests. Then extend the incident simulation with
+post-remediation recovery verification. Keep diagnosis accuracy and unsupported
+causal claims visible as evaluation concerns. Automated deployment of OpsPilot
+will follow once there is a deployable service.

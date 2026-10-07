@@ -6,6 +6,7 @@ from app.tools.logs import search_logs
 from app.tools.metrics import query_metrics
 from app.tools.deployments import get_deployments
 from app.tools.git import get_commit
+from app.agent.remediation import (build_rollback_proposal, review_and_execute)
 
 
 SYSTEM_PROMPT = """
@@ -223,3 +224,33 @@ if __name__ == "__main__":
         "investigation": investigation,
         "diagnosis": diagnosis.model_dump(),
     }, indent=2))
+    service = "checkout-service"
+    proposal = build_rollback_proposal(
+        diagnosis, service, investigation["steps"]
+    )
+
+    if proposal is None:
+        print("No rollback proposal available for review.")
+    else:
+        deployments = get_deployments(service)
+
+        if len(deployments) != 1:
+            print("Cannot establish an unambiguous current deployment.")
+        else:
+            deployment = deployments[0]
+
+            # Dedicated simulation state, without historical commit metadata.
+            current_state = {
+                "service": deployment["service"],
+                "version": deployment["version"],
+                "rollback_target_version": deployment.get(
+                    "rollback_target_version"
+                ),
+            }
+
+            remediation = review_and_execute(
+                proposal,
+                investigation["steps"],
+                current_state,
+            )
+            print(json.dumps({"remediation": remediation}, indent=2))

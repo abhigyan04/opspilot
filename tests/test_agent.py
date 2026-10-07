@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.agent import agent
-from app.agent.schemas import tool_call_adapter, agent_decision_adapter, diagnosis_adapter
+from app.agent.schemas import tool_call_adapter, agent_decision_adapter, diagnosis_adapter, RollbackProposal
 
 
 def make_call(tool, arguments):
@@ -343,3 +343,42 @@ def test_generate_diagnosis_without_evidence_skips_model(monkeypatch):
 
     assert diagnosis.status == "insufficient_evidence"
     assert diagnosis.missing_evidence
+
+
+def test_rollback_proposal_requires_evidence():
+    with pytest.raises(ValidationError):
+        RollbackProposal(
+            action="rollback_service",
+            service="checkout-service",
+            current_version="1.7.4",
+            target_version="1.7.3",
+            reason="Revert the suspected regression.",
+            evidence_ids=[],
+        )
+
+
+def test_rollback_proposal_cannot_include_self_approval():
+    with pytest.raises(ValidationError):
+        RollbackProposal(
+            action="rollback_service",
+            service="checkout-service",
+            current_version="1.7.4",
+            target_version="1.7.3",
+            reason="Revert the suspected regression.",
+            evidence_ids=["evidence-001"],
+            approved=True,
+        )
+
+
+def test_rollback_proposal_accepts_complete_proposal():
+    proposal = RollbackProposal(
+        action="rollback_service",
+        service="checkout-service",
+        current_version="1.7.4",
+        target_version="1.7.3",
+        reason="Revert the suspected regression.",
+        evidence_ids=["evidence-001"],
+    )
+
+    assert proposal.action == "rollback_service"
+    assert proposal.target_version == "1.7.3"
