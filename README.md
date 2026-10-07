@@ -171,6 +171,47 @@ Verification tests cover input validation, all three recovery outcomes,
 time and service filtering, duplicate handling, scenario matching, skipping
 observations after decline, and approved execution followed by verification.
 
+## Evaluation runner
+
+With Ollama running and `qwen3:4b` available, run from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m evals.runner
+```
+
+The runner currently evaluates the checkout regression scenario by performing
+investigation and diagnosis. It does not request approval or execute remediation.
+Evaluation code runs from the checkout; `evals` is not currently included in
+the installed application package.
+
+Each completed run saves a unique JSON report under `out/evals/`, which is
+ignored by Git. Reports include a run ID, UTC start time, incident, full
+investigation and diagnosis, stage durations, and these investigation metrics:
+
+- `required_tool_coverage`: the fraction of scenario-required tool names used
+  at least once. Repeated calls do not increase coverage; empty results still
+  count as calls.
+- `missing_tools`: required tool names that were not used.
+- `tool_calls`: total executed tool calls.
+- `stopped_by_model` and `hit_step_limit`: how investigation ended.
+
+The reference root cause is stored for assessment and is not passed to the
+investigation or diagnosis functions. Diagnosis accuracy remains explicitly
+`not_scored`. Full tool coverage does not establish useful evidence, correct
+arguments, a correct diagnosis, or overall task success.
+
+Durations include local model processing and any model-loading overhead. A
+first local run achieved full required-tool coverage with four calls and took
+about 173 seconds; this is a single observation, not a performance benchmark.
+Model outputs can vary between runs. Reports do not yet capture model versions,
+generation settings, or repository revisions needed for stronger reproducibility.
+
+Runner tests mock model-dependent functions and check reference-answer
+separation, report contents, directory creation, and overwrite protection.
+They run in normal CI; live evaluations remain a separate local command.
+Exceptions currently abort a run before a report is saved, so unsuccessful
+attempts are not yet represented in saved reports.
+
 ## Continuous integration
 
 The workflow in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) is
@@ -201,8 +242,8 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ## Next milestone
 
-Build a reproducible evaluation harness and add incident scenarios that test
-diagnosis accuracy, evidence gathering, unsupported causal claims, and appropriate
-remediation. Keep deterministic software tests separate from live model
-evaluations. Automated deployment of OpsPilot will follow once there is a
-deployable service.
+Extend evaluation with failure reports and repeated-run summaries, then add
+incident scenarios and diagnosis assessment for unsupported causal claims and
+appropriate remediation. Keep deterministic software tests separate from live
+model evaluations. Automated deployment of OpsPilot will follow once there is
+a deployable service.
