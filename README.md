@@ -149,14 +149,15 @@ yet verify every version allowed by the project's Python requirement.
 
 After pushing the workflow, open the repository's **Actions** tab, select
 **CI**, and inspect the **Python tests** job. A failed installation stops the
-job before tests run; expand the failed step to read its logs. A successful
-hosted run is still pending initial verification. CI currently runs tests
-only; it does not deploy OpsPilot or execute the interactive remediation CLI.
+job before tests run; expand the failed step to read its logs. The first hosted
+CI run passed on `master` for commit `31f816c` on 7 October 2026, completing in
+17 seconds. CI currently runs tests only; it does not deploy OpsPilot or
+execute the interactive remediation CLI.
 
 ## Next milestone
 
-Verify the first hosted CI run and practice diagnosing a failed check on a
-branch. Then extend the incident simulation with post-remediation recovery
+Practice diagnosing a failed check on a separate branch. Then extend the
+incident simulation with post-remediation recovery
 verification. Keep diagnosis accuracy and unsupported causal claims visible
 as evaluation concerns. Automated deployment of OpsPilot will follow once
 there is a deployable service.
