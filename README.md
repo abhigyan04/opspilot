@@ -23,7 +23,8 @@ Ollama must be running locally. The example incident explicitly identifies
 `diagnosis` records. If a rollback candidate is available, the CLI displays
 its proposal ID and contents, then prompts for approval. Enter
 `approve <proposal-id>` using the displayed ID to simulate execution, or press
-Enter to decline. It then prints a separate `remediation` record. Output
+Enter to decline. It then prints a separate `remediation` record and, after
+simulated execution, a `verification` record. Output
 includes interactive text and multiple JSON records, not a single JSON document.
 
 ## Investigation loop
@@ -111,7 +112,39 @@ The CLI initializes simulation state from the deployment fixture before review.
 Execution changes only this in-memory version and clears its rollback target.
 It does not alter fixtures, call deployment infrastructure, or re-read external
 state at execution time. Sessions are not persisted or authenticated, and a
-successful simulation does not demonstrate incident recovery.
+successful version change alone does not demonstrate incident recovery.
+
+## Simulated recovery verification
+
+After simulated execution, the CLI loads separate post-action observations
+from `data/scenarios/checkout_regression/recovery.json`. The loader requires
+the execution's service and version transition to match the scenario. Declined
+remediation does not load recovery data or produce a verification result.
+The original investigation metrics remain unchanged, so the investigation
+does not receive future recovery observations.
+
+Python evaluates the error rate using a fixed demo policy:
+
+- Consider only the requested service's measurements strictly after action
+  completion and at or before the observation cutoff.
+- Select the latest three distinct timestamps. Duplicate timestamps count
+  once; conflicting duplicates retain the higher error rate.
+- Report `recovered` if all three values are at or below 2%, `not_recovered`
+  if three are available and any exceeds 2%, or `inconclusive` if fewer than
+  three are available.
+
+Measurements require timezone-aware timestamps and finite error rates between
+0 and 1. The observation cutoff cannot precede action completion. Results
+include `mode: simulation`, the threshold, required sample count, and evaluated
+samples so the decision can be inspected.
+
+The fixture scripts a rollback from `1.7.4` to `1.7.3` at 14:10 UTC on
+28 September 2026, followed by observations through 14:13 UTC. These are
+scenario timestamps, not wall-clock execution times or fresh production
+measurements. The current fixture describes recovery; unit tests also cover
+non-recovery and insufficient data. Three samples below the threshold verify
+this demo policy, not overall service health or sustained recovery. No sample
+cadence or maximum sample age within the supplied window is enforced yet.
 
 ## Tests
 
@@ -133,6 +166,10 @@ verify orchestration and citation integrity, not model diagnosis accuracy.
 Remediation tests cover target and evidence validation, proposal snapshot
 isolation, explicit approval, rejection of changed simulation state, prevention
 of repeat execution, proposal eligibility, and CLI approval versus decline.
+
+Verification tests cover input validation, all three recovery outcomes,
+time and service filtering, duplicate handling, scenario matching, skipping
+observations after decline, and approved execution followed by verification.
 
 ## Continuous integration
 
@@ -164,7 +201,8 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ## Next milestone
 
-Extend the incident simulation with post-remediation recovery verification.
-Keep diagnosis accuracy and unsupported causal claims visible
-as evaluation concerns. Automated deployment of OpsPilot will follow once
-there is a deployable service.
+Build a reproducible evaluation harness and add incident scenarios that test
+diagnosis accuracy, evidence gathering, unsupported causal claims, and appropriate
+remediation. Keep deterministic software tests separate from live model
+evaluations. Automated deployment of OpsPilot will follow once there is a
+deployable service.

@@ -1,0 +1,29 @@
+{
+  "previous_version": "1.7.4",
+  "current_version": "1.7.3",
+  "window": {
+    "service": "checkout-service",
+    "action_completed_at": "2026-09-28T14:10:00Z",
+    "observed_at": "2026-09-28T14:13:00Z",
+    "samples": [
+      {
+        "service": "checkout-service",
+        "metric": "error_rate",
+        "timestamp": "2026-09-28T14:11:00Z",
+        "value": 0.015
+      },
+      {
+        "service": "checkout-service",
+        "metric": "error_rate",
+        "timestamp": "2026-09-28T14:12:00Z",
+        "value": 0.01
+      },
+      {
+        "service": "checkout-service",
+        "metric": "error_rate",
+        "timestamp": "2026-09-28T14:13:00Z",
+        "value": 0.01
+      }
+    ]
+  }
+}

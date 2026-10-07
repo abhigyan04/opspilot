@@ -7,6 +7,7 @@ from app.tools.metrics import query_metrics
 from app.tools.deployments import get_deployments
 from app.tools.git import get_commit
 from app.agent.remediation import (build_rollback_proposal, review_and_execute)
+from app.agent.verification import verify_simulated_remediation
 
 
 SYSTEM_PROMPT = """
@@ -254,3 +255,8 @@ if __name__ == "__main__":
                 current_state,
             )
             print(json.dumps({"remediation": remediation}, indent=2))
+            if remediation["status"] == "simulated":
+                verification = verify_simulated_remediation(remediation)
+
+                if verification is not None:
+                    print(json.dumps({"verification": verification}, indent=2))

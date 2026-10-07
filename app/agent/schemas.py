@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, AwareDatetime, model_validator
 
 
 class StrictModel(BaseModel):
@@ -104,3 +104,23 @@ class RollbackProposal(StrictModel):
     target_version: str = Field(min_length=1)
     reason: str = Field(min_length=1)
     evidence_ids: list[str] = Field(min_length=1)
+
+
+class ErrorRateSample(StrictModel):
+    service: str = Field(min_length=1)
+    metric: Literal["error_rate"]
+    timestamp: AwareDatetime
+    value: float = Field(ge=0, le=1, allow_inf_nan=False)
+
+
+class RecoveryWindow(StrictModel):
+    service: str = Field(min_length=1)
+    action_completed_at: AwareDatetime
+    observed_at: AwareDatetime
+    samples: list[ErrorRateSample]
+
+    @model_validator(mode="after")
+    def validate_time_order(self):
+        if self.observed_at < self.action_completed_at:
+            raise ValueError("Observation time cannot precede action completion.")
+        return self
