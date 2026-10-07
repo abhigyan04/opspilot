@@ -177,6 +177,7 @@ With Ollama running and `qwen3:4b` available, run from the repository root:
 
 ```powershell
 .\.venv\Scripts\python.exe -m evals.runner
+.\.venv\Scripts\python.exe -m evals.runner --runs 2
 ```
 
 The runner currently evaluates the checkout regression scenario by performing
@@ -184,9 +185,12 @@ investigation and diagnosis. It does not request approval or execute remediation
 Evaluation code runs from the checkout; `evals` is not currently included in
 the installed application package.
 
-Each completed run saves a unique JSON report under `out/evals/`, which is
-ignored by Git. Reports include a run ID, UTC start time, incident, full
-investigation and diagnosis, stage durations, and these investigation metrics:
+The default is one attempt; `--runs` selects a positive number of sequential
+attempts. Each batch saves individual JSON reports and `summary.json` under
+`out/evals/<batch-id>/`, which is ignored by Git. Each attempt is saved before
+the next starts, and existing files are never overwritten. Version 2 reports
+include a run ID, UTC start time, incident, available investigation and diagnosis,
+stage durations, completion status, and these investigation metrics:
 
 - `required_tool_coverage`: the fraction of scenario-required tool names used
   at least once. Repeated calls do not increase coverage; empty results still
@@ -206,11 +210,33 @@ about 173 seconds; this is a single observation, not a performance benchmark.
 Model outputs can vary between runs. Reports do not yet capture model versions,
 generation settings, or repository revisions needed for stronger reproducibility.
 
-Runner tests mock model-dependent functions and check reference-answer
-separation, report contents, directory creation, and overwrite protection.
+Exceptions during investigation, coverage scoring, or diagnosis produce a
+`failed` report with the error stage, type, and message. Completed stages are
+preserved; timings for stages never started remain null. An investigation
+failure does not preserve its internal partial history because the agent does
+not yet return it. Recorded failures allow the batch to continue. Interrupted
+processes and report-writing failures still stop the batch; already saved
+attempts remain available. The CLI exits with code 1 if any recorded attempt
+failed, otherwise 0. `completed` means the pipeline finished, not that it
+correctly diagnosed the incident.
+
+Batch summaries accept version 2 reports for one case and include all attempts
+in `pipeline_completion_rate` and mean total duration. Mean tool coverage uses
+only reports with computed metrics, including diagnosis failures where metrics
+exist; `coverage_observations` exposes this denominator. Missing coverage is
+not treated as zero. Failure counts are grouped by stage, and diagnosis
+accuracy remains null (unmeasured).
+
+A two-attempt local batch completed both attempts with a mean duration of about
+150 seconds and mean tool coverage of 87.5%. One attempt omitted `query_metrics`
+and returned insufficient evidence; the other used all four required tools.
+These small-sample observations illustrate run variability, not reliable
+accuracy or latency estimates.
+
+Runner and summary tests mock model-dependent functions and check reference-answer
+separation, report contents, overwrite protection, failure recording, persistence
+before subsequent attempts, summary denominators, and invalid batch sizes.
 They run in normal CI; live evaluations remain a separate local command.
-Exceptions currently abort a run before a report is saved, so unsuccessful
-attempts are not yet represented in saved reports.
 
 ## Continuous integration
 
@@ -242,8 +268,7 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ## Next milestone
 
-Extend evaluation with failure reports and repeated-run summaries, then add
-incident scenarios and diagnosis assessment for unsupported causal claims and
+Add incident scenarios and diagnosis assessment for unsupported causal claims and
 appropriate remediation. Keep deterministic software tests separate from live
 model evaluations. Automated deployment of OpsPilot will follow once there is
 a deployable service.
