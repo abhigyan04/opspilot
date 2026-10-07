@@ -134,10 +134,29 @@ Remediation tests cover target and evidence validation, proposal snapshot
 isolation, explicit approval, rejection of changed simulation state, prevention
 of repeat execution, proposal eligibility, and CLI approval versus decline.
 
+## Continuous integration
+
+The workflow in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) is
+configured to run on pushes and pull requests. Its `Python tests` job uses
+Ubuntu and Python 3.12, checks out the repository, installs the project with
+its development dependencies using `python -m pip install -e ".[dev]"`, and
+runs `python -m pytest -q`. The job has read-only repository permissions and
+a ten-minute timeout.
+
+The suite uses mocked model responses, so CI needs no Ollama server, model
+download, GPU, or API key. This workflow tests one Python version; it does not
+yet verify every version allowed by the project's Python requirement.
+
+After pushing the workflow, open the repository's **Actions** tab, select
+**CI**, and inspect the **Python tests** job. A failed installation stops the
+job before tests run; expand the failed step to read its logs. A successful
+hosted run is still pending initial verification. CI currently runs tests
+only; it does not deploy OpsPilot or execute the interactive remediation CLI.
+
 ## Next milestone
 
-Add GitHub Actions CI to install dependencies and run the deterministic test
-suite on pushes and pull requests. Then extend the incident simulation with
-post-remediation recovery verification. Keep diagnosis accuracy and unsupported
-causal claims visible as evaluation concerns. Automated deployment of OpsPilot
-will follow once there is a deployable service.
+Verify the first hosted CI run and practice diagnosing a failed check on a
+branch. Then extend the incident simulation with post-remediation recovery
+verification. Keep diagnosis accuracy and unsupported causal claims visible
+as evaluation concerns. Automated deployment of OpsPilot will follow once
+there is a deployable service.
