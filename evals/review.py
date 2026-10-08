@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from evals.assessment import DiagnosisReview, save_review
+from evals.citations import build_citation_view
 
 
 CRITERIA = {
@@ -24,6 +25,14 @@ def collect_review(report: dict, reviewer: str, input_fn=input, output_fn=print)
         raise ValueError("Review requires a version 2 run report.")
 
     output_fn(json.dumps(report, indent=2))
+    citation_view = build_citation_view(report)
+    if citation_view:
+        output_fn(
+        "Claim-by-claim citations: check whether these observations "
+        "support every part of each statement. A resolved ID alone "
+        "does not establish support."
+        )
+        output_fn(json.dumps(citation_view, indent=2))
     output_fn(
         "Compare the diagnosis with the actual observations and reference answer. "
         "Do not treat earlier model reasoning as evidence. "

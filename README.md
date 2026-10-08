@@ -320,6 +320,16 @@ choices and blank rationales prompt again. An absent diagnosis requires
 still a diagnosis that can be reviewed; it does not automatically make every
 criterion unassessable. Earlier model reasoning is not operational evidence.
 
+For supported diagnoses, the CLI also displays each root-cause and supporting
+claim beside its cited observations, including tool names, arguments, and
+results. This view excludes tool-selection reasoning, lists unresolved IDs in
+`missing_evidence_ids`, and rejects duplicate observation IDs. The full report
+remains available for checking uncited evidence and limitations. A resolved
+citation can still point to unrelated evidence; the reviewer must judge whether
+the observations support every part of the claim. This display does not assign
+verdicts or change model output. Tests cover ID-based lookup, missing and
+duplicate IDs, and diagnoses without structured claims.
+
 After all four criteria are entered, the CLI saves `<run-id>.review.json`
 beside the source report. It validates run and case IDs, records the reviewer,
 rubric version and source-report SHA-256, and refuses to overwrite a review.
