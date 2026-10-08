@@ -273,6 +273,20 @@ branch contains no structured citations, so that completed run does not prove
 the model can generate valid cited diagnoses under the new constraint. These
 observations remain evaluation findings, not a measured diagnosis-accuracy score.
 
+A subsequent diagnosis-prompt revision distinguishes an observed failure
+mechanism from unknown deeper causes and forbids inferring deployment intent.
+One fresh run per scenario completed with full tool coverage and `supported`
+diagnoses, taking about 163 seconds for the provider case and 174 seconds for
+the checkout regression. All citation IDs passed validation, but inspection
+found incorrect or incomplete claim-to-evidence mappings: the provider root
+cause cited metrics and deployment records instead of the HTTP 503 logs.
+The checkout diagnosis also asserted unauthenticated requests without evidence
+of authentication state, and the provider diagnosis described unavailability
+as temporary without recovery observations. These runs demonstrate that valid
+IDs do not establish citation relevance or well-calibrated claims. They do not
+establish a reliable improvement from the prompt change; human reviews remain
+separate records.
+
 Runner and summary tests mock model-dependent functions and check reference-answer
 separation, report contents, overwrite protection, failure recording, persistence
 before subsequent attempts, summary denominators, invalid batch sizes, case
