@@ -7,12 +7,13 @@ from evals import runner
 from evals.cases import EvaluationCase, CHECKOUT_REGRESSION
 
 
-def test_runner_passes_incident_and_observations_without_reference(monkeypatch):
+def test_runner_passes_incident_and_observations_without_reference(monkeypatch, tmp_path):
     case = EvaluationCase(
         case_id="runner_test",
         incident="Investigate checkout-service.",
         required_tools=frozenset({"search_logs"}),
         reference_root_cause="REFERENCE ANSWER MUST NOT REACH MODEL CALLS",
+        scenario_dir=tmp_path / "selected-scenario"
     )
     investigation = {
         "status": "finished",
@@ -37,8 +38,9 @@ def test_runner_passes_incident_and_observations_without_reference(monkeypatch):
     })
     calls = []
 
-    def fake_investigate(incident):
+    def fake_investigate(incident, *, data_dir):
         assert incident == case.incident
+        assert data_dir == case.scenario_dir
         assert case.reference_root_cause not in incident
         calls.append("investigate")
         return investigation
@@ -100,7 +102,7 @@ def test_failed_run_preserves_available_results(monkeypatch, tmp_path, stage):
         "steps": [],
     }
 
-    def fake_investigate(incident):
+    def fake_investigate(incident, *, data_dir):
         if stage == "investigation":
             raise RuntimeError("Investigation unavailable")
         return investigation

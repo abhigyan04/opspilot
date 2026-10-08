@@ -153,8 +153,9 @@ cadence or maximum sample age within the supplied window is enforced yet.
 ```
 
 Tests use synthetic fixtures and mocked model responses, so Ollama is not
-required for the test suite. Run commands from the repository root because the
-tools currently resolve fixture paths relative to the working directory.
+required for the test suite. Run commands from the repository root so Python
+can discover the application, evaluation modules, and tests. Default fixture
+paths are resolved relative to the source files, not the working directory.
 
 Tests cover argument validation and dispatch, passing tool evidence to the next
 decision, finishing without executing a tool, and enforcing the step limit.
@@ -170,6 +171,23 @@ of repeat execution, proposal eligibility, and CLI approval versus decline.
 Verification tests cover input validation, all three recovery outcomes,
 time and service filtering, duplicate handling, scenario matching, skipping
 observations after decline, and approved execution followed by verification.
+
+## Scenario selection
+
+Investigation tools accept an application-supplied, keyword-only `data_dir`.
+The default checkout scenario is resolved relative to the source files rather
+than the working directory. Each tool call reads from its selected directory
+without changing shared global scenario state.
+
+`investigate` passes that directory through `execute_tool` to logs, metrics,
+deployments, and commit lookup. Each `EvaluationCase` requires an explicit
+`scenario_dir`, which the evaluation runner supplies to investigation. Fixture
+paths are not part of model-facing tool argument schemas.
+
+Scenario directories contain `log.json`, `metrics.json`, `deployments.json`,
+and `commits.json`. Tests check per-call isolation and that investigation and
+the evaluation runner forward the chosen scenario. Remediation and recovery
+in the interactive demo remain checkout-specific.
 
 ## Evaluation runner
 

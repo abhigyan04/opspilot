@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from app.agent import agent
 from app.agent.schemas import tool_call_adapter, agent_decision_adapter, diagnosis_adapter, RollbackProposal
+from app.tools.data import DEFAULT_SCENARIO_DIR
 
 
 def make_call(tool, arguments):
@@ -64,7 +65,7 @@ def test_model_arguments_are_used_without_hardcoding(monkeypatch, tool, argument
     monkeypatch.setattr(agent, "chat", fake_chat)
     monkeypatch.setattr(agent, tool, lambda **kwargs: kwargs)
     decision = agent.choose_next_tool(messages=[{"role": "system", "content": agent.SYSTEM_PROMPT}, {"role": "user", "content": incident}])
-    assert agent.execute_tool(decision) == arguments
+    assert agent.execute_tool(decision) == {**arguments, "data_dir": DEFAULT_SCENARIO_DIR}
 
 
 def test_invalid_model_response_is_rejected(monkeypatch):
@@ -118,7 +119,7 @@ def test_investigation_passes_evidence_to_next_decision(monkeypatch):
 
     monkeypatch.setattr(agent, "choose_next_tool", fake_choose)
     monkeypatch.setattr(
-        agent, "get_deployments", lambda service: deployment_result
+        agent, "get_deployments", lambda service, **kwargs: deployment_result
     )
 
     result = agent.investigate("Investigate checkout-service.")
@@ -139,7 +140,7 @@ def test_finish_does_not_execute_a_tool(monkeypatch):
 
     monkeypatch.setattr(agent, "choose_next_tool", lambda messages: finish)
 
-    def unexpected_execution(decision):
+    def unexpected_execution(decision, **kwargs):
         pytest.fail("A finish decision must not execute a tool.")
 
     monkeypatch.setattr(agent, "execute_tool", unexpected_execution)
@@ -165,7 +166,7 @@ def test_investigation_stops_at_step_limit(monkeypatch):
         selections.append(True)
         return decision
 
-    def fake_execute(decision):
+    def fake_execute(decision, **kwargs):
         executions.append(decision)
         return []
 

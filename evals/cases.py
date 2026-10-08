@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+from pathlib import Path
+
+from app.tools.data import SCENARIOS_ROOT
 
 
 @dataclass(frozen=True)
@@ -7,6 +10,7 @@ class EvaluationCase:
     incident: str
     required_tools: frozenset[str]
     reference_root_cause: str
+    scenario_dir: Path
 
 
 CHECKOUT_REGRESSION = EvaluationCase(
@@ -23,4 +27,5 @@ CHECKOUT_REGRESSION = EvaluationCase(
         "When request.user is None, this access raises AttributeError. "
         "The change does not itself make request.user become None."
     ),
+    scenario_dir=SCENARIOS_ROOT / "checkout_regression"
 )

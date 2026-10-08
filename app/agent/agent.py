@@ -1,4 +1,5 @@
 from ollama import chat
+from pathlib import Path
 import json
 
 from app.agent.schemas import ToolCall, AgentDecision, agent_decision_adapter, Diagnosis, diagnosis_adapter
@@ -8,6 +9,7 @@ from app.tools.deployments import get_deployments
 from app.tools.git import get_commit
 from app.agent.remediation import (build_rollback_proposal, review_and_execute)
 from app.agent.verification import verify_simulated_remediation
+from app.tools.data import DEFAULT_SCENARIO_DIR
 
 
 SYSTEM_PROMPT = """
@@ -66,17 +68,18 @@ def choose_next_tool(messages: list[dict[str, str]]) -> AgentDecision:
     return agent_decision_adapter.validate_json(response.message.content)
 
 
-def execute_tool(decision: ToolCall):
+def execute_tool(decision: ToolCall, *, data_dir: Path = DEFAULT_SCENARIO_DIR):
     arguments = decision.arguments.model_dump()
+
     match decision.tool:
         case "search_logs":
-            return search_logs(**arguments)
+            return search_logs(**arguments, data_dir=data_dir)
         case "query_metrics":
-            return query_metrics(**arguments)
+            return query_metrics(**arguments, data_dir=data_dir)
         case "get_deployments":
-            return get_deployments(**arguments)
+            return get_deployments(**arguments, data_dir=data_dir)
         case "get_commit":
-            return get_commit(**arguments)
+            return get_commit(**arguments, data_dir=data_dir)
         case _:
             raise ValueError(f"Unknown tool: {decision.tool}")
 
@@ -158,7 +161,7 @@ def generate_diagnosis(incident: str, steps: list[dict]) -> Diagnosis:
     return diagnosis
 
 
-def investigate(incident: str, max_steps: int = 6) -> dict:
+def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_SCENARIO_DIR) -> dict:
     if max_steps < 1:
         raise ValueError("max_steps must be at least 1")
 
@@ -183,7 +186,7 @@ def investigate(incident: str, max_steps: int = 6) -> dict:
                 "steps": steps,
             }
 
-        result = execute_tool(decision)
+        result = execute_tool(decision, data_dir=data_dir)
 
         evidence_id = f"evidence-{len(steps) + 1:03d}"
 

@@ -42,7 +42,10 @@ def run_case(case: EvaluationCase) -> dict:
     stage_started = perf_counter()
 
     try:
-        report["investigation"] = investigate(case.incident)
+        report["investigation"] = investigate(
+            case.incident,
+            data_dir=case.scenario_dir,
+        )
         report["timing"]["investigation_seconds"] = (
             perf_counter() - stage_started
         )

@@ -1,12 +1,11 @@
-import json
 from pathlib import Path
 
-DATA_PATH = Path("data/scenarios/checkout_regression/log.json")
+from app.tools.data import DEFAULT_SCENARIO_DIR, read_fixture
 
-def search_logs(service: str, level: str) -> list[dict]:
-    with open(DATA_PATH, "r") as f:
-        logs = json.load(f)
-    
+
+def search_logs(service: str, level: str, *, data_dir: Path = DEFAULT_SCENARIO_DIR) -> list[dict]:
+    logs = read_fixture("log.json", data_dir)
+
     return [
         log
         for log in logs
