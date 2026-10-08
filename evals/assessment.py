@@ -29,13 +29,10 @@ class DiagnosisReview(ReviewModel):
     uncertainty_handling: CriterionReview
 
 
-def save_review(review: DiagnosisReview, report_path: Path) -> Path:
-    original_bytes = report_path.read_bytes()
-    report = json.loads(original_bytes)
-
+def validate_review_report(review: DiagnosisReview, report: dict) -> None:
     if report.get("report_version") != 2:
-        raise ValueError("Review requires a version 2 run report.")
-
+            raise ValueError("Review requires a version 2 run report.")
+    
     if review.run_id != report["run_id"]:
         raise ValueError("Review run_id does not match the report.")
 
@@ -57,6 +54,12 @@ def save_review(review: DiagnosisReview, report_path: Path) -> Path:
                 "A missing diagnosis requires not_assessable for every criterion."
             )
 
+
+def save_review(review: DiagnosisReview, report_path: Path) -> Path:
+    original_bytes = report_path.read_bytes()
+    report = json.loads(original_bytes)
+    validate_review_report(review, report)
+
     record = {
         "source_report": report_path.name,
         "source_sha256": hashlib.sha256(original_bytes).hexdigest(),
@@ -69,3 +72,24 @@ def save_review(review: DiagnosisReview, report_path: Path) -> Path:
         output.write("\n")
 
     return destination
+
+
+def load_review(report_path: Path) -> DiagnosisReview | None:
+    original_bytes = report_path.read_bytes()
+    review_path = report_path.with_suffix(".review.json")
+
+    if not review_path.exists():
+        return None
+
+    record = json.loads(review_path.read_text(encoding="utf-8"))
+
+    if record.get("source_report") != report_path.name:
+        raise ValueError("Review source filename does not match.")
+
+    expected_hash = hashlib.sha256(original_bytes).hexdigest()
+    if record.get("source_sha256") != expected_hash:
+        raise ValueError("Source report hash does not match the review.")
+
+    review = DiagnosisReview.model_validate(record["review"])
+    validate_review_report(review, json.loads(original_bytes))
+    return review

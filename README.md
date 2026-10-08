@@ -314,9 +314,31 @@ or end-of-input saves no partial review.
 
 The hash records the report bytes read at save time; it is not a signature or
 reviewer authentication. Reviews remain local under the ignored `out/` directory.
-They do not yet update batch summaries or the source report's `not_scored`
-assessment. Human judgments are separate from automated tool coverage and
-pipeline completion; one review is not a measured model-accuracy rate.
+
+Summarize saved reviews for a batch without running the model again:
+
+```powershell
+python -m evals.review_summary out/evals/<batch-id>
+```
+
+The command reads only the run reports listed in the batch's `summary.json`.
+For each saved review, it verifies the source filename, SHA-256, run and case
+IDs, and review schema. A missing review counts as unreviewed; an invalid review
+raises an error instead of being silently skipped. Missing reports, duplicate
+run IDs, mixed cases, and inconsistent batch case or attempt counts are rejected.
+
+The printed JSON includes reviewed and unreviewed run counts. Each criterion
+reports `met`, `not_met`, `not_assessable`, and `assessable` counts, with
+`met_rate = met / (met + not_met)`. Unreviewed and unassessable results are
+excluded from that denominator; the rate is null when none are assessable.
+The command leaves the automated batch summary and source reports unchanged,
+including their original unscored diagnosis assessment.
+
+The first reviewed payment-provider run met causal explanation and deployment
+reasoning, but did not meet evidence grounding or uncertainty handling. These
+are one reviewer's judgments for one run, not a measured model-accuracy rate.
+Tests cover review integrity checks, aggregation denominators, and loading
+only the reports listed in the batch manifest. They require no Ollama server.
 
 ## Continuous integration
 
@@ -348,8 +370,8 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ## Next milestone
 
-Validate saved reviews against source-report hashes when loading them, then
-summarize human criterion results with explicit reviewed and unreviewed counts.
+Use the review findings to improve diagnosis grounding and uncertainty handling,
+then compare fresh evaluations across both scenarios using the same rubric.
 Remediation appropriateness also needs evaluation before extending the checkout
 demo to other cases. Keep deterministic software tests separate from live
 model evaluations. Automated deployment of OpsPilot will follow once there is

@@ -4,7 +4,7 @@ import json
 
 from pydantic import ValidationError
 
-from evals.assessment import DiagnosisReview, save_review
+from evals.assessment import DiagnosisReview, save_review, load_review
 
 
 def review_payload():
@@ -130,3 +130,55 @@ def test_missing_diagnosis_cannot_receive_substantive_grades(tmp_path):
 
     with pytest.raises(ValueError, match="not_assessable"):
         save_review(review, report_path)
+
+
+def test_saved_review_can_be_loaded(tmp_path):
+    report_path = write_report(tmp_path)
+    review = DiagnosisReview.model_validate(review_payload())
+    save_review(review, report_path)
+
+    assert load_review(report_path) == review
+
+
+def test_absent_review_returns_none(tmp_path):
+    report_path = write_report(tmp_path)
+
+    assert load_review(report_path) is None
+
+
+def test_changed_source_report_is_rejected(tmp_path):
+    report_path = write_report(tmp_path)
+    save_review(
+        DiagnosisReview.model_validate(review_payload()),
+        report_path,
+    )
+    report_path.write_bytes(report_path.read_bytes() + b"\n")
+
+    with pytest.raises(ValueError, match="hash"):
+        load_review(report_path)
+
+
+@pytest.mark.parametrize("field", [
+    "source_report",
+    "run_id",
+    "case_id",
+])
+def test_loaded_review_rejects_mismatched_identity(tmp_path, field):
+    report_path = write_report(tmp_path)
+    review_path = save_review(
+        DiagnosisReview.model_validate(review_payload()),
+        report_path,
+    )
+    record = json.loads(review_path.read_text(encoding="utf-8"))
+
+    if field == "source_report":
+        record[field] = "different.json"
+        expected_message = "filename"
+    else:
+        record["review"][field] = "different"
+        expected_message = field
+
+    review_path.write_text(json.dumps(record), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=expected_message):
+        load_review(report_path)
