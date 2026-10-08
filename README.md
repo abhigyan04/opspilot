@@ -294,6 +294,50 @@ selection, and the outage fixture's pre-deployment failures. Mocked diagnosis
 tests check the restricted citation schema and rejection of unknown IDs.
 They run in normal CI; live evaluations remain a separate local command.
 
+## Diagnosis replay
+
+Rerun diagnosis against a saved investigation with the current diagnosis code
+and prompt, without selecting or executing investigation tools again:
+
+```powershell
+python -m evals.replay out/evals/<batch-id>/<run-id>.json
+```
+
+The source must be a version 2 report with an investigation that finished or
+reached its step limit, a steps list, and a nonblank incident. A report whose
+diagnosis failed can still be replayed. Only the incident and saved steps are
+passed to diagnosis generation; the previous diagnosis, reference answer, and
+human reviews are not model inputs. Generation projects the steps into tool
+observations, excluding earlier model reasoning.
+
+Each replay saves a separate version 2 report under `out/replays/` by default;
+`--output-dir` selects another directory. The report has a new run ID,
+`evaluation_mode: diagnosis_replay`, and source filename, run ID, and SHA-256
+provenance. It retains the source investigation and any reference answer for
+review. Source reports are unchanged, and existing output files are never
+overwritten. Diagnosis exceptions produce a saved failure report and exit
+code 1; source-loading and save errors also return 1. Successful execution
+returns 0, which does not certify diagnosis quality.
+
+Investigation and scoring durations, and coverage metrics, are null because
+those stages were not rerun. Total duration covers loading the source and
+diagnosis execution, excluding saving the report. Automated pipeline summaries
+reject replay reports to avoid mixing diagnosis-only timings and completion
+with full runs. Replays produce individual reports, without a batch manifest.
+They can be reviewed using `python -m evals.review out/replays/<run-id>.json
+--reviewer "Abhigyan"` on one line.
+
+A first provider-case replay took about 86 seconds and returned
+`insufficient_evidence`, whereas its source diagnosis was `supported`.
+Inspection found that it misidentified the commit observation as error logs,
+called the provider unavailability temporary without recovery evidence, and
+claimed the incident declared the evidence insufficient. The source hash and
+saved investigation matched. Fixed evidence does not make model output
+deterministic, and references written inside free-text reasons are not checked
+by the structured citation validator. This is an observed failure, not an
+accuracy estimate. Tests cover source validation, input separation, evidence
+preservation, diagnosis failures, saving, exit codes, and overwrite protection.
+
 ## Human diagnosis review
 
 Review an individual version 2 run report from the repository root:
@@ -395,7 +439,8 @@ necessarily every intended test. The exercise was kept off `master`.
 ## Next milestone
 
 Use the review findings to improve diagnosis grounding and uncertainty handling,
-then compare fresh evaluations across both scenarios using the same rubric.
+then compare diagnosis replays on fixed evidence from both scenarios using the
+same rubric, followed by fresh full-pipeline evaluations.
 Remediation appropriateness also needs evaluation before extending the checkout
 demo to other cases. Keep deterministic software tests separate from live
 model evaluations. Automated deployment of OpsPilot will follow once there is

@@ -8,6 +8,14 @@ def summarize_reports(reports: list[dict]) -> dict:
 
     if any(report["report_version"] != 2 for report in reports):
         raise ValueError("Summary requires version 2 reports.")
+    
+    if any(
+        report.get("evaluation_mode", "full_pipeline") != "full_pipeline"
+        for report in reports
+    ):
+        raise ValueError(
+            "Pipeline summaries cannot include diagnosis replays."
+        )
 
     case_ids = {report["case_id"] for report in reports}
     if len(case_ids) != 1:
