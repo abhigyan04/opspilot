@@ -280,6 +280,44 @@ selection, and the outage fixture's pre-deployment failures. Mocked diagnosis
 tests check the restricted citation schema and rejection of unknown IDs.
 They run in normal CI; live evaluations remain a separate local command.
 
+## Human diagnosis review
+
+Review an individual version 2 run report from the repository root:
+
+```powershell
+python -m evals.review out/evals/<batch-id>/<run-id>.json --reviewer "Abhigyan"
+```
+
+Replace the placeholders with the actual report path, not `summary.json`.
+The CLI displays the report, including collected observations, diagnosis, and
+reference answer, then asks for a verdict and a nonblank rationale for each
+criterion:
+
+- `causal_explanation`: identifies the failure mechanism supported by evidence.
+- `deployment_reasoning`: interprets deployment timing and changes correctly.
+- `evidence_grounding`: supports factual claims and citations without invented
+  explanations.
+- `uncertainty_handling`: distinguishes known facts from unknowns and chooses
+  whether to abstain appropriately.
+
+Choose `1` for `met`, `2` for `not_met`, or `3` for `not_assessable`. Invalid
+choices and blank rationales prompt again. An absent diagnosis requires
+`not_assessable` for every criterion. An `insufficient_evidence` response is
+still a diagnosis that can be reviewed; it does not automatically make every
+criterion unassessable. Earlier model reasoning is not operational evidence.
+
+After all four criteria are entered, the CLI saves `<run-id>.review.json`
+beside the source report. It validates run and case IDs, records the reviewer,
+rubric version and source-report SHA-256, and refuses to overwrite a review.
+The source report remains unchanged. Cancelling during collection with Ctrl+C
+or end-of-input saves no partial review.
+
+The hash records the report bytes read at save time; it is not a signature or
+reviewer authentication. Reviews remain local under the ignored `out/` directory.
+They do not yet update batch summaries or the source report's `not_scored`
+assessment. Human judgments are separate from automated tool coverage and
+pipeline completion; one review is not a measured model-accuracy rate.
+
 ## Continuous integration
 
 The workflow in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) is
@@ -310,8 +348,8 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ## Next milestone
 
-Add explicit diagnosis-assessment criteria for correct causal reasoning,
-unsupported claims, and appropriate abstention across the two scenarios.
+Validate saved reviews against source-report hashes when loading them, then
+summarize human criterion results with explicit reviewed and unreviewed counts.
 Remediation appropriateness also needs evaluation before extending the checkout
 demo to other cases. Keep deterministic software tests separate from live
 model evaluations. Automated deployment of OpsPilot will follow once there is
