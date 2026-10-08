@@ -196,3 +196,32 @@ def test_batch_rejects_invalid_count_before_running(monkeypatch, tmp_path, runs)
 
     with pytest.raises(ValueError, match="at least 1"):
         runner.run_batch(CHECKOUT_REGRESSION, runs, tmp_path)
+
+
+def test_cli_defaults_to_checkout_case():
+    args = runner.parse_arguments([])
+
+    assert args.case == "checkout_regression"
+    assert args.runs == 1
+
+
+def test_cli_selects_payment_provider_case():
+    args = runner.parse_arguments([
+        "--case", "payment_provider_outage",
+        "--runs", "2",
+    ])
+
+    assert args.case == "payment_provider_outage"
+    assert args.runs == 2
+    assert runner.CASES[args.case].scenario_dir.name == "payment_provider_outage"
+
+
+@pytest.mark.parametrize("arguments", [
+    ["--case", "unknown_case"],
+    ["--runs", "0"],
+])
+def test_cli_rejects_invalid_arguments(arguments):
+    with pytest.raises(SystemExit) as error:
+        runner.parse_arguments(arguments)
+
+    assert error.value.code == 2

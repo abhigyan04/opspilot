@@ -1,0 +1,9 @@
+[
+  {
+    "service": "checkout-service",
+    "version": "1.7.4",
+    "timestamp": "2026-09-28T13:57:00Z",
+    "commit_hash": "b72d9e1",
+    "rollback_target_version": "1.7.3"
+  }
+]

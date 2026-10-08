@@ -7,7 +7,7 @@ from time import perf_counter
 from uuid import uuid4
 
 from app.agent.agent import generate_diagnosis, investigate
-from evals.cases import CHECKOUT_REGRESSION, EvaluationCase
+from evals.cases import CASES, EvaluationCase
 from evals.evaluator import evaluate_investigation
 from evals.summary import summarize_reports
 
@@ -130,9 +130,15 @@ def run_batch(case: EvaluationCase, runs: int, output_directory: Path) -> dict:
     }
 
 
-if __name__ == "__main__":
+def parse_arguments(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
-        description="Evaluate OpsPilot on the checkout regression."
+        description="Evaluate OpsPilot on a synthetic incident."
+    )
+    parser.add_argument(
+        "--case",
+        choices=sorted(CASES),
+        default="checkout_regression",
+        help="Incident scenario to evaluate.",
     )
     parser.add_argument(
         "--runs",
@@ -140,16 +146,23 @@ if __name__ == "__main__":
         default=1,
         help="Number of sequential evaluation attempts (default: 1).",
     )
-    args = parser.parse_args()
+
+    args = parser.parse_args(argv)
 
     if args.runs < 1:
         parser.error("--runs must be at least 1")
+
+    return args
+
+
+if __name__ == "__main__":
+    args = parse_arguments()
 
     output_directory = (
         Path(__file__).resolve().parents[1] / "out" / "evals"
     )
     batch = run_batch(
-        CHECKOUT_REGRESSION,
+        CASES[args.case],
         args.runs,
         output_directory,
     )

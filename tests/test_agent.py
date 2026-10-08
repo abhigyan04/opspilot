@@ -300,7 +300,10 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id):
     }
 
     def fake_chat(**kwargs):
-        assert kwargs["format"] == diagnosis_adapter.json_schema()
+        expected_schema = diagnosis_adapter.json_schema()
+        expected_schema["$defs"]["EvidenceClaim"]["properties"]["evidence_ids"]["items"]["enum"] = ["evidence-001"]
+
+        assert kwargs["format"] == expected_schema
 
         supplied = json.loads(kwargs["messages"][-1]["content"])
         assert supplied == {

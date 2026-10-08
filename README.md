@@ -73,8 +73,10 @@ The diagnosis returns either:
   citations, and limitations.
 - `insufficient_evidence`: a reason and a list of missing evidence.
 
-Python checks every root-cause and supporting-claim citation against IDs
-collected during that investigation. Unknown IDs raise `ValueError`.
+The diagnosis generation schema restricts citation strings to an enum of IDs
+collected during that investigation. The prompt also lists the exact allowed
+IDs. Python independently checks every root-cause and supporting-claim citation;
+unknown IDs raise `ValueError` even if generation constraints are bypassed.
 With no collected steps, diagnosis returns insufficient evidence without
 calling the model.
 
@@ -196,12 +198,22 @@ With Ollama running and `qwen3:4b` available, run from the repository root:
 ```powershell
 .\.venv\Scripts\python.exe -m evals.runner
 .\.venv\Scripts\python.exe -m evals.runner --runs 2
+.\.venv\Scripts\python.exe -m evals.runner --case payment_provider_outage --runs 1
 ```
 
-The runner currently evaluates the checkout regression scenario by performing
-investigation and diagnosis. It does not request approval or execute remediation.
+The runner performs investigation and diagnosis for the selected registered
+case. `--case` defaults to `checkout_regression`; `payment_provider_outage` is
+also available. Unknown case names are rejected before a model run starts.
+The runner does not request approval or execute remediation.
 Evaluation code runs from the checkout; `evals` is not currently included in
 the installed application package.
+
+Both cases use the same incident prompt. The checkout regression requires
+connecting a code change to an AttributeError. The payment-provider case has
+PayBridge HTTP 503 responses and elevated error rates before a nearby
+checkout deployment that adds logging only. The evidence does not support
+blaming that deployment for the onset, or explain the provider's internal
+failure. An available rollback target is not evidence that rollback is useful.
 
 The default is one attempt; `--runs` selects a positive number of sequential
 attempts. Each batch saves individual JSON reports and `summary.json` under
@@ -251,9 +263,21 @@ and returned insufficient evidence; the other used all four required tools.
 These small-sample observations illustrate run variability, not reliable
 accuracy or latency estimates.
 
+Initial payment-provider runs failed citation validation after the model invented
+IDs, including timestamp-based labels and shortened IDs such as `evidence-1`.
+After restricting the generation schema, a subsequent run completed in about
+149 seconds with full tool coverage but returned `insufficient_evidence`.
+It recognized provider errors preceding deployment, yet speculated without
+evidence that the logging deployment was a response to the incident. This
+branch contains no structured citations, so that completed run does not prove
+the model can generate valid cited diagnoses under the new constraint. These
+observations remain evaluation findings, not a measured diagnosis-accuracy score.
+
 Runner and summary tests mock model-dependent functions and check reference-answer
 separation, report contents, overwrite protection, failure recording, persistence
-before subsequent attempts, summary denominators, and invalid batch sizes.
+before subsequent attempts, summary denominators, invalid batch sizes, case
+selection, and the outage fixture's pre-deployment failures. Mocked diagnosis
+tests check the restricted citation schema and rejection of unknown IDs.
 They run in normal CI; live evaluations remain a separate local command.
 
 ## Continuous integration
@@ -286,7 +310,9 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ## Next milestone
 
-Add incident scenarios and diagnosis assessment for unsupported causal claims and
-appropriate remediation. Keep deterministic software tests separate from live
+Add explicit diagnosis-assessment criteria for correct causal reasoning,
+unsupported claims, and appropriate abstention across the two scenarios.
+Remediation appropriateness also needs evaluation before extending the checkout
+demo to other cases. Keep deterministic software tests separate from live
 model evaluations. Automated deployment of OpsPilot will follow once there is
 a deployable service.

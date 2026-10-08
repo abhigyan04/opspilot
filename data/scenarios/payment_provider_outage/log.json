@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": "2026-09-28T13:54:00Z",
+    "service": "checkout-service",
+    "version": "1.7.3",
+    "level": "ERROR",
+    "message": "Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE"
+  },
+  {
+    "timestamp": "2026-09-28T14:02:00Z",
+    "service": "checkout-service",
+    "version": "1.7.4",
+    "level": "ERROR",
+    "message": "Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE"
+  }
+]
