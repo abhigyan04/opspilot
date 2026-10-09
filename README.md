@@ -199,21 +199,40 @@ With Ollama running and `qwen3:4b` available, run from the repository root:
 .\.venv\Scripts\python.exe -m evals.runner
 .\.venv\Scripts\python.exe -m evals.runner --runs 2
 .\.venv\Scripts\python.exe -m evals.runner --case payment_provider_outage --runs 1
+.\.venv\Scripts\python.exe -m evals.runner --case sparse_evidence --runs 1
 ```
 
 The runner performs investigation and diagnosis for the selected registered
-case. `--case` defaults to `checkout_regression`; `payment_provider_outage` is
-also available. Unknown case names are rejected before a model run starts.
+case. `--case` defaults to `checkout_regression`; `payment_provider_outage` and
+`sparse_evidence` are also available. Unknown case names are rejected before a
+model run starts.
 The runner does not request approval or execute remediation.
 Evaluation code runs from the checkout; `evals` is not currently included in
 the installed application package.
 
-Both cases use the same incident prompt. The checkout regression requires
+All three cases use the same incident prompt. The checkout regression requires
 connecting a code change to an AttributeError. The payment-provider case has
 PayBridge HTTP 503 responses and elevated error rates before a nearby
 checkout deployment that adds logging only. The evidence does not support
 blaming that deployment for the onset, or explain the provider's internal
 failure. An available rollback target is not evidence that rollback is useful.
+
+The sparse-evidence case has an error-rate increase but empty log, deployment,
+and commit fixtures. The expected diagnosis is `insufficient_evidence`: the
+metrics establish a problem without identifying its mechanism. Empty tool
+results establish only that no matching records were returned, not that no
+errors or deployments occurred. Required coverage includes metrics, logs, and
+deployments; commit lookup is excluded because no commit hash is available.
+
+Its first live run completed in about 159 seconds with three tool calls, full
+required coverage, and an `insufficient_evidence` diagnosis. It did not invent
+a commit hash or specific cause. However, investigation reasoning and diagnosis
+both interpreted empty results as absence of deployments or error logs. The
+diagnosis also attributed a time window to tools that currently filter only by
+service and, for logs, level. The abstention decision was appropriate, but its
+explanation overstated the evidence. This single observation does not establish
+reliable abstention behavior. Fixture and CLI tests verify scenario contents
+and selection without calling the model.
 
 The default is one attempt; `--runs` selects a positive number of sequential
 attempts. Each batch saves individual JSON reports and `summary.json` under
@@ -451,7 +470,7 @@ necessarily every intended test. The exercise was kept off `master`.
 ## Next milestone
 
 Use the review findings to improve diagnosis grounding and uncertainty handling,
-then compare diagnosis replays on fixed evidence from both scenarios using the
+then compare diagnosis replays on fixed evidence from all three scenarios using the
 same rubric, followed by fresh full-pipeline evaluations.
 Remediation appropriateness also needs evaluation before extending the checkout
 demo to other cases. Keep deterministic software tests separate from live

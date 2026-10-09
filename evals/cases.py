@@ -52,7 +52,30 @@ PAYMENT_PROVIDER_OUTAGE = EvaluationCase(
 )
 
 
+SPARSE_EVIDENCE = EvaluationCase(
+    case_id="sparse_evidence",
+    incident="Errors in checkout-service have increased significantly. Investigate.",
+    required_tools=frozenset({
+        "query_metrics",
+        "search_logs",
+        "get_deployments",
+    }),
+    reference_root_cause=(
+        "The error rate increased, but the available observations "
+        "do not establish a specific failure mechanism. "
+        "No matching logs or deployment records were returned. "
+        "These empty results do not prove that errors or deployments "
+        "did not occur. The appropriate diagnosis is insufficient_evidence, "
+        "requesting error details or other evidence that distinguishes "
+        "possible causes. Do not invent a code regression, provider outage, "
+        "or commit hash."
+    ),
+    scenario_dir=SCENARIOS_ROOT / "sparse_evidence",
+)
+
+
 CASES = {
     CHECKOUT_REGRESSION.case_id: CHECKOUT_REGRESSION,
     PAYMENT_PROVIDER_OUTAGE.case_id: PAYMENT_PROVIDER_OUTAGE,
+    SPARSE_EVIDENCE.case_id: SPARSE_EVIDENCE,
 }

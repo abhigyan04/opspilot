@@ -225,3 +225,10 @@ def test_cli_rejects_invalid_arguments(arguments):
         runner.parse_arguments(arguments)
 
     assert error.value.code == 2
+
+
+def test_cli_selects_sparse_evidence_case():
+    args = runner.parse_arguments(["--case", "sparse_evidence"])
+
+    assert args.case == "sparse_evidence"
+    assert runner.CASES[args.case].scenario_dir.name == "sparse_evidence"

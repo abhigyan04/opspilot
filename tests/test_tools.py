@@ -5,6 +5,7 @@ from app.tools.git import get_commit
 from app.tools.logs import search_logs
 from app.tools.metrics import query_metrics
 from app.tools.data import SCENARIOS_ROOT
+from evals.cases import SPARSE_EVIDENCE
 
 def test_checkout_incident_is_diagnosable():
     deployments = get_deployments("checkout-service")
@@ -68,3 +69,29 @@ def test_provider_failure_predates_checkout_deployment():
     assert commit is not None
     assert 'logger.info' in commit["diff"]
     assert "customer_id" not in commit["diff"]
+
+
+def test_sparse_evidence_has_error_increase_without_causal_records():
+    directory = SPARSE_EVIDENCE.scenario_dir
+
+    metrics = query_metrics(
+        "checkout-service", "error_rate", data_dir=directory
+    )
+
+    assert len(metrics) >= 2
+    assert metrics[-1]["timestamp"] > metrics[0]["timestamp"]
+    assert metrics[-1]["value"] > metrics[0]["value"]
+
+    assert search_logs(
+        "checkout-service", "ERROR", data_dir=directory
+    ) == []
+    assert get_deployments(
+        "checkout-service", data_dir=directory
+    ) == []
+    assert get_commit("unknown-commit", data_dir=directory) is None
+
+    assert SPARSE_EVIDENCE.required_tools == frozenset({
+        "query_metrics",
+        "search_logs",
+        "get_deployments",
+    })
