@@ -269,11 +269,16 @@ def test_insufficient_evidence_requires_no_citations():
     agent.validate_diagnosis_evidence(diagnosis, [])
 
 
+@pytest.mark.parametrize("model_kwargs, expected_model", [
+    ({}, "qwen3:4b"),
+    ({"model": "qwen3:8b"}, "qwen3:8b"),
+])
+
 @pytest.mark.parametrize(
     "cited_id",
     ["evidence-001", "evidence-999"],
 )
-def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id):
+def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, model_kwargs, expected_model):
     steps = [{
         "evidence_id": "evidence-001",
         "decision": {
@@ -319,6 +324,8 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id):
             }],
         }
 
+        assert kwargs["model"] == expected_model
+
         return SimpleNamespace(
             message=SimpleNamespace(content=json.dumps(payload))
         )
@@ -327,10 +334,16 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id):
 
     if cited_id == "evidence-999":
         with pytest.raises(ValueError, match="evidence-999"):
-            agent.generate_diagnosis("Investigate checkout-service.", steps)
+            agent.generate_diagnosis(
+                "Investigate checkout-service.",
+                steps,
+                **model_kwargs,
+            )
     else:
         diagnosis = agent.generate_diagnosis(
-            "Investigate checkout-service.", steps
+            "Investigate checkout-service.",
+            steps,
+            **model_kwargs,
         )
         assert diagnosis.model_dump() == payload
 

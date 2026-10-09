@@ -8,7 +8,7 @@ from uuid import uuid4
 import argparse
 
 from evals.runner import save_report
-from app.agent.agent import generate_diagnosis
+from app.agent.agent import generate_diagnosis, DEFAULT_DIAGNOSIS_MODEL
 
 
 def load_replay_source(report_path: Path) -> dict:
@@ -39,7 +39,7 @@ def load_replay_source(report_path: Path) -> dict:
     }
 
 
-def replay_diagnosis(report_path: Path) -> dict:
+def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL) -> dict:
     started = perf_counter()
     source = load_replay_source(report_path)
     original = source["report"]
@@ -56,6 +56,7 @@ def replay_diagnosis(report_path: Path) -> dict:
     report = {
         "report_version": 2,
         "evaluation_mode": "diagnosis_replay",
+        "diagnosis_model": model,
         "run_id": str(uuid4()),
         "started_at": datetime.now(timezone.utc).isoformat(),
         "case_id": original["case_id"],
@@ -84,6 +85,7 @@ def replay_diagnosis(report_path: Path) -> dict:
         diagnosis = generate_diagnosis(
             report["incident"],
             deepcopy(report["investigation"]["steps"]),
+            model=model
         )
         report["diagnosis"] = diagnosis.model_dump(mode="json")
         report["status"] = "completed"
@@ -112,10 +114,15 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=Path(__file__).resolve().parents[1] / "out" / "replays",
     )
+    parser.add_argument(
+        "--model",
+        default=DEFAULT_DIAGNOSIS_MODEL,
+        help=f"Ollama diagnosis model tag (default: %(default)s).",
+    )
     args = parser.parse_args(argv)
 
     try:
-        report = replay_diagnosis(args.report)
+        report = replay_diagnosis(args.report, model=args.model)
         destination = save_report(report, args.output_dir)
     except (OSError, ValueError, KeyError) as error:
         print(f"Replay failed: {error}")
@@ -125,6 +132,7 @@ def main(argv: list[str] | None = None) -> int:
         "report_path": str(destination),
         "run_id": report["run_id"],
         "evaluation_mode": report["evaluation_mode"],
+        "diagnosis_model": report["diagnosis_model"],
         "status": report["status"],
         "source": report["source"],
         "timing": report["timing"],

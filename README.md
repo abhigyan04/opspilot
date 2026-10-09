@@ -320,7 +320,17 @@ and prompt, without selecting or executing investigation tools again:
 
 ```powershell
 python -m evals.replay out/evals/<batch-id>/<run-id>.json
+python -m evals.replay out/evals/<batch-id>/<run-id>.json --model qwen3:8b
 ```
+
+Replay defaults to `qwen3:4b`. Use `--model` to select another locally available
+Ollama model and download it first, for example with `ollama pull qwen3:8b`.
+New replay reports and CLI output record the requested tag in `diagnosis_model`,
+including failed diagnosis attempts. Older reports lack this field. The tag
+does not identify an immutable model digest or record resolved generation
+settings. Investigation and the full evaluation runner still default to 4B;
+selecting a replay model changes only diagnosis generation. Tests check default
+and explicit model selection, citation validation, and model-tag persistence.
 
 The source must be a version 2 report with an investigation that finished or
 reached its step limit, a steps list, and a nonblank incident. A report whose
@@ -368,6 +378,18 @@ claim compared metrics with deployment timing but cited only metrics. The
 provider limitations also inferred that no rollback occurred from a log entry
 on the newer version, which does not establish rollback history. These are
 mixed findings from individual runs, not evidence of reliable improvement.
+
+An initial `qwen3:8b` provider replay completed in about 41 seconds, compared
+with about 80 seconds for the preceding 4B replay on the same saved evidence.
+Its diagnosis incorrectly framed the error spike as following the deployment:
+the error rate was already 0.3 and provider failures were logged at 13:54,
+before deployment at 13:57. It also treated the deployment as a possible cause
+of the provider outage without accounting for those earlier failures. The
+source hash and observations matched. This one attempt was faster but did not
+demonstrate better diagnosis quality; model loading, generation length, and
+runtime settings were not controlled for a performance benchmark. The default
+model remains 4B pending comparisons across all three scenarios and repeated
+attempts.
 
 ## Human diagnosis review
 

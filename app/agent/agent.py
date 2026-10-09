@@ -11,6 +11,8 @@ from app.agent.remediation import (build_rollback_proposal, review_and_execute)
 from app.agent.verification import verify_simulated_remediation
 from app.tools.data import DEFAULT_SCENARIO_DIR
 
+DEFAULT_DIAGNOSIS_MODEL = "qwen3:4b"
+
 
 SYSTEM_PROMPT = """
 You are OpsPilot, an AI production incident investigator.
@@ -109,7 +111,7 @@ def validate_diagnosis_evidence(diagnosis: Diagnosis, steps: list[dict],) -> Non
         )
 
 
-def generate_diagnosis(incident: str, steps: list[dict]) -> Diagnosis:
+def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT_DIAGNOSIS_MODEL) -> Diagnosis:
     if not steps:
         return diagnosis_adapter.validate_python({
             "status": "insufficient_evidence",
@@ -131,7 +133,7 @@ def generate_diagnosis(incident: str, steps: list[dict]) -> Diagnosis:
     citation_items["enum"] = allowed_evidence_ids
 
     response = chat(
-        model="qwen3:4b",
+        model=model,
         messages=[
             {
                 "role": "system",
