@@ -338,6 +338,18 @@ by the structured citation validator. This is an observed failure, not an
 accuracy estimate. Tests cover source validation, input separation, evidence
 preservation, diagnosis failures, saving, exit codes, and overwrite protection.
 
+After adding explicit instructions to support every part of a claim, one replay
+per scenario returned `supported` diagnoses (about 80 seconds for the provider
+case and 88 seconds for checkout). Both source hashes and investigations
+matched their saved inputs. The provider root cause now cited the HTTP 503 logs,
+and checkout described failure when `request.user` is None without assuming
+authentication state. Incomplete citations remained: a provider claim combined
+code changes and continued errors but cited only the commit, while a checkout
+claim compared metrics with deployment timing but cited only metrics. The
+provider limitations also inferred that no rollback occurred from a log entry
+on the newer version, which does not establish rollback history. These are
+mixed findings from individual runs, not evidence of reliable improvement.
+
 ## Human diagnosis review
 
 Review an individual version 2 run report from the repository root:
