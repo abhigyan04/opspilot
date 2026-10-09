@@ -388,8 +388,25 @@ of the provider outage without accounting for those earlier failures. The
 source hash and observations matched. This one attempt was faster but did not
 demonstrate better diagnosis quality; model loading, generation length, and
 runtime settings were not controlled for a performance benchmark. The default
-model remains 4B pending comparisons across all three scenarios and repeated
-attempts.
+model remains 4B pending repeated comparisons across all three scenarios.
+
+The first 8B checkout replay took about 34 seconds and returned
+`insufficient_evidence`. It recognized that the diff matched the AttributeError
+but required definitive causal proof and treated the gap between deployment
+and the first observed error as a reason to abstain. Under this demo's rubric,
+the evidence supports the narrower failure mechanism while reproduction and
+exact onset remain limitations. Its description of the first error at 14:02
+also conflated the metric sample with the log timestamp of 14:02:13; neither
+establishes the exact onset.
+
+The first 8B sparse-evidence replay took about 23 seconds and appropriately
+abstained. It described deployment records and logs as unavailable, rather than
+asserting no deployments or errors occurred, and requested relevant missing
+observations. Both replay source hashes and investigations matched. Across
+these three initial 8B attempts, sparse-evidence handling improved relative to
+the observed 4B response, but the provider timeline and checkout abstention
+remain concerns. These qualitative findings do not establish an overall winner
+or a model-accuracy rate.
 
 ## Human diagnosis review
 
