@@ -493,6 +493,50 @@ Raw reports and environment metadata remain locally under
 Git. These findings are an assistant inspection; no human review sidecars
 were created, and the reports remain `not_scored`.
 
+### Diagnosis prompt revision experiment
+
+A follow-up comparison, `ee0df895-d512-45d1-8501-e888b4702f6d`, tested a
+revised prompt with 4B on the same three saved investigations and seeds
+42, 43, and 44. The revision distinguishes symptoms from failure mechanisms,
+separates unknown deeper causes from missing causal evidence, and explains
+that a rollback target does not establish an executed rollback.
+
+All nine replays completed. Their source hashes, run IDs, incidents,
+investigations, model tag, and generation settings matched the corresponding
+4B baseline attempts. Ollama remained 0.35.0 and the recorded 4B model ID
+remained `359d7dd4bcda`. The comparison directory also contains source snapshots
+of `agent.py`, `settings.py`, and `replay.py`; these capture the uncommitted
+prompt revision that its recorded Git HEAD alone does not identify.
+
+| Scenario | Baseline status matches | Revised status matches | Baseline median diagnosis time | Revised median diagnosis time |
+| --- | --- | --- | --- | --- |
+| Checkout regression | 2/3 | 3/3 | 80.24 s | 79.12 s |
+| Payment provider outage | 1/3 | 2/3 | 84.12 s | 70.45 s |
+| Sparse evidence | 2/3 | 3/3 | 54.63 s | 51.38 s |
+
+Expected-status matches increased from 5/9 to 8/9, but assistant inspection
+found continuing grounding failures. Checkout seed 43 placed error rate 0.4
+at 14:02, when the recorded value was 0.35; 0.4 was observed at 14:05.
+It also omitted evidence needed for compound claims. Seed 44 asserted
+unauthenticated users without evidence of authentication state. The two
+supported provider responses described the outage as temporary without
+recovery evidence and did not explain why the deployment fails to account
+for the earlier errors. Provider seed 44 still abstained solely because the
+provider's deeper cause was unknown.
+
+All sparse-evidence responses now abstained, removing the baseline's
+symptom-as-cause result in this sample. Some wording still blurred missing
+deployment records with the absence of deployments. No revised response
+claimed that a rollback occurred, but the baseline 4B responses had not made
+that claim either; this experiment does not test whether the revision fixes
+the observed 8B rollback confusion.
+
+These are mixed findings from three seeds per case, not a demonstrated overall
+quality improvement or an accuracy score. Timings remain descriptive, with
+the same benchmark limitations noted above. The raw reports and source
+snapshots are local under `out/comparisons/ee0df895-d512-45d1-8501-e888b4702f6d/`.
+No human review sidecars were created; the reports remain `not_scored`.
+
 ## Human diagnosis review
 
 Review an individual version 2 run report from the repository root:
