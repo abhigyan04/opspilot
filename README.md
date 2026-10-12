@@ -535,7 +535,17 @@ These are mixed findings from three seeds per case, not a demonstrated overall
 quality improvement or an accuracy score. Timings remain descriptive, with
 the same benchmark limitations noted above. The raw reports and source
 snapshots are local under `out/comparisons/ee0df895-d512-45d1-8501-e888b4702f6d/`.
-No human review sidecars were created; the reports remain `not_scored`.
+The first human review, for provider seed 42, met causal explanation but did
+not meet deployment reasoning, evidence grounding, or uncertainty handling.
+The checkout seed 43 review met causal explanation and uncertainty handling,
+but did not meet deployment reasoning or evidence grounding. Sparse-evidence
+seed 43 met evidence grounding and uncertainty handling; causal explanation
+and deployment reasoning were not assessable from its available observations.
+All three reviews' source hashes and report identities were verified. These
+were assistant-guided human reviews of selected examples, not a blind or
+complete comparison. The other six revised attempts remain unreviewed.
+Reviews are separate sidecars; the original
+reports retain their `not_scored` assessment fields.
 
 ## Human diagnosis review
 
