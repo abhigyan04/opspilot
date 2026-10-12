@@ -7,6 +7,7 @@ from evals.replay import load_replay_source
 from app.agent.schemas import diagnosis_adapter
 from evals import replay
 from evals.summary import summarize_reports
+from app.agent.settings import DiagnosisSettings
 
 
 def sample_report():
@@ -106,8 +107,9 @@ def test_replay_uses_saved_evidence_without_previous_answers(
     original_bytes = path.read_bytes()
     calls = []
 
-    def fake_generate(incident, steps, *, model):
+    def fake_generate(incident, steps, *, model, settings):
         assert model == "qwen3:4b"
+        assert settings == DiagnosisSettings()
         assert incident == original["incident"]
         assert steps == original["investigation"]["steps"]
         assert "OLD DIAGNOSIS" not in json.dumps([incident, steps])
@@ -150,8 +152,9 @@ def test_replay_records_diagnosis_failure(monkeypatch, tmp_path):
     original = sample_report()
     path = write_report(tmp_path, original)
 
-    def fail_diagnosis(incident, steps, *, model):
+    def fail_diagnosis(incident, steps, *, model, settings):
         assert model == "qwen3:4b"
+        assert settings == DiagnosisSettings()
         raise ValueError("Invalid citation")
 
     monkeypatch.setattr(replay, "generate_diagnosis", fail_diagnosis)
@@ -205,6 +208,7 @@ def test_cli_saves_result_and_returns_matching_exit_code(
         "run_id": "new-replay",
         "evaluation_mode": "diagnosis_replay",
         "diagnosis_model": "qwen3:4b",
+        "diagnosis_settings": DiagnosisSettings().model_dump(mode="json"),
         "status": status,
         "source": {"run_id": "original-run"},
         "timing": {"diagnosis_seconds": 1.0},
@@ -215,9 +219,10 @@ def test_cli_saves_result_and_returns_matching_exit_code(
         },
     }
 
-    def fake_replay(path, *, model):
+    def fake_replay(path, *, model, settings):
         assert path == source_path
         assert model == "qwen3:4b"
+        assert settings == DiagnosisSettings()
         return report
 
     monkeypatch.setattr(replay, "replay_diagnosis", fake_replay)
@@ -235,12 +240,13 @@ def test_cli_saves_result_and_returns_matching_exit_code(
     assert printed["diagnosis_model"] == "qwen3:4b"
     assert printed["report_path"] == str(destination)
     assert printed["status"] == status
+    assert printed["diagnosis_settings"] == report["diagnosis_settings"]
 
 
 def test_cli_reports_invalid_source_without_saving(
     monkeypatch, tmp_path, capsys
 ):
-    def invalid_source(path, *, model):
+    def invalid_source(path, *, model, settings):
         raise ValueError("Replay requires a saved investigation.")
 
     monkeypatch.setattr(replay, "replay_diagnosis", invalid_source)
@@ -268,7 +274,7 @@ def test_cli_preserves_existing_report_on_save_collision(
     monkeypatch.setattr(
         replay,
         "replay_diagnosis",
-        lambda path, *, model: {"run_id": "same-id"},
+        lambda path, *, model, settings: {"run_id": "same-id"},
     )
 
     exit_code = replay.main([
@@ -281,8 +287,32 @@ def test_cli_preserves_existing_report_on_save_collision(
     assert "Replay failed:" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("settings_args, expected_settings", [
+    (
+        [],
+        DiagnosisSettings(),
+    ),
+    (
+        [
+            "--num-ctx", "2048",
+            "--temperature", "0.7",
+            "--top-p", "0.8",
+            "--top-k", "30",
+            "--seed", "7",
+            "--no-think",
+        ],
+        DiagnosisSettings(
+            num_ctx=2048,
+            temperature=0.7,
+            top_p=0.8,
+            top_k=30,
+            seed=7,
+            think=False,
+        ),
+    ),
+])
 def test_cli_forwards_and_records_selected_model(
-    monkeypatch, tmp_path, capsys
+    monkeypatch, tmp_path, capsys, settings_args, expected_settings
 ):
     original = sample_report()
     original["investigation"]["steps"] = [{
@@ -301,8 +331,9 @@ def test_cli_forwards_and_records_selected_model(
     output_dir = tmp_path / "replays"
     calls = []
 
-    def fake_generate(incident, steps, *, model):
+    def fake_generate(incident, steps, *, model, settings):
         assert incident == original["incident"]
+        assert settings == expected_settings
         assert steps == original["investigation"]["steps"]
         calls.append(model)
         return diagnosis_adapter.validate_python({
@@ -317,6 +348,7 @@ def test_cli_forwards_and_records_selected_model(
         str(source_path),
         "--model", "qwen3:8b",
         "--output-dir", str(output_dir),
+        *settings_args
     ])
 
     printed = json.loads(capsys.readouterr().out)
@@ -328,3 +360,94 @@ def test_cli_forwards_and_records_selected_model(
     assert printed["diagnosis_model"] == "qwen3:8b"
     assert saved["diagnosis_model"] == "qwen3:8b"
     assert saved["investigation"] == original["investigation"]
+    assert saved["diagnosis_settings"] == (expected_settings.model_dump(mode="json"))
+    assert printed["diagnosis_settings"] == saved["diagnosis_settings"]
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_replay_records_the_settings_passed_to_diagnosis(
+    monkeypatch, tmp_path, fail
+):
+    original = sample_report()
+    original["investigation"]["steps"] = [{
+        "evidence_id": "evidence-001",
+        "decision": {
+            "tool": "search_logs",
+            "arguments": {
+                "service": "checkout-service",
+                "level": "ERROR",
+            },
+            "reason": "Inspect errors.",
+        },
+        "result": [],
+    }]
+    path = write_report(tmp_path, original)
+
+    requested = DiagnosisSettings(
+        num_ctx=2048,
+        temperature=0.7,
+        top_p=0.8,
+        top_k=30,
+        seed=7,
+        think=False,
+    )
+    received = []
+
+    def fake_generate(incident, steps, *, model, settings):
+        received.append(settings)
+        if fail:
+            raise ValueError("Invalid diagnosis")
+
+        return diagnosis_adapter.validate_python({
+            "status": "insufficient_evidence",
+            "reason": "No matching error logs.",
+            "missing_evidence": ["Application error details"],
+        })
+
+    monkeypatch.setattr(replay, "generate_diagnosis", fake_generate)
+
+    result = replay.replay_diagnosis(
+        path,
+        model="qwen3:8b",
+        settings=requested,
+    )
+
+    assert received == [requested]
+    assert result["diagnosis_settings"] == {
+        "num_ctx": 2048,
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "top_k": 30,
+        "seed": 7,
+        "think": False,
+    }
+    assert result["status"] == ("failed" if fail else "completed")
+    assert result["investigation"] == original["investigation"]
+
+
+@pytest.mark.parametrize("arguments", [
+    ["--num-ctx", "0"],
+    ["--temperature", "nan"],
+    ["--top-p", "1.1"],
+    ["--top-k", "0"],
+    ["--seed", "-1"],
+])
+def test_invalid_cli_settings_stop_before_replay(
+    monkeypatch, tmp_path, capsys, arguments
+):
+    def unexpected_replay(*args, **kwargs):
+        pytest.fail("Invalid settings must not start replay.")
+
+    monkeypatch.setattr(replay, "replay_diagnosis", unexpected_replay)
+    output_dir = tmp_path / "replays"
+
+    with pytest.raises(SystemExit) as error:
+        replay.main([
+            str(tmp_path / "source.json"),
+            "--output-dir", str(output_dir),
+            *arguments,
+        ])
+
+    assert error.value.code == 2
+    assert not output_dir.exists()
+    assert "error:" in capsys.readouterr().err

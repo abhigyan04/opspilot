@@ -332,6 +332,39 @@ settings. Investigation and the full evaluation runner still default to 4B;
 selecting a replay model changes only diagnosis generation. Tests check default
 and explicit model selection, citation validation, and model-tag persistence.
 
+Replay now sends explicit generation settings and records them in
+`diagnosis_settings` in both the saved report and CLI output, including failed
+diagnosis attempts. Defaults and overrides are:
+
+| CLI flag | Default | Purpose |
+| --- | --- | --- |
+| `--num-ctx` | `4096` | Requested context size |
+| `--temperature` | `0.6` | Sampling temperature |
+| `--top-p` | `0.95` | Sampling probability threshold |
+| `--top-k` | `20` | Sampling candidate limit |
+| `--seed` | `42` | Sampling seed |
+| `--think` / `--no-think` | Enabled | Thinking mode |
+
+For example:
+
+```powershell
+python -m evals.replay out/evals/<batch-id>/<run-id>.json --model qwen3:8b --seed 42 --num-ctx 4096 --think
+```
+
+The validated, immutable settings object sends `think` as a separate chat
+argument and the remaining fields as Ollama options. Invalid CLI settings exit
+with code 2 before loading a report or starting diagnosis. Tests verify default
+and custom settings reach diagnosis generation, are saved and printed, and
+remain recorded on failure. Direct diagnosis callers that omit settings retain
+their previous behavior; the full evaluation runner does not yet expose these
+overrides.
+
+These are requested settings, not a complete snapshot of resolved server
+defaults. Older reports without `diagnosis_settings` should not be assumed to
+use this configuration. A fixed seed does not guarantee identical results
+across model versions, runtimes, or hardware; prompt and model digests are not
+yet recorded.
+
 The source must be a version 2 report with an investigation that finished or
 reached its step limit, a steps list, and a nonblank incident. A report whose
 diagnosis failed can still be replayed. Only the incident and saved steps are
@@ -407,6 +440,14 @@ these three initial 8B attempts, sparse-evidence handling improved relative to
 the observed 4B response, but the provider timeline and checkout abstention
 remain concerns. These qualitative findings do not establish an overall winner
 or a model-accuracy rate.
+
+The first 8B provider replay with explicit settings (seed 42, 4096 context,
+thinking enabled and the defaults above) completed in about 44 seconds. Its
+settings and source hash were verified, but it returned `insufficient_evidence`
+despite the observed provider-error mechanism. It raised a possible deployment
+configuration change without supporting evidence and did not account for the
+provider failures preceding deployment. This confirms the settings integration,
+not an improvement in diagnosis quality.
 
 ## Human diagnosis review
 

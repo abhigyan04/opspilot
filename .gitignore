@@ -56,3 +56,6 @@ htmlcov/
 *.db
 *.sqlite
 *.sqlite3
+
+#Notes
+docs/OpsPilot Project Handoff.md

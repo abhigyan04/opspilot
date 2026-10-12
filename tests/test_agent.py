@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from app.agent import agent
 from app.agent.schemas import tool_call_adapter, agent_decision_adapter, diagnosis_adapter, RollbackProposal
 from app.tools.data import DEFAULT_SCENARIO_DIR
+from app.agent.settings import DiagnosisSettings
 
 
 def make_call(tool, arguments):
@@ -269,16 +270,41 @@ def test_insufficient_evidence_requires_no_citations():
     agent.validate_diagnosis_evidence(diagnosis, [])
 
 
-@pytest.mark.parametrize("model_kwargs, expected_model", [
-    ({}, "qwen3:4b"),
-    ({"model": "qwen3:8b"}, "qwen3:8b"),
-])
+@pytest.mark.parametrize(
+    "model_kwargs, expected_model, expected_options, expected_think",
+    [
+        ({}, "qwen3:4b", None, None),
+        ({"model": "qwen3:8b"}, "qwen3:8b", None, None),
+        (
+            {
+                "model": "qwen3:8b",
+                "settings": DiagnosisSettings(
+                    num_ctx=2048,
+                    temperature=0.7,
+                    top_p=0.8,
+                    top_k=30,
+                    seed=7,
+                    think=False
+                )
+            },
+            "qwen3:8b",
+            {
+                "num_ctx": 2048,
+                "temperature": 0.7,
+                "top_p": 0.8,
+                "top_k": 30,
+                "seed": 7
+            },
+            False
+        )
+    ]
+)
 
 @pytest.mark.parametrize(
     "cited_id",
     ["evidence-001", "evidence-999"],
 )
-def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, model_kwargs, expected_model):
+def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, model_kwargs, expected_model, expected_options, expected_think):
     steps = [{
         "evidence_id": "evidence-001",
         "decision": {
@@ -325,6 +351,12 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, mod
         }
 
         assert kwargs["model"] == expected_model
+        if expected_options is None:
+            assert "options" not in kwargs
+            assert "think" not in kwargs
+        else:
+            assert kwargs["options"] == expected_options
+            assert kwargs["think"] is expected_think
 
         return SimpleNamespace(
             message=SimpleNamespace(content=json.dumps(payload))

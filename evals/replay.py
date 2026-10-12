@@ -9,6 +9,7 @@ import argparse
 
 from evals.runner import save_report
 from app.agent.agent import generate_diagnosis, DEFAULT_DIAGNOSIS_MODEL
+from app.agent.settings import DiagnosisSettings
 
 
 def load_replay_source(report_path: Path) -> dict:
@@ -39,8 +40,11 @@ def load_replay_source(report_path: Path) -> dict:
     }
 
 
-def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL) -> dict:
+def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL, settings: DiagnosisSettings | None = None) -> dict:
     started = perf_counter()
+    effective_settings = (
+        DiagnosisSettings() if settings is None else settings
+    )
     source = load_replay_source(report_path)
     original = source["report"]
 
@@ -57,6 +61,7 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL)
         "report_version": 2,
         "evaluation_mode": "diagnosis_replay",
         "diagnosis_model": model,
+        "diagnosis_settings": effective_settings.model_dump(mode="json"),
         "run_id": str(uuid4()),
         "started_at": datetime.now(timezone.utc).isoformat(),
         "case_id": original["case_id"],
@@ -85,7 +90,8 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL)
         diagnosis = generate_diagnosis(
             report["incident"],
             deepcopy(report["investigation"]["steps"]),
-            model=model
+            model=model,
+            settings=effective_settings
         )
         report["diagnosis"] = diagnosis.model_dump(mode="json")
         report["status"] = "completed"
@@ -119,10 +125,34 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_DIAGNOSIS_MODEL,
         help=f"Ollama diagnosis model tag (default: %(default)s).",
     )
+
+    defaults = DiagnosisSettings()
+
+    parser.add_argument("--num-ctx", type=int, default=defaults.num_ctx)
+    parser.add_argument("--temperature", type=float, default=defaults.temperature)
+    parser.add_argument("--top-p", type=float, default=defaults.top_p)
+    parser.add_argument("--top-k", type=int, default=defaults.top_k)
+    parser.add_argument("--seed", type=int, default=defaults.seed)
+    parser.add_argument("--think", action=argparse.BooleanOptionalAction,
+                        default=defaults.think,
+                        help="Enable thinking; use --no-think to disable it.")
+
     args = parser.parse_args(argv)
 
     try:
-        report = replay_diagnosis(args.report, model=args.model)
+        settings = DiagnosisSettings(
+            num_ctx=args.num_ctx,
+            temperature=args.temperature,
+            top_p=args.top_p,
+            top_k=args.top_k,
+            seed=args.seed,
+            think=args.think,
+        )
+    except ValueError as error:
+        parser.error(str(error))
+
+    try:
+        report = replay_diagnosis(args.report, model=args.model, settings=settings)
         destination = save_report(report, args.output_dir)
     except (OSError, ValueError, KeyError) as error:
         print(f"Replay failed: {error}")
@@ -133,6 +163,7 @@ def main(argv: list[str] | None = None) -> int:
         "run_id": report["run_id"],
         "evaluation_mode": report["evaluation_mode"],
         "diagnosis_model": report["diagnosis_model"],
+        "diagnosis_settings": report["diagnosis_settings"],
         "status": report["status"],
         "source": report["source"],
         "timing": report["timing"],
