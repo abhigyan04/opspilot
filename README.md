@@ -541,11 +541,30 @@ The checkout seed 43 review met causal explanation and uncertainty handling,
 but did not meet deployment reasoning or evidence grounding. Sparse-evidence
 seed 43 met evidence grounding and uncertainty handling; causal explanation
 and deployment reasoning were not assessable from its available observations.
-All three reviews' source hashes and report identities were verified. These
-were assistant-guided human reviews of selected examples, not a blind or
-complete comparison. The other six revised attempts remain unreviewed.
-Reviews are separate sidecars; the original
+All nine review hashes and report identities were verified; the original reports
+and three existing reviews were unchanged. Reviews are separate sidecars; the original
 reports retain their `not_scored` assessment fields.
+
+The completed review set has the following met/assessable counts:
+
+| Scenario | Causal explanation | Deployment reasoning | Evidence grounding | Uncertainty handling |
+| --- | --- | --- | --- | --- |
+| Checkout regression | 2/3 | 2/3 | 0/3 | 1/3 |
+| Payment provider outage | 3/3 | 0/3 | 1/3 | 0/3 |
+| Sparse evidence | Not assessable | Not assessable | 3/3 | 3/3 |
+
+Provider seed 44 recognized the HTTP 503 mechanism in its reason, so causal
+explanation met the criterion even though its decision to abstain failed
+uncertainty handling. Sparse seeds 42 and 44 were read in the context of
+available observations and requests for missing data; their ambiguous wording
+about deployments should still be made explicit as missing returned records.
+Checkout failures included unsupported authentication state, incomplete
+citations, and treating the first elevated metric sample as exact onset.
+
+These judgments mix three guided human reviews and six AI reviews. They are
+not an independent or blind evaluation, and the summary pools reviewer types.
+Completing this review set does not establish general accuracy or improvement
+over the baseline, which has not received equivalent complete rubric reviews.
 
 ## Human diagnosis review
 
@@ -616,6 +635,48 @@ reasoning, but did not meet evidence grounding or uncertainty handling. These
 are one reviewer's judgments for one run, not a measured model-accuracy rate.
 Tests cover review integrity checks, aggregation denominators, and loading
 only the reports listed in the batch manifest. They require no Ollama server.
+
+### Comparison review summaries
+
+Summarize reviews across the nested replay directories of one comparison:
+
+```powershell
+python -m evals.review_summary out/comparisons/<comparison-id> --comparison
+```
+
+Comparison mode recursively discovers JSON reports, excluding `summary.json`
+and `*.review.json`. It includes completed and failed version 2 diagnosis
+replays and rejects malformed reports, unfinished runs, duplicate run IDs,
+missing provenance, and missing or invalid explicit generation settings.
+Non-JSON metadata and source snapshots are not included.
+
+Reports are grouped by case, requested model tag, recorded source provenance,
+and generation settings other than seed. Each group lists its seeds and
+relative report paths, plus total, reviewed, unreviewed, and criterion counts.
+The same review hash and identity checks and assessable-only denominators used
+for batch reviews apply. Invalid reviews stop the summary; absent reviews
+count as unreviewed. The command prints JSON without changing reports or
+reviews, calling a model, or saving a summary file. Without `--comparison`,
+the existing manifest-based batch behavior is preserved.
+
+Use one experiment directory at a time. Prompt versions and resolved model
+digests are not grouping fields, so combining different experiments under a
+parent directory can merge incompatible attempts. Recorded source provenance
+is used for grouping; this command does not independently verify the original
+investigation file or its equality with the replay's copied observations.
+Discovery counts files present, not an expected experiment matrix, so missing
+attempts cannot be detected without a separate inventory.
+
+The revised-prompt comparison `ee0df895-d512-45d1-8501-e888b4702f6d` initially
+produced 9 total runs, 3 reviewed and 6 unreviewed. After the six requested
+AI reviews, it has 9 reviewed and 0 unreviewed, in three scenario groups with
+3 reviews each. A summary snapshot was saved separately at
+`out/comparisons/ee0df895-d512-45d1-8501-e888b4702f6d/summary.json`.
+Sparse evidence has null causal-explanation and deployment-reasoning rates
+because all three judgments for those criteria are not assessable.
+These rates describe the recorded reviews, not overall diagnosis accuracy.
+The 187-test suite passed after adding comparison discovery, grouping,
+integrity checks, and CLI coverage, including compatibility with batch mode.
 
 ## Continuous integration
 
