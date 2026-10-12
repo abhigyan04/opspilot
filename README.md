@@ -421,7 +421,7 @@ of the provider outage without accounting for those earlier failures. The
 source hash and observations matched. This one attempt was faster but did not
 demonstrate better diagnosis quality; model loading, generation length, and
 runtime settings were not controlled for a performance benchmark. The default
-model remains 4B pending repeated comparisons across all three scenarios.
+model remained 4B for the repeated comparison below.
 
 The first 8B checkout replay took about 34 seconds and returned
 `insufficient_evidence`. It recognized that the diff matched the AttributeError
@@ -448,6 +448,50 @@ despite the observed provider-error mechanism. It raised a possible deployment
 configuration change without supporting evidence and did not account for the
 provider failures preceding deployment. This confirms the settings integration,
 not an improvement in diagnosis quality.
+
+### Repeated local model comparison
+
+On 12 October 2026, comparison `31c65605-b81a-418c-b074-25f4716e4578`
+ran both models against one saved investigation per scenario, using seeds
+42, 43, and 44: 18 diagnosis replays in total. All completed. Every report's
+source SHA-256, source run ID, incident, and investigation matched its original
+report. All used context 4096, temperature 0.6, top-p 0.95, top-k 20, and
+thinking enabled. The recorded runtime was Ollama 0.35.0, with model IDs
+`359d7dd4bcda` (4B) and `500a1f067a9f` (8B), at project commit
+`fc3efa669b5809bb09a325a44f747b307c7bf4dc`. These are short model IDs,
+not full immutable digests.
+
+| Scenario | Expected diagnosis status | 4B status matches | 8B status matches | 4B median diagnosis time | 8B median diagnosis time |
+| --- | --- | --- | --- | --- | --- |
+| Checkout regression | `supported` | 2/3 | 0/3 | 80.24 s | 19.55 s |
+| Payment provider outage | `supported` | 1/3 | 0/3 | 84.12 s | 34.61 s |
+| Sparse evidence | `insufficient_evidence` | 2/3 | 3/3 | 54.63 s | 16.76 s |
+
+Status matches are not diagnosis-accuracy scores. Assistant inspection found
+that 8B abstained in all nine attempts, including cases where the observations
+support a specific failure mechanism without establishing its deeper cause.
+Two checkout responses also treated a recorded rollback target as evidence of
+a rollback action. Its sparse-evidence responses appropriately requested
+missing records without claiming that no deployments or errors occurred.
+
+4B remained inconsistent. Checkout seed 42 gave a supported explanation with
+relevant citations and acknowledged that the conditions making `request.user`
+None were unknown. Seed 43 had incomplete citations for compound claims.
+The supported provider response omitted the pre-deployment failure timeline;
+the two abstentions overlooked timestamps present in the evidence. Sparse
+seed 43 labeled the error-rate increase itself a supported root cause while
+admitting that its cause was unknown.
+
+Keep 4B as the provisional default: this comparison does not justify switching
+to 8B for diagnosis quality. 8B was faster in this sample, but each scenario
+used only one evidence bundle and three seeds; model loading, output length,
+and warm/cold state were not controlled. This is not a general performance
+benchmark or a reliable accuracy estimate for either model.
+
+Raw reports and environment metadata remain locally under
+`out/comparisons/31c65605-b81a-418c-b074-25f4716e4578/`, which is excluded from
+Git. These findings are an assistant inspection; no human review sidecars
+were created, and the reports remain `not_scored`.
 
 ## Human diagnosis review
 
@@ -549,9 +593,10 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ## Next milestone
 
-Use the review findings to improve diagnosis grounding and uncertainty handling,
-then compare diagnosis replays on fixed evidence from all three scenarios using the
-same rubric, followed by fresh full-pipeline evaluations.
+The first repeated model comparison is complete; the evaluation milestone
+remains in progress. Use its findings to target diagnosis grounding and
+uncertainty handling, validate changes against the same saved evidence and
+review rubric, then run fresh full-pipeline evaluations.
 Remediation appropriateness also needs evaluation before extending the checkout
 demo to other cases. Keep deterministic software tests separate from live
 model evaluations. Automated deployment of OpsPilot will follow once there is
