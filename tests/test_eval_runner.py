@@ -3,6 +3,7 @@ import json
 import pytest
 
 from app.agent.schemas import diagnosis_adapter
+from app.agent.settings import DiagnosisSettings
 from evals import runner
 from evals.cases import EvaluationCase, CHECKOUT_REGRESSION
 
@@ -45,9 +46,11 @@ def test_runner_passes_incident_and_observations_without_reference(monkeypatch, 
         calls.append("investigate")
         return investigation
 
-    def fake_generate_diagnosis(incident, steps):
+    def fake_generate_diagnosis(incident, steps, *, model, settings):
         assert incident == case.incident
         assert steps == investigation["steps"]
+        assert model == runner.DEFAULT_DIAGNOSIS_MODEL
+        assert settings == DiagnosisSettings()
         assert case.reference_root_cause not in json.dumps([incident, steps])
         calls.append("diagnosis")
         return diagnosis
@@ -67,6 +70,9 @@ def test_runner_passes_incident_and_observations_without_reference(monkeypatch, 
     assert report["investigation"] == investigation
     assert report["status"] == "completed"
     assert report["error"] is None
+    assert report["evaluation_mode"] == "full_pipeline"
+    assert report["diagnosis_model"] == runner.DEFAULT_DIAGNOSIS_MODEL
+    assert report["diagnosis_settings"] == DiagnosisSettings().model_dump(mode="json")
     assert all(value >= 0 for value in report["timing"].values())
 
 
@@ -107,7 +113,7 @@ def test_failed_run_preserves_available_results(monkeypatch, tmp_path, stage):
             raise RuntimeError("Investigation unavailable")
         return investigation
 
-    def fake_diagnosis(incident, steps):
+    def fake_diagnosis(incident, steps, *, model, settings):
         if stage == "investigation":
             pytest.fail("Diagnosis must not run after investigation fails.")
         raise ValueError("Invalid diagnosis")
@@ -134,10 +140,26 @@ def test_failed_run_preserves_available_results(monkeypatch, tmp_path, stage):
     assert json.loads(destination.read_text(encoding="utf-8")) == report
 
 
-def test_batch_saves_failed_attempt_before_continuing(monkeypatch, tmp_path):
+@pytest.mark.parametrize("custom_configuration", [False, True])
+def test_batch_saves_failed_attempt_before_continuing(monkeypatch, tmp_path, custom_configuration):
     attempts = []
+    
+    selected_model = (
+        "qwen3:8b"
+        if custom_configuration
+        else runner.DEFAULT_DIAGNOSIS_MODEL
+    )
+    selected_settings = (
+        DiagnosisSettings(seed=44, think=False)
+        if custom_configuration
+        else None
+    )
+    received_configuration = []
 
-    def fake_run_case(case):
+    def fake_run_case(case, *, diagnosis_model, diagnosis_settings):
+        received_configuration.append(
+            (diagnosis_model, diagnosis_settings)
+        )
         index = len(attempts)
 
         if index == 1:
@@ -168,7 +190,24 @@ def test_batch_saves_failed_attempt_before_continuing(monkeypatch, tmp_path):
 
     monkeypatch.setattr(runner, "run_case", fake_run_case)
 
-    batch = runner.run_batch(CHECKOUT_REGRESSION, 2, tmp_path)
+    configuration = {}
+    if custom_configuration:
+        configuration = {
+            "diagnosis_model": selected_model,
+            "diagnosis_settings": selected_settings,
+        }
+
+    batch = runner.run_batch(
+        CHECKOUT_REGRESSION,
+        2,
+        tmp_path,
+        **configuration,
+    )
+
+    assert received_configuration == [
+        (selected_model, selected_settings),
+        (selected_model, selected_settings),
+    ]
 
     assert len(attempts) == 2
     assert batch["summary"]["attempts"] == 2
@@ -232,3 +271,135 @@ def test_cli_selects_sparse_evidence_case():
 
     assert args.case == "sparse_evidence"
     assert runner.CASES[args.case].scenario_dir.name == "sparse_evidence"
+
+
+@pytest.mark.parametrize("diagnosis_fails", [False, True])
+def test_run_case_forwards_and_records_diagnosis_configuration(monkeypatch, diagnosis_fails):
+    investigation = {
+        "status": "finished",
+        "reason": "Evidence collected.",
+        "steps": [],
+    }
+    settings = DiagnosisSettings(seed=43, think=False)
+    diagnosis = diagnosis_adapter.validate_python({
+        "status": "insufficient_evidence",
+        "reason": "No operational evidence was collected.",
+        "missing_evidence": ["Operational tool results"],
+    })
+    received = []
+
+    def fake_investigate(incident, *, data_dir):
+        return investigation
+
+    def fake_generate(incident, steps, *, model, settings):
+        received.append((incident, steps, model, settings))
+        if diagnosis_fails:
+            raise RuntimeError("Diagnosis unavailable")
+        return diagnosis
+
+    monkeypatch.setattr(runner, "investigate", fake_investigate)
+    monkeypatch.setattr(runner, "generate_diagnosis", fake_generate)
+
+    report = runner.run_case(
+        CHECKOUT_REGRESSION,
+        diagnosis_model="qwen3:8b",
+        diagnosis_settings=settings,
+    )
+
+    assert received == [
+        (CHECKOUT_REGRESSION.incident, [], "qwen3:8b", settings)
+    ]
+    assert report["evaluation_mode"] == "full_pipeline"
+    assert report["diagnosis_model"] == "qwen3:8b"
+    assert report["diagnosis_settings"] == settings.model_dump(mode="json")
+    assert report["status"] == (
+        "failed" if diagnosis_fails else "completed"
+    )
+
+    if diagnosis_fails:
+        assert report["error"]["stage"] == "diagnosis"
+        assert report["diagnosis"] is None
+    else:
+        assert report["error"] is None
+        assert report["diagnosis"] == diagnosis.model_dump(mode="json")
+
+
+def test_cli_defaults_to_explicit_diagnosis_settings():
+    args = runner.parse_arguments([])
+
+    assert args.model == runner.DEFAULT_DIAGNOSIS_MODEL
+    assert args.diagnosis_settings == DiagnosisSettings()
+
+
+@pytest.mark.parametrize("failed", [0, 1])
+def test_cli_forwards_configuration_and_returns_batch_status(monkeypatch, capsys, failed):
+    calls = []
+
+    def fake_run_batch(
+        case,
+        runs,
+        output_directory,
+        *,
+        diagnosis_model,
+        diagnosis_settings,
+    ):
+        calls.append({
+            "case": case.case_id,
+            "runs": runs,
+            "model": diagnosis_model,
+            "settings": diagnosis_settings.model_dump(mode="json"),
+        })
+        return {"summary": {"failed": failed}}
+
+    monkeypatch.setattr(runner, "run_batch", fake_run_batch)
+
+    exit_code = runner.main([
+        "--case", "payment_provider_outage",
+        "--runs", "2",
+        "--model", "qwen3:8b",
+        "--num-ctx", "4096",
+        "--temperature", "0.2",
+        "--top-p", "0.9",
+        "--top-k", "30",
+        "--seed", "44",
+        "--no-think",
+    ])
+
+    assert calls == [{
+        "case": "payment_provider_outage",
+        "runs": 2,
+        "model": "qwen3:8b",
+        "settings": {
+            "num_ctx": 4096,
+            "temperature": 0.2,
+            "top_p": 0.9,
+            "top_k": 30,
+            "seed": 44,
+            "think": False,
+        },
+    }]
+    assert exit_code == (1 if failed else 0)
+    assert json.loads(capsys.readouterr().out) == {
+        "summary": {"failed": failed}
+    }
+
+
+@pytest.mark.parametrize("arguments", [
+    ["--model", "   "],
+    ["--num-ctx", "0"],
+    ["--temperature", "-1"],
+    ["--temperature", "nan"],
+    ["--top-p", "1.1"],
+    ["--top-k", "0"],
+    ["--seed", "-1"],
+])
+def test_invalid_diagnosis_configuration_never_starts_batch(monkeypatch, arguments):
+    def unexpected_batch(*args, **kwargs):
+        pytest.fail("Invalid configuration must not start a batch.")
+
+    monkeypatch.setattr(runner, "run_batch", unexpected_batch)
+
+    with pytest.raises(SystemExit) as error:
+        runner.main(arguments)
+
+    assert error.value.code == 2

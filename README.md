@@ -337,6 +337,36 @@ The runner does not request approval or execute remediation.
 Evaluation code runs from the checkout; `evals` is not currently included in
 the installed application package.
 
+Use `--model` to select the diagnosis model (default `qwen3:4b`). The runner
+also accepts `--num-ctx`, `--temperature`, `--top-p`, `--top-k`, `--seed`, and
+`--think` / `--no-think`, with the same defaults as diagnosis replay:
+4096, 0.6, 0.95, 20, 42, and thinking enabled. These options affect diagnosis
+only; investigation continues to use its existing `qwen3:4b` configuration.
+Both models must be available locally when different tags are selected.
+
+```powershell
+python -m evals.runner --case payment_provider_outage --runs 1 --model qwen3:8b --seed 42 --num-ctx 4096 --think
+```
+
+Every attempt receives the selected configuration. Individual reports record
+`evaluation_mode: full_pipeline`, `diagnosis_model`, and `diagnosis_settings`,
+including failed attempts. The CLI prints the batch summary; inspect its listed
+individual reports for configuration and diagnosis details. Blank model tags
+and invalid settings exit with code 2 before starting a batch. Model tags are
+passed to Ollama; the CLI does not check whether a model is installed.
+
+On 13 October 2026, batch `e50549e7-2c44-4a8a-a3ba-6b4befc78df9` completed a
+fresh provider-outage investigation and diagnosis in 205.23 seconds with four
+tool calls and full required-tool coverage. Its report
+`88405562-a606-4f8a-b802-2c3257f6a562.json` recorded `qwen3:8b`, seed 42,
+4096 context, and thinking enabled. Investigation took 148.37 seconds and
+diagnosis took 56.86 seconds. The diagnosis returned `insufficient_evidence`,
+recognizing unchanged provider errors across versions but failing to identify
+the observed PayBridge failure mechanism as the supported explanation. The
+evidence already shows failures before deployment. This run verifies settings
+integration, not improved diagnosis accuracy; formal assessment remains
+`not_scored`. The user reported 247 passing tests for the completed integration.
+
 All three cases use the same incident prompt. The checkout regression requires
 connecting a code change to an AttributeError. The payment-provider case has
 PayBridge HTTP 503 responses and elevated error rates before a nearby
@@ -383,8 +413,9 @@ arguments, a correct diagnosis, or overall task success.
 Durations include local model processing and any model-loading overhead. A
 first local run achieved full required-tool coverage with four calls and took
 about 173 seconds; this is a single observation, not a performance benchmark.
-Model outputs can vary between runs. Reports do not yet capture model versions,
-generation settings, or repository revisions needed for stronger reproducibility.
+Model outputs can vary between runs. New reports capture the requested diagnosis
+model tag and settings, but not immutable model digests, investigation generation
+settings, or repository revisions needed for stronger reproducibility.
 
 Exceptions during investigation, coverage scoring, or diagnosis produce a
 `failed` report with the error stage, type, and message. Completed stages are
@@ -483,8 +514,8 @@ argument and the remaining fields as Ollama options. Invalid CLI settings exit
 with code 2 before loading a report or starting diagnosis. Tests verify default
 and custom settings reach diagnosis generation, are saved and printed, and
 remain recorded on failure. Direct diagnosis callers that omit settings retain
-their previous behavior; the full evaluation runner does not yet expose these
-overrides.
+their previous behavior. The full evaluation runner now exposes the same
+diagnosis overrides and records them in each attempt's report.
 
 These are requested settings, not a complete snapshot of resolved server
 defaults. Older reports without `diagnosis_settings` should not be assumed to

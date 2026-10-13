@@ -6,17 +6,33 @@ from pathlib import Path
 from time import perf_counter
 from uuid import uuid4
 
-from app.agent.agent import generate_diagnosis, investigate
+from app.agent.agent import (
+    DEFAULT_DIAGNOSIS_MODEL, 
+    generate_diagnosis, 
+    investigate
+)
+from app.agent.settings import DiagnosisSettings
 from evals.cases import CASES, EvaluationCase
 from evals.evaluator import evaluate_investigation
 from evals.summary import summarize_reports
 
 
-def run_case(case: EvaluationCase) -> dict:
+def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None) -> dict:
+    if not isinstance(diagnosis_model, str) or not diagnosis_model.strip():
+        raise ValueError("A nonblank diagnosis model is required.")
+    
+    settings = (
+        diagnosis_settings
+        if diagnosis_settings is not None
+        else DiagnosisSettings()
+    )
     started = perf_counter()
 
     report = {
         "report_version": 2,
+        "evaluation_mode": "full_pipeline",
+        "diagnosis_model": diagnosis_model,
+        "diagnosis_settings": settings.model_dump(mode="json"),
         "run_id": str(uuid4()),
         "started_at": datetime.now(timezone.utc).isoformat(),
         "case_id": case.case_id,
@@ -64,6 +80,8 @@ def run_case(case: EvaluationCase) -> dict:
         diagnosis = generate_diagnosis(
             case.incident,
             report["investigation"]["steps"],
+            model=diagnosis_model,
+            settings=settings
         )
         report["diagnosis"] = diagnosis.model_dump(mode="json")
         report["timing"]["diagnosis_seconds"] = (
@@ -99,7 +117,7 @@ def save_report(report: dict, output_directory: Path) -> Path:
     return destination
 
 
-def run_batch(case: EvaluationCase, runs: int, output_directory: Path) -> dict:
+def run_batch(case: EvaluationCase, runs: int, output_directory: Path, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None) -> dict:
     if runs < 1:
         raise ValueError("runs must be at least 1")
 
@@ -109,7 +127,7 @@ def run_batch(case: EvaluationCase, runs: int, output_directory: Path) -> dict:
     report_files = []
 
     for _ in range(runs):
-        report = run_case(case)
+        report = run_case(case, diagnosis_model=diagnosis_model, diagnosis_settings=diagnosis_settings)
 
         # Persist this attempt before starting another.
         destination = save_report(report, batch_directory)
@@ -146,17 +164,53 @@ def parse_arguments(argv: list[str] | None = None):
         default=1,
         help="Number of sequential evaluation attempts (default: 1).",
     )
+    
+    parser.add_argument(
+        "--model",
+        default=DEFAULT_DIAGNOSIS_MODEL,
+        help="Ollama diagnosis model tag (default: %(default)s).",
+    )
+
+    defaults = DiagnosisSettings()
+    parser.add_argument("--num-ctx", type=int, default=defaults.num_ctx)
+    parser.add_argument(
+        "--temperature", type=float, default=defaults.temperature
+    )
+    parser.add_argument("--top-p", type=float, default=defaults.top_p)
+    parser.add_argument("--top-k", type=int, default=defaults.top_k)
+    parser.add_argument("--seed", type=int, default=defaults.seed)
+    parser.add_argument(
+        "--think",
+        action=argparse.BooleanOptionalAction,
+        default=defaults.think,
+        help="Enable thinking; use --no-think to disable it.",
+    )
 
     args = parser.parse_args(argv)
 
     if args.runs < 1:
         parser.error("--runs must be at least 1")
+    
+    if not args.model.strip():
+        parser.error("--model must not be blank")
+
+    try:
+        args.diagnosis_settings = DiagnosisSettings(
+            num_ctx=args.num_ctx,
+            temperature=args.temperature,
+            top_p=args.top_p,
+            top_k=args.top_k,
+            seed=args.seed,
+            think=args.think,
+        )
+    except ValueError as error:
+        parser.error(str(error))
 
     return args
 
 
-if __name__ == "__main__":
-    args = parse_arguments()
+def main(argv: list[str] | None = None) -> int:
+    args = parse_arguments(argv)
 
     output_directory = (
         Path(__file__).resolve().parents[1] / "out" / "evals"
@@ -165,8 +219,13 @@ if __name__ == "__main__":
         CASES[args.case],
         args.runs,
         output_directory,
+        diagnosis_model=args.model,
+        diagnosis_settings=args.diagnosis_settings,
     )
 
     print(json.dumps(batch, indent=2))
+    return 1 if batch["summary"]["failed"] else 0
 
-    raise SystemExit(1 if batch["summary"]["failed"] else 0)
+
+if __name__ == "__main__":
+    raise SystemExit(main())
