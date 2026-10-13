@@ -406,3 +406,121 @@ def test_provider_log_citation_does_not_justify_rollback(rollback_context):
     assert build_rollback_proposal(
         diagnosis, "checkout-service", steps
     ) is None
+
+
+@pytest.fixture
+def preexisting_failure_context(rollback_context):
+    diagnosis, steps = rollback_context
+
+    steps[0]["result"][0]["timestamp"] = "2026-09-28T13:57:00Z"
+    steps[1]["result"]["diff"] = (
+        " def checkout(request):\n"
+        '+    logger.info("Checkout request received")\n'
+        "     return process_checkout(request)"
+    )
+
+    diagnosis.root_cause.statement = (
+        "Checkout payment authorization fails because PayBridge returns 503."
+    )
+    diagnosis.root_cause.evidence_ids = [
+        "evidence-001",  # Deployment.
+        "evidence-002",  # Matching commit, but only a logging change.
+        "evidence-003",  # Failures before and after deployment.
+    ]
+
+    steps.append({
+        "evidence_id": "evidence-003",
+        "decision": {
+            "tool": "search_logs",
+            "arguments": {
+                "service": "checkout-service",
+                "level": "ERROR",
+            },
+        },
+        "result": [
+            {
+                "timestamp": "2026-09-28T13:54:00Z",
+                "service": "checkout-service",
+                "version": "1.7.3",
+                "level": "ERROR",
+                "message": (
+                    "Payment authorization failed: "
+                    "provider PayBridge returned HTTP 503"
+                ),
+            },
+            {
+                "timestamp": "2026-09-28T14:02:00Z",
+                "service": "checkout-service",
+                "version": "1.7.4",
+                "level": "ERROR",
+                "message": (
+                    "Payment authorization failed: "
+                    "provider PayBridge returned HTTP 503"
+                ),
+            },
+        ],
+    })
+
+    return diagnosis, steps
+
+
+def test_predeployment_provider_failures_block_rollback_despite_citations(preexisting_failure_context):
+    diagnosis, steps = preexisting_failure_context
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is None
+
+
+@pytest.mark.parametrize("record_index, field, value", [
+    (0, "message", "An unrelated earlier error"),
+    (0, "service", "another-service"),
+    (1, "service", "another-service"),
+    (0, "version", "1.7.2"),
+    (1, "version", "1.7.5"),
+    (0, "level", "INFO"),
+    (0, "timestamp", "2026-09-28T13:58:00Z"),
+    (0, "timestamp", "2026-09-28T13:57:00Z"),
+    (1, "timestamp", "2026-09-28T13:56:00Z"),
+    (1, "timestamp", "2026-09-28T13:57:00Z"),
+])
+def test_unmatched_log_pair_does_not_trigger_timeline_block(preexisting_failure_context, record_index, field, value):
+    diagnosis, steps = preexisting_failure_context
+    steps[-1]["result"][record_index][field] = value
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is not None
+
+
+def test_timeline_check_compares_timezone_aware_instants(preexisting_failure_context):
+    diagnosis, steps = preexisting_failure_context
+    steps[-1]["result"][0]["timestamp"] = "2026-09-28T15:54:00+02:00"
+    steps[-1]["result"][1]["timestamp"] = "2026-09-28T09:02:00-05:00"
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is None
+
+
+def test_uncited_logs_still_supply_contradictory_evidence(preexisting_failure_context):
+    diagnosis, steps = preexisting_failure_context
+    diagnosis.root_cause.evidence_ids = ["evidence-001", "evidence-002"]
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is None
+
+
+@pytest.mark.parametrize("timestamp", [
+    None,
+    "not-a-timestamp",
+    "2026-09-28T13:54:00",  # Missing timezone.
+])
+def test_unusable_log_time_does_not_establish_timeline_contradiction(preexisting_failure_context, timestamp):
+    diagnosis, steps = preexisting_failure_context
+    steps[-1]["result"][0]["timestamp"] = timestamp
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is not None

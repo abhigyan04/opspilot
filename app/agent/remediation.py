@@ -1,6 +1,8 @@
-from app.agent.schemas import RollbackProposal, Diagnosis
 from uuid import uuid4
 import json
+from datetime import datetime
+
+from app.agent.schemas import RollbackProposal, Diagnosis
 
 
 def validate_rollback_target(proposal: RollbackProposal, deployment: dict) -> None:
@@ -65,6 +67,76 @@ def has_cited_deployment_change(diagnosis: Diagnosis, deployment_evidence_id: st
     return False
 
 
+def parse_observation_time(value: object) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+
+    try:
+        timestamp = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+    if timestamp.utcoffset() is None:
+        return None
+
+    return timestamp
+
+
+def has_same_error_before_and_after_deployment(deployment: dict, steps: list[dict]) -> bool:
+    deployed_at = parse_observation_time(deployment.get("timestamp"))
+    target_version = deployment.get("rollback_target_version")
+    current_version = deployment.get("version")
+    service = deployment.get("service")
+
+    if deployed_at is None or not all((
+        target_version,
+        current_version,
+        service,
+    )):
+        return False
+
+    before_messages = set()
+    after_messages = set()
+
+    for step in steps:
+        if step["decision"]["tool"] != "search_logs":
+            continue
+
+        records = step["result"]
+        if not isinstance(records, list):
+            continue
+
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            if record.get("service") != service:
+                continue
+            if record.get("level") not in {"ERROR", "CRITICAL"}:
+                continue
+
+            message = record.get("message")
+            if not isinstance(message, str) or not message.strip():
+                continue
+
+            timestamp = parse_observation_time(record.get("timestamp"))
+            if timestamp is None:
+                continue
+
+            if (
+                record.get("version") == target_version
+                and timestamp < deployed_at
+            ):
+                before_messages.add(message)
+
+            if (
+                record.get("version") == current_version
+                and timestamp > deployed_at
+            ):
+                after_messages.add(message)
+
+    return bool(before_messages & after_messages)
+
+
 def build_rollback_proposal(diagnosis: Diagnosis, service: str, steps: list[dict]) -> RollbackProposal | None:
     if diagnosis.status != "supported":
         return None
@@ -87,6 +159,8 @@ def build_rollback_proposal(diagnosis: Diagnosis, service: str, steps: list[dict
     target = deployment.get("rollback_target_version")
 
     if not target:
+        return None
+    if has_same_error_before_and_after_deployment(deployment, steps):
         return None
 
     evidence_ids = list(dict.fromkeys([

@@ -105,6 +105,21 @@ candidate. These checks establish citation linkage and available change data,
 not that the change caused the failure or rollback is appropriate. The human
 must still assess the diagnosis and its limitations before approval.
 
+A conservative timeline guard also suppresses the candidate if an identical,
+nonblank error message appears for the requested service on the rollback
+target version strictly before deployment and on the current version strictly
+after it. It examines all collected `search_logs` results, including uncited
+observations, and accepts `ERROR` or `CRITICAL` records. Timestamps must be
+parseable and timezone-aware; comparisons use their actual instants.
+
+This guard uses exact message equality, not semantic error classification.
+Missing or invalid timestamps and absent version labels cannot establish the
+required pair. A record exactly at deployment time establishes neither side.
+No matching pair means only that this blocker did not apply, not that rollback
+is justified. Conversely, recurring background errors can suppress a candidate
+even if a deployment worsened a separate failure; this is a conservative demo
+policy, not a general proof of rollback ineffectiveness.
+
 Before submission, Python validates the service, current version, available
 target, and evidence references. A session stores a JSON snapshot of the proposal
 under a generated ID. Editing the original object does not change that snapshot.
@@ -178,6 +193,22 @@ This improvement is specific to the saved proposals. An incorrect root cause
 that cites both the deployment and matching commit can still pass this check.
 No semantic causal validation, approval, execution, or recovery was evaluated
 by the 9/9 result; the existing approval and execution checks remain separate.
+
+The timeline guard was subsequently added after a regression test showed that
+adding deployment and commit citations could bypass the citation-only rule.
+The user reported 222 passing tests, including the contradictory timeline,
+different messages, services and versions, strict time boundaries, timezone
+offsets, unusable log timestamps, and uncited contradictory logs.
+
+Rechecking the same nine source reports with the timeline guard preserved all
+nine proposals and assessments from the saved comparison above: 9/9 matches.
+Source hashes and the unchanged evaluator hash were verified. Additional
+in-memory probes added all observation IDs to the root-cause citations of
+provider seeds 42 and 43; both still produced no candidate, with the timeline
+guard recognizing the matching pre- and post-deployment failures. No model,
+approval, or execution step ran, and saved reports were not changed. The saved
+comparison retains the earlier citation-only policy hash; this later recheck
+did not overwrite it.
 
 ## Simulated recovery verification
 
@@ -775,9 +806,9 @@ The first repeated model comparison is complete; the evaluation milestone
 remains in progress. Use its findings to target diagnosis grounding and
 uncertainty handling, validate changes against the same saved evidence and
 review rubric, then run fresh full-pipeline evaluations.
-The remediation citation check now removes the two inappropriate candidates
-in the saved baseline. Evaluate cases with misleading but valid citations and
-contradictory operational evidence before treating it as a causal policy or
-extending the checkout demo to other cases. Keep deterministic software tests separate from live
-model evaluations. Automated deployment of OpsPilot will follow once there is
-a deployable service.
+The remediation citation and timeline checks now cover the saved provider
+failures and a misleading-citation regression. Broader causal validity remains
+unproven, including whether recurring background errors can incorrectly block
+a useful rollback. Keep deterministic software tests separate from live model
+evaluations. Automated deployment of OpsPilot will follow once there is a
+deployable service.
