@@ -170,8 +170,8 @@ each input report's path, run ID, SHA-256, model, seed, diagnosis status, full
 proposal, and assessment, plus hashes of the proposal-builder and evaluator
 source files. Both code hashes and all nine report hashes were verified, and
 the proposals and aggregate counts were reproduced from those inputs.
-This used a local script, without another model call, approval request, or
-rollback execution; no dedicated remediation-evaluation CLI exists yet.
+This initial baseline used a local script, without another model call, approval
+request, or rollback execution. The CLI below now supports this workflow.
 
 The baseline's user-reported test run passed all 197 tests, including scenario
 expectations, wrong services and versions, missing proposals, and unknown cases.
@@ -209,6 +209,39 @@ guard recognizing the matching pre- and post-deployment failures. No model,
 approval, or execution step ran, and saved reports were not changed. The saved
 comparison retains the earlier citation-only policy hash; this later recheck
 did not overwrite it.
+
+### Offline remediation evaluation CLI
+
+Evaluate the current proposal policy against one saved report or all diagnosis
+replays in a comparison directory, without generating new diagnoses:
+
+```powershell
+python -m evals.remediation_runner out/evals/11924a4b-1f35-4593-b085-b40d52a97c4f/c84105a0-581a-48af-9bbb-b495227adf84.json --service checkout-service
+python -m evals.remediation_runner out/comparisons/ee0df895-d512-45d1-8501-e888b4702f6d --service checkout-service
+```
+
+`--service` is required. `--output-dir` defaults to `out/remediation`; when the
+input is a directory, the output must be outside that directory. A single input
+can be a completed version-2 full-pipeline or diagnosis-replay report with a
+diagnosis. Directory discovery recursively selects diagnosis replay reports,
+skipping `summary.json` and review sidecars. Unsupported cases, invalid sources,
+and duplicate run IDs stop evaluation before an aggregate is saved.
+
+The command saves a new version-1 `remediation_proposal_evaluation` report with
+per-case counts and each source's absolute path, run ID, SHA-256, model,
+settings, diagnosis status, generated proposal, and expected action and target.
+It also records hashes of the proposal policy, evaluator, and runner files;
+these three hashes are not a complete environment snapshot. Source reports
+remain unchanged. No model call, approval request, or rollback execution runs.
+Exit code 0 means the evaluation was saved, even if some proposals do not match.
+
+On 13 October 2026, the CLI produced 9/9 action-and-target matches across the
+same three scenarios, with three matches per scenario. The saved report is
+`out/remediation/1e6f3ef2-3d61-4123-928e-4c4b4ea2b898.json`, outside Git. All nine
+source identities and hashes, reproduced proposals and assessments, aggregate
+counts, and all three current code hashes were verified. The full test suite
+passed: 234 tests. This confirms the offline evaluation checkpoint, not overall
+diagnosis accuracy or successful remediation.
 
 ## Simulated recovery verification
 
