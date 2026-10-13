@@ -116,6 +116,46 @@ It does not alter fixtures, call deployment infrastructure, or re-read external
 state at execution time. Sessions are not persisted or authenticated, and a
 successful version change alone does not demonstrate incident recovery.
 
+### Remediation proposal evaluation
+
+`evals/remediation.py` evaluates a proposal against fixture-specific expectations
+that are kept separate from agent inputs. Checkout regression expects a
+`rollback_service` candidate for `checkout-service` from `1.7.4` to `1.7.3`;
+the provider outage and sparse-evidence scenarios expect no rollback candidate.
+Unknown cases raise an error. Matching checks action, service, current version,
+and target version, or the absence of a proposal. It does not score the reason,
+citations, approval process, execution, or recovery.
+
+On 13 October 2026, the current proposal builder was evaluated against all nine
+saved diagnoses from comparison `ee0df895-d512-45d1-8501-e888b4702f6d`:
+
+| Scenario | Attempts | Action-and-target matches |
+| --- | --- | --- |
+| Checkout regression | 3 | 3 |
+| Payment provider outage | 3 | 1 |
+| Sparse evidence | 3 | 3 |
+
+The 7/9 matches are a proposal baseline, not overall remediation accuracy.
+Provider seeds 42 and 43 produced checkout rollback candidates despite
+diagnosing PayBridge failures. Seed 44 produced no candidate because its
+diagnosis abstained; that match does not show that the proposal policy
+recognized the external failure. Likewise, matching checkout targets does
+not establish that their diagnosis explanations were fully grounded.
+
+The local baseline is saved at
+`out/remediation/73f588cf-8b08-44a8-b33d-13b38c074ab4.json`, outside Git. It records
+each input report's path, run ID, SHA-256, model, seed, diagnosis status, full
+proposal, and assessment, plus hashes of the proposal-builder and evaluator
+source files. Both code hashes and all nine report hashes were verified, and
+the proposals and aggregate counts were reproduced from those inputs.
+This used a local script, without another model call, approval request, or
+rollback execution; no dedicated remediation-evaluation CLI exists yet.
+
+The user-reported test run passed all 197 tests, including scenario expectations,
+wrong services and versions, missing proposals, and unknown cases. The next
+policy change must address causal appropriateness while preserving the
+separate human approval and execution checks.
+
 ## Simulated recovery verification
 
 After simulated execution, the CLI loads separate post-action observations
@@ -712,7 +752,9 @@ The first repeated model comparison is complete; the evaluation milestone
 remains in progress. Use its findings to target diagnosis grounding and
 uncertainty handling, validate changes against the same saved evidence and
 review rubric, then run fresh full-pipeline evaluations.
-Remediation appropriateness also needs evaluation before extending the checkout
-demo to other cases. Keep deterministic software tests separate from live
+The initial remediation proposal baseline exposed inappropriate checkout
+rollback candidates for provider failures. Improve the proposal policy and
+compare it against this saved baseline before extending the checkout demo
+to other cases. Keep deterministic software tests separate from live
 model evaluations. Automated deployment of OpsPilot will follow once there is
 a deployable service.
