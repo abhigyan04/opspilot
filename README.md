@@ -92,11 +92,18 @@ when it is already `None`. Diagnosis accuracy remains an evaluation concern.
 ## Human-approved simulated remediation
 
 A supported diagnosis and exactly one collected deployment record for the
-requested service can produce a rollback candidate. The target comes from the
-fixture's explicit `rollback_target_version`; it is not inferred from version
-numbers. Missing targets, ambiguous records, or insufficient diagnoses produce
-no candidate. This rule does not establish that rollback is the appropriate
-remedy; the human must assess the diagnosis and its limitations.
+requested service can produce a rollback candidate only when the root-cause
+claim cites that deployment and a matching `get_commit` observation. The
+deployment's commit hash must match both the requested commit hash and the
+returned hash, and the result must contain a nonblank code diff. Citations in
+supporting claims alone do not satisfy this requirement.
+
+The target comes from the fixture's explicit `rollback_target_version`; it is
+not inferred from version numbers. Missing targets, ambiguous records,
+insufficient diagnoses, or missing required root-cause citations produce no
+candidate. These checks establish citation linkage and available change data,
+not that the change caused the failure or rollback is appropriate. The human
+must still assess the diagnosis and its limitations before approval.
 
 Before submission, Python validates the service, current version, available
 target, and evidence references. A session stores a JSON snapshot of the proposal
@@ -126,7 +133,7 @@ Unknown cases raise an error. Matching checks action, service, current version,
 and target version, or the absence of a proposal. It does not score the reason,
 citations, approval process, execution, or recovery.
 
-On 13 October 2026, the current proposal builder was evaluated against all nine
+On 13 October 2026, the original proposal policy was evaluated against all nine
 saved diagnoses from comparison `ee0df895-d512-45d1-8501-e888b4702f6d`:
 
 | Scenario | Attempts | Action-and-target matches |
@@ -151,10 +158,26 @@ the proposals and aggregate counts were reproduced from those inputs.
 This used a local script, without another model call, approval request, or
 rollback execution; no dedicated remediation-evaluation CLI exists yet.
 
-The user-reported test run passed all 197 tests, including scenario expectations,
-wrong services and versions, missing proposals, and unknown cases. The next
-policy change must address causal appropriateness while preserving the
-separate human approval and execution checks.
+The baseline's user-reported test run passed all 197 tests, including scenario
+expectations, wrong services and versions, missing proposals, and unknown cases.
+
+After adding the root-cause citation requirement, a comparison against the same
+nine reports produced 9/9 action-and-target matches. Only provider seeds 42 and
+43 changed: their checkout rollback candidates became null because their root
+causes cite provider logs rather than the deployment and matching code change.
+All checkout candidates and sparse-evidence abstentions were unchanged.
+
+The comparison is saved locally at
+`out/remediation/edcbc78b-7c2d-46bf-8bb3-5ff02775117c.json`. The baseline hash,
+unchanged evaluator hash, revised policy hash, all nine source hashes, and
+reproduced proposals and assessments were verified. The user reported 206
+passing tests, including missing citations, unrelated commits, unavailable
+diffs, missing deployment commit hashes, and provider-log-only diagnoses.
+
+This improvement is specific to the saved proposals. An incorrect root cause
+that cites both the deployment and matching commit can still pass this check.
+No semantic causal validation, approval, execution, or recovery was evaluated
+by the 9/9 result; the existing approval and execution checks remain separate.
 
 ## Simulated recovery verification
 
@@ -752,9 +775,9 @@ The first repeated model comparison is complete; the evaluation milestone
 remains in progress. Use its findings to target diagnosis grounding and
 uncertainty handling, validate changes against the same saved evidence and
 review rubric, then run fresh full-pipeline evaluations.
-The initial remediation proposal baseline exposed inappropriate checkout
-rollback candidates for provider failures. Improve the proposal policy and
-compare it against this saved baseline before extending the checkout demo
-to other cases. Keep deterministic software tests separate from live
+The remediation citation check now removes the two inappropriate candidates
+in the saved baseline. Evaluate cases with misleading but valid citations and
+contradictory operational evidence before treating it as a causal policy or
+extending the checkout demo to other cases. Keep deterministic software tests separate from live
 model evaluations. Automated deployment of OpsPilot will follow once there is
 a deployable service.

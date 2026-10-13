@@ -27,6 +27,44 @@ def validate_rollback_evidence(proposal: RollbackProposal, steps: list[dict]) ->
         raise ValueError(f"Rollback proposal cites unknown evidence IDs: {sorted(unknown_ids)}")
 
 
+def has_cited_deployment_change(diagnosis: Diagnosis, deployment_evidence_id: str, deployment: dict, steps: list[dict]) -> bool:
+    if diagnosis.status != "supported":
+        return False
+
+    cited_ids = set(diagnosis.root_cause.evidence_ids)
+    if deployment_evidence_id not in cited_ids:
+        return False
+
+    commit_hash = deployment.get("commit_hash")
+    if not isinstance(commit_hash, str) or not commit_hash.strip():
+        return False
+
+    for step in steps:
+        if step["evidence_id"] not in cited_ids:
+            continue
+
+        decision = step["decision"]
+        if decision["tool"] != "get_commit":
+            continue
+
+        if decision.get("arguments", {}).get("commit_hash") != commit_hash:
+            continue
+
+        result = step["result"]
+        if not isinstance(result, dict):
+            continue
+
+        diff = result.get("diff")
+        if (
+            result.get("hash") == commit_hash
+            and isinstance(diff, str)
+            and diff.strip()
+        ):
+            return True
+
+    return False
+
+
 def build_rollback_proposal(diagnosis: Diagnosis, service: str, steps: list[dict]) -> RollbackProposal | None:
     if diagnosis.status != "supported":
         return None
@@ -44,6 +82,8 @@ def build_rollback_proposal(diagnosis: Diagnosis, service: str, steps: list[dict
         return None
 
     deployment_evidence_id, deployment = candidates[0]
+    if not has_cited_deployment_change(diagnosis, deployment_evidence_id, deployment, steps):
+        return None
     target = deployment.get("rollback_target_version")
 
     if not target:

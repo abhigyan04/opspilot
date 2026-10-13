@@ -188,31 +188,23 @@ def test_proposal_cannot_execute_twice(deployment):
 
 
 @pytest.mark.parametrize("deployment_count", [0, 1, 2])
-def test_proposal_requires_unambiguous_deployment(deployment, deployment_count):
-    diagnosis = diagnosis_adapter.validate_python({
-        "status": "supported",
-        "root_cause": {
-            "statement": "The deployed change likely introduced the failure.",
-            "evidence_ids": ["evidence-001"],
-        },
-        "supporting_claims": [],
-        "limitations": ["Requires human assessment before rollback."],
-    })
-
-    steps = [{
-        "evidence_id": "evidence-001",
-        "decision": {"tool": "get_deployments"},
-        "result": [deployment.copy() for _ in range(deployment_count)],
-    }]
+def test_proposal_requires_unambiguous_deployment(rollback_context, deployment_count):
+    diagnosis, steps = rollback_context
+    deployment_record = steps[0]["result"][0]
+    steps[0]["result"] = [
+        deployment_record.copy()
+        for _ in range(deployment_count)
+    ]
 
     proposal = build_rollback_proposal(
         diagnosis, "checkout-service", steps
     )
 
     if deployment_count == 1:
+        assert proposal is not None
         assert proposal.current_version == "1.7.4"
         assert proposal.target_version == "1.7.3"
-        assert proposal.evidence_ids == ["evidence-001"]
+        assert proposal.evidence_ids == ["evidence-001", "evidence-002"]
     else:
         assert proposal is None
 
@@ -291,3 +283,126 @@ def test_invalid_approval_declines_without_execution(deployment, answer):
 
     assert result["status"] == "declined"
     assert deployment == original_state
+
+
+@pytest.fixture
+def rollback_context(deployment):
+    deployment_record = {
+        **deployment,
+        "commit_hash": "commit-123",
+    }
+    diagnosis = diagnosis_adapter.validate_python({
+        "status": "supported",
+        "root_cause": {
+            "statement": (
+                "The deployed customer lookup can raise AttributeError "
+                "when request.user is None."
+            ),
+            "evidence_ids": ["evidence-001", "evidence-002"],
+        },
+        "supporting_claims": [],
+        "limitations": ["Requires human assessment before rollback."],
+    })
+    steps = [
+        {
+            "evidence_id": "evidence-001",
+            "decision": {
+                "tool": "get_deployments",
+                "arguments": {"service": "checkout-service"},
+            },
+            "result": [deployment_record],
+        },
+        {
+            "evidence_id": "evidence-002",
+            "decision": {
+                "tool": "get_commit",
+                "arguments": {"commit_hash": "commit-123"},
+            },
+            "result": {
+                "hash": "commit-123",
+                "diff": (
+                    "- customer_id = request.customer_id\n"
+                    "+ customer_id = request.user.customer_id"
+                ),
+            },
+        },
+    ]
+    return diagnosis, steps
+
+
+@pytest.mark.parametrize("root_ids", [
+    ["evidence-001"],  # Deployment without its code change.
+    ["evidence-002"],  # Code change without its deployment.
+])
+def test_proposal_requires_both_root_cause_citations(rollback_context, root_ids):
+    diagnosis, steps = rollback_context
+    diagnosis.root_cause.evidence_ids = root_ids
+
+    # Supporting citations must not substitute for root-cause citations.
+    diagnosis.supporting_claims = [
+        diagnosis.root_cause.model_copy(update={
+            "evidence_ids": ["evidence-001", "evidence-002"],
+        })
+    ]
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is None
+
+
+@pytest.mark.parametrize("mismatch", ["request", "result"])
+def test_proposal_rejects_unrelated_commit(rollback_context, mismatch):
+    diagnosis, steps = rollback_context
+
+    if mismatch == "request":
+        steps[1]["decision"]["arguments"]["commit_hash"] = "other-commit"
+    else:
+        steps[1]["result"]["hash"] = "other-commit"
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is None
+
+
+@pytest.mark.parametrize("diff", [None, "", "   "])
+def test_proposal_requires_available_code_change(rollback_context, diff):
+    diagnosis, steps = rollback_context
+    steps[1]["result"]["diff"] = diff
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is None
+
+
+def test_proposal_requires_deployment_commit_hash(rollback_context):
+    diagnosis, steps = rollback_context
+    del steps[0]["result"][0]["commit_hash"]
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is None
+
+
+def test_provider_log_citation_does_not_justify_rollback(rollback_context):
+    diagnosis, steps = rollback_context
+    diagnosis.root_cause.statement = (
+        "Checkout payment authorization fails because PayBridge returns 503."
+    )
+    diagnosis.root_cause.evidence_ids = ["evidence-003"]
+    steps.append({
+        "evidence_id": "evidence-003",
+        "decision": {
+            "tool": "search_logs",
+            "arguments": {
+                "service": "checkout-service",
+                "level": "ERROR",
+            },
+        },
+        "result": [{
+            "message": "Payment authorization failed: PayBridge HTTP 503",
+        }],
+    })
+
+    assert build_rollback_proposal(
+        diagnosis, "checkout-service", steps
+    ) is None
