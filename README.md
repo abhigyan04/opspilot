@@ -417,6 +417,40 @@ diagnosis accuracy or reliable improvement across seeds. No new formal review
 sidecars were created. Provider timeline reasoning and claim precision remain
 the next diagnosis-quality targets.
 
+Diagnosis input also now includes `deployment_timing`: calculated comparisons
+between each timestamped deployment and the earliest returned ERROR or CRITICAL
+log for the same service. Comparisons retain the original records and evidence
+IDs. They establish ordering only; the model must assess whether the selected
+error is relevant, and the earliest returned error is not necessarily incident
+onset. Missing usable pairs produce an empty list.
+
+Provider replay `ca1466fe-e267-4506-a3a5-e289a3263af8`, using the same source and
+8B seed-42 settings, retained the supported PayBridge mechanism and explicitly
+recognized that observed errors preceded deployment. Source integrity and copied
+observations were verified. This is progress on the targeted timeline error,
+but the temporal supporting claim cites deployment and commit observations
+without citing the metric or log needed to establish the error time. It also
+overstates the exclusion of checkout code and the precision of spike onset.
+The suite passed 256 tests.
+
+Follow-up replay checks produced mixed results:
+
+| Case and seed | Replay ID | Finding |
+| --- | --- | --- |
+| Provider, 43 | `a0cd9d10-35ea-405d-a40f-5471511930d0` | Correctly cited both logs and deployment for the pre-deployment error; a limitation reintroduced misleading coincidence wording, and unchanged messages were used to overstate an unchanged mechanism. |
+| Checkout, 42 | `fc5d6415-1c1b-482e-b81e-022067209bf4` | Retained the supported customer-lookup mechanism, but introduced a wrong seven-minute metric claim and omitted deployment evidence from that claim's citations. |
+| Sparse evidence, 42 | `6d7fd021-c3d0-4035-918e-6005229581c0` | Retained appropriate abstention and described the lack of available causal evidence without inventing a mechanism. |
+
+The checkout samples show 0.01 at 13:55 and 0.40 at 14:05, with deployment at
+13:57: ten minutes separate those samples, and the 0.40 sample is eight minutes
+after deployment. The new diagnosis instead claimed the increase happened
+within seven minutes after deployment. Source hashes, copied investigations,
+and requested configurations were checked for these replays. Expected status
+choices were preserved, but claim-level grounding did not improve consistently.
+These checks justify retaining the timing comparison as an evaluated feature,
+not claiming a general diagnosis-accuracy gain. No new formal review sidecars
+were saved; incorrect quantitative claims and incomplete citations remain open.
+
 All three cases use the same incident prompt. The checkout regression requires
 connecting a code change to an AttributeError. The payment-provider case has
 PayBridge HTTP 503 responses and elevated error rates before a nearby

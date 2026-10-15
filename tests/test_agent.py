@@ -353,7 +353,8 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, mod
                 "evidence_id": "evidence-001",
                 "tool": "search_logs",
                 "record": steps[0]["result"][0]
-            }]
+            }],
+            "deployment_timing": []
         }
 
         assert kwargs["model"] == expected_model

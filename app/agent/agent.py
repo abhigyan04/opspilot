@@ -11,7 +11,10 @@ from app.agent.remediation import (build_rollback_proposal, review_and_execute)
 from app.agent.verification import verify_simulated_remediation
 from app.tools.data import DEFAULT_SCENARIO_DIR
 from app.agent.settings import DiagnosisSettings
-from app.agent.evidence import build_evidence_timeline
+from app.agent.evidence import (
+    build_deployment_timing,
+    build_evidence_timeline
+)
 
 DEFAULT_DIAGNOSIS_MODEL = "qwen3:4b"
 
@@ -220,7 +223,16 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
                     "those earlier failures. Do not infer that it had no later "
                     "effect without evidence. Distinguish the earliest observed "
                     "failure from the actual onset. "
-
+                    "deployment_timing compares each deployment with the earliest "
+                    "returned ERROR or CRITICAL log for the same service. The relation "
+                    "is calculated from timestamps, not inferred causation. Check "
+                    "whether that error describes the diagnosed mechanism before using "
+                    "the comparison. For a relevant comparison, explicitly state the "
+                    "ordering in the diagnosis and cite both original observations. "
+                    "An error before deployment cannot have been caused by that later "
+                    "deployment; an error after deployment does not prove causation. "
+                    "An empty comparison list means no usable pair was found. "
+                    
                     "A rollback_target_version records an available target, "
                     "not an executed rollback. Do not claim a rollback occurred, "
                     "succeeded, or restored service without observations of "
@@ -242,6 +254,7 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
                 "content": json.dumps({
                     "incident": incident,
                     "timeline": build_evidence_timeline(steps),
+                    "deployment_timing": build_deployment_timing(steps),
                     "observations": [
                         {
                             "evidence_id": step["evidence_id"],

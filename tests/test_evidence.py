@@ -1,6 +1,7 @@
 from copy import deepcopy
+import pytest
 
-from app.agent.evidence import build_evidence_timeline
+from app.agent.evidence import build_evidence_timeline, build_deployment_timing
 
 
 def make_step(evidence_id, tool, records):
@@ -59,3 +60,79 @@ def test_timeline_leaves_unusable_timestamps_in_original_observations():
 
     assert build_evidence_timeline(steps) == []
     assert steps == original
+
+
+@pytest.mark.parametrize("timestamp, relation", [
+    ("2026-09-28T19:24:00+05:30", "before"),
+    ("2026-09-28T19:27:00+05:30", "same_time"),
+    ("2026-09-28T19:32:00+05:30", "after"),
+])
+def test_deployment_timing_compares_earliest_matching_error(
+    timestamp, relation
+):
+    steps = [
+        make_step("deployment", "get_deployments", [{
+            "service": "checkout-service",
+            "timestamp": "2026-09-28T13:57:00Z",
+        }]),
+        make_step("logs", "search_logs", [
+            {
+                "service": "checkout-service",
+                "level": "ERROR",
+                "timestamp": "2026-09-28T15:00:00Z",
+                "message": "Later failure",
+            },
+            {
+                "service": "another-service",
+                "level": "ERROR",
+                "timestamp": "2026-09-28T12:00:00Z",
+                "message": "Unrelated service",
+            },
+            {
+                "service": "checkout-service",
+                "level": "INFO",
+                "timestamp": "2026-09-28T12:00:00Z",
+                "message": "Informational event",
+            },
+            {
+                "service": "checkout-service",
+                "level": "ERROR",
+                "timestamp": timestamp,
+                "message": "Selected failure",
+            },
+        ]),
+    ]
+    original = deepcopy(steps)
+
+    result = build_deployment_timing(steps)
+
+    assert len(result) == 1
+    assert result[0]["error_relative_to_deployment"] == relation
+    assert result[0]["earliest_observed_error"] == {
+        "evidence_id": "logs",
+        "tool": "search_logs",
+        "record": steps[1]["result"][3],
+    }
+    assert result[0]["deployment"]["evidence_id"] == "deployment"
+    assert steps == original
+
+
+@pytest.mark.parametrize("timestamp", [
+    None,
+    "invalid",
+    "2026-09-28T13:54:00",
+])
+def test_deployment_timing_requires_usable_error_timestamp(timestamp):
+    steps = [
+        make_step("deployment", "get_deployments", [{
+            "service": "checkout-service",
+            "timestamp": "2026-09-28T13:57:00Z",
+        }]),
+        make_step("logs", "search_logs", [{
+            "service": "checkout-service",
+            "level": "ERROR",
+            "timestamp": timestamp,
+        }]),
+    ]
+
+    assert build_deployment_timing(steps) == []
