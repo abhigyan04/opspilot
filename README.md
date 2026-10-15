@@ -950,13 +950,52 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ## Next milestone
 
-The first repeated model comparison is complete; the evaluation milestone
-remains in progress. Use its findings to target diagnosis grounding and
-uncertainty handling, validate changes against the same saved evidence and
-review rubric, then run fresh full-pipeline evaluations.
-The remediation citation and timeline checks now cover the saved provider
-failures and a misleading-citation regression. Broader causal validity remains
-unproven, including whether recurring background errors can incorrectly block
-a useful rollback. Keep deterministic software tests separate from live model
-evaluations. Automated deployment of OpsPilot will follow once there is a
-deployable service.
+### Milestone 8 audit — 15 October 2026
+
+The evaluation framework is substantially implemented, but the full handoff
+scope is not yet complete. Completion means measuring behavior with explicit
+limits; it does not require perfect diagnoses. Further prompt tuning is paused
+while the remaining measurement gaps are closed.
+
+| Handoff criterion | Current coverage | Remaining limit |
+| --- | --- | --- |
+| Multiple reproducible scenarios | Three deterministic fixture scenarios, configurable full runs, saved-evidence replay | Model responses remain variable; fixtures are synthetic. |
+| Root-cause accuracy | Reference explanations and a manual causal-explanation rubric, with review summaries | No universal accuracy scalar; pipeline `diagnosis_accuracy` remains null. Status agreement alone is not correctness. |
+| Correct tool usage | Typed tool arguments, execution tests, tool-name coverage and call counts | Coverage does not score scenario-appropriate arguments or unjustified calls. |
+| Required evidence gathered | Required-tool coverage and saved observations | Empty results count as calls; required evidence content is not scored separately. |
+| Unsupported claims | Citation-ID validation, claim-to-observation views, manual grounding reviews | Valid IDs do not establish semantic support; review coverage must accompany scores. |
+| Remediation correctness | Offline expected action/service/version matching across saved diagnoses | This is proposal matching, not proof of causal appropriateness or recovery. |
+| Safety violations | Tests for approval, target validation, changed state, and repeated execution | No recorded scenario-level safety evaluation summary. |
+| Task success | Pipeline completion, separate simulated execution and recovery verification | Completion is not task success; these outcomes are not yet assessed together in evaluation reports. |
+| Token use | Not recorded | Capture per-call input/output counts and aggregate without treating missing counts as zero. |
+| Latency | Stage timings and batch means | Local loading and runtime variability are included; observations are not controlled benchmarks. |
+| Cost where applicable | Local Ollama inference without a paid inference API | API cost is not applicable; electricity and hardware costs are not measured. |
+
+### Bounded completion plan
+
+1. Capture token usage for investigation and diagnosis calls, including calls
+   that return a response later rejected by validation. Preserve unavailable
+   counts explicitly and distinguish full-pipeline runs from diagnosis replay.
+2. Add fixture-specific tool-argument and evidence-content assessments beside
+   existing coverage. Keep expected answers outside agent inputs; distinguish
+   an appropriate empty lookup from failure to obtain required causal evidence.
+3. Add an offline simulation evaluation for approval enforcement, permitted
+   execution, and recovery outcomes. Exercise approved, declined, and invalid
+   attempts without real infrastructure changes. Report each dimension
+   separately rather than relabeling pipeline completion as task success.
+4. Publish a compact baseline covering all three scenarios, the implemented
+   measures, review coverage, and known failures. Reuse existing evidence where
+   applicable; no further model sweep or accuracy threshold is required to
+   finish the framework. Keep selective improvement examples separate from any
+   aggregate accuracy claim.
+
+These are planned completion criteria, not implemented capabilities. The next
+implementation checkpoint is token-usage capture. Prompt/schema fingerprints,
+automatic semantic claim verification, broader scenario coverage, and model
+tuning remain follow-up work rather than blockers for this bounded framework.
+
+After these checks, proceed to Milestone 9: retrieve runbooks and historical
+incidents, then evaluate whether that additional evidence helps. MCP follows
+direct integration experience; LangGraph follows demonstrated workflow
+complexity. UI and deployment come after a deployable service exists. RAG is
+not assumed to fix timestamp or citation errors by itself.
