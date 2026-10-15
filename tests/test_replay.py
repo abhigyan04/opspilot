@@ -1,13 +1,14 @@
 import hashlib
 import json
-
 import pytest
+from types import SimpleNamespace
 
 from evals.replay import load_replay_source
 from app.agent.schemas import diagnosis_adapter
 from evals import replay
 from evals.summary import summarize_reports
 from app.agent.settings import DiagnosisSettings
+from app.agent.usage import UsageCollector
 
 
 def sample_report():
@@ -107,7 +108,7 @@ def test_replay_uses_saved_evidence_without_previous_answers(
     original_bytes = path.read_bytes()
     calls = []
 
-    def fake_generate(incident, steps, *, model, settings):
+    def fake_generate(incident, steps, *, model, settings, usage):
         assert model == "qwen3:4b"
         assert settings == DiagnosisSettings()
         assert incident == original["incident"]
@@ -152,7 +153,7 @@ def test_replay_records_diagnosis_failure(monkeypatch, tmp_path):
     original = sample_report()
     path = write_report(tmp_path, original)
 
-    def fail_diagnosis(incident, steps, *, model, settings):
+    def fail_diagnosis(incident, steps, *, model, settings, usage):
         assert model == "qwen3:4b"
         assert settings == DiagnosisSettings()
         raise ValueError("Invalid citation")
@@ -199,9 +200,7 @@ def test_pipeline_summary_rejects_replay_reports():
     ("completed", 0),
     ("failed", 1),
 ])
-def test_cli_saves_result_and_returns_matching_exit_code(
-    monkeypatch, tmp_path, capsys, status, expected_exit
-):
+def test_cli_saves_result_and_returns_matching_exit_code(monkeypatch, tmp_path, capsys, status, expected_exit):
     source_path = tmp_path / "source.json"
     output_dir = tmp_path / "replays"
     report = {
@@ -217,6 +216,7 @@ def test_cli_saves_result_and_returns_matching_exit_code(
             "type": "ValueError",
             "message": "Invalid citation",
         },
+        "usage": UsageCollector().snapshot()
     }
 
     def fake_replay(path, *, model, settings):
@@ -241,6 +241,7 @@ def test_cli_saves_result_and_returns_matching_exit_code(
     assert printed["report_path"] == str(destination)
     assert printed["status"] == status
     assert printed["diagnosis_settings"] == report["diagnosis_settings"]
+    assert printed["usage"] == report["usage"]
 
 
 def test_cli_reports_invalid_source_without_saving(
@@ -331,7 +332,7 @@ def test_cli_forwards_and_records_selected_model(
     output_dir = tmp_path / "replays"
     calls = []
 
-    def fake_generate(incident, steps, *, model, settings):
+    def fake_generate(incident, steps, *, model, settings, usage):
         assert incident == original["incident"]
         assert settings == expected_settings
         assert steps == original["investigation"]["steps"]
@@ -393,7 +394,7 @@ def test_replay_records_the_settings_passed_to_diagnosis(
     )
     received = []
 
-    def fake_generate(incident, steps, *, model, settings):
+    def fake_generate(incident, steps, *, model, settings, usage):
         received.append(settings)
         if fail:
             raise ValueError("Invalid diagnosis")
@@ -451,3 +452,67 @@ def test_invalid_cli_settings_stop_before_replay(
     assert error.value.code == 2
     assert not output_dir.exists()
     assert "error:" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("diagnosis_fails", [False, True])
+def test_replay_records_only_new_usage_and_preserves_source(monkeypatch, tmp_path, diagnosis_fails):
+    source = sample_report()
+
+    historical_usage = UsageCollector()
+    historical_usage.record(
+        stage="investigation",
+        model="qwen3:4b",
+        response=SimpleNamespace(
+            prompt_eval_count=9000,
+            eval_count=1000,
+        ),
+    )
+    source["usage"] = historical_usage.snapshot()
+
+    path = write_report(tmp_path, source)
+    original_bytes = path.read_bytes()
+
+    diagnosis = diagnosis_adapter.validate_python({
+        "status": "insufficient_evidence",
+        "reason": "No operational evidence was collected.",
+        "missing_evidence": ["Operational tool results"],
+    })
+
+    def fake_generate(incident, steps, *, model, settings, usage):
+        assert usage.snapshot()["totals"]["attempts"] == 0
+        usage.record(
+            stage="diagnosis",
+            model=model,
+            response=SimpleNamespace(
+                prompt_eval_count=120,
+                eval_count=30,
+            ),
+        )
+        if diagnosis_fails:
+            raise ValueError("Diagnosis response rejected")
+        return diagnosis
+
+    monkeypatch.setattr(replay, "generate_diagnosis", fake_generate)
+
+    # Each replay must start fresh, even when reusing the same source.
+    for _ in range(2):
+        result = replay.replay_diagnosis(path, model="qwen3:8b")
+
+        assert result["usage"]["calls"] == [{
+            "stage": "diagnosis",
+            "model": "qwen3:8b",
+            "input_tokens": 120,
+            "output_tokens": 30,
+        }]
+        assert result["usage"]["totals"]["attempts"] == 1
+        assert result["usage"]["totals"]["input_tokens"] == 120
+        assert result["usage"]["totals"]["output_tokens"] == 30
+        assert result["status"] == (
+            "failed" if diagnosis_fails else "completed"
+        )
+
+        destination = replay.save_report(result, tmp_path / "replays")
+        saved = json.loads(destination.read_text(encoding="utf-8"))
+        assert saved["usage"] == result["usage"]
+
+    assert path.read_bytes() == original_bytes

@@ -15,6 +15,7 @@ from app.agent.evidence import (
     build_deployment_timing,
     build_evidence_timeline
 )
+from app.agent.usage import UsageCollector
 
 DEFAULT_DIAGNOSIS_MODEL = "qwen3:4b"
 
@@ -66,8 +67,28 @@ Important:
 """
 
 
-def choose_next_tool(messages: list[dict[str, str]]) -> AgentDecision:
-    response = chat(
+def chat_with_usage(*, stage: str, usage: UsageCollector | None = None, **kwargs):
+    try:
+        response = chat(**kwargs)
+    except Exception:
+        if usage is not None:
+            usage.record(stage=stage, model=kwargs["model"])
+        raise
+
+    if usage is not None:
+        usage.record(
+            stage=stage,
+            model=kwargs["model"],
+            response=response,
+        )
+
+    return response
+
+
+def choose_next_tool(messages: list[dict[str, str]], *, usage: UsageCollector | None = None) -> AgentDecision:
+    response = chat_with_usage(
+        stage="investigation",
+        usage=usage,
         model="qwen3:4b",
         messages=messages,
         format=agent_decision_adapter.json_schema(),
@@ -116,7 +137,7 @@ def validate_diagnosis_evidence(diagnosis: Diagnosis, steps: list[dict],) -> Non
         )
 
 
-def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT_DIAGNOSIS_MODEL, settings: DiagnosisSettings | None = None) -> Diagnosis:
+def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT_DIAGNOSIS_MODEL, settings: DiagnosisSettings | None = None, usage: UsageCollector | None = None) -> Diagnosis:
     if not steps:
         return diagnosis_adapter.validate_python({
             "status": "insufficient_evidence",
@@ -144,7 +165,9 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
             "options": settings.ollama_options()
         }
 
-    response = chat(
+    response = chat_with_usage(
+        stage="diagnosis",
+        usage=usage,
         model=model,
         messages=[
             {
@@ -276,7 +299,7 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
     return diagnosis
 
 
-def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_SCENARIO_DIR) -> dict:
+def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_SCENARIO_DIR, usage: UsageCollector | None = None) -> dict:
     if max_steps < 1:
         raise ValueError("max_steps must be at least 1")
 
@@ -287,7 +310,7 @@ def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_S
     steps = []
 
     for _ in range(max_steps):
-        decision = choose_next_tool(messages)
+        decision = choose_next_tool(messages, usage=usage)
 
         messages.append({
             "role": "assistant",

@@ -10,6 +10,7 @@ import argparse
 from evals.runner import save_report
 from app.agent.agent import generate_diagnosis, DEFAULT_DIAGNOSIS_MODEL
 from app.agent.settings import DiagnosisSettings
+from app.agent.usage import UsageCollector
 
 
 def load_replay_source(report_path: Path) -> dict:
@@ -47,6 +48,7 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL,
     )
     source = load_replay_source(report_path)
     original = source["report"]
+    usage = UsageCollector()
 
     assessment = {
         "status": "not_scored",
@@ -91,7 +93,8 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL,
             report["incident"],
             deepcopy(report["investigation"]["steps"]),
             model=model,
-            settings=effective_settings
+            settings=effective_settings,
+            usage=usage
         )
         report["diagnosis"] = diagnosis.model_dump(mode="json")
         report["status"] = "completed"
@@ -103,6 +106,7 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL,
             "message": str(error),
         }
 
+    report["usage"] = usage.snapshot()
     report["timing"]["diagnosis_seconds"] = (
         perf_counter() - diagnosis_started
     )
@@ -168,6 +172,7 @@ def main(argv: list[str] | None = None) -> int:
         "source": report["source"],
         "timing": report["timing"],
         "error": report["error"],
+        "usage": report["usage"]
     }, indent=2))
 
     return 1 if report["status"] == "failed" else 0

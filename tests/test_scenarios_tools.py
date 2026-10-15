@@ -136,7 +136,7 @@ def test_investigation_uses_selected_scenario(monkeypatch, tmp_path):
     monkeypatch.setattr(
         agent,
         "choose_next_tool",
-        lambda messages: next(decisions),
+        lambda messages, *, usage=None: next(decisions),
     )
 
     result = agent.investigate(

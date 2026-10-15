@@ -1,5 +1,7 @@
 import pytest
+from types import SimpleNamespace
 
+from app.agent.usage import UsageCollector
 from evals.summary import summarize_reports
 
 
@@ -68,3 +70,83 @@ def test_incompatible_reports_are_rejected(change, message):
             make_report("completed", coverage=1.0),
             changed,
         ])
+
+
+def usage_snapshot(input_tokens, output_tokens):
+    usage = UsageCollector()
+    usage.record(
+        stage="diagnosis",
+        model="qwen3:8b",
+        response=SimpleNamespace(
+            prompt_eval_count=input_tokens,
+            eval_count=output_tokens,
+        ),
+    )
+    return usage.snapshot()
+
+
+def test_summary_counts_usage_from_completed_and_failed_runs():
+    completed = make_report("completed", coverage=1.0)
+    completed["usage"] = usage_snapshot(100, 20)
+
+    failed = make_report("failed", stage="diagnosis")
+    failed["usage"] = usage_snapshot(200, 40)
+
+    usage = summarize_reports([completed, failed])["usage"]
+
+    assert usage == {
+        "reports_with_usage": 2,
+        "reports_without_usage": 0,
+        "recorded_model_attempts": 2,
+        "input_counted_calls": 2,
+        "known_input_tokens": 300,
+        "input_tokens": 300,
+        "output_counted_calls": 2,
+        "known_output_tokens": 60,
+        "output_tokens": 60,
+    }
+
+
+def test_summary_preserves_partial_usage_without_complete_total():
+    completed = make_report("completed")
+    completed["usage"] = usage_snapshot(100, 20)
+
+    failed = make_report("failed", stage="diagnosis")
+    failed["usage"] = usage_snapshot(200, None)
+
+    usage = summarize_reports([completed, failed])["usage"]
+
+    assert usage["input_tokens"] == 300
+    assert usage["output_tokens"] is None
+    assert usage["known_output_tokens"] == 20
+    assert usage["output_counted_calls"] == 1
+    assert usage["recorded_model_attempts"] == 2
+
+
+def test_legacy_report_does_not_count_as_zero_usage():
+    legacy = make_report("completed")
+    current = make_report("completed")
+    current["usage"] = usage_snapshot(100, 20)
+
+    usage = summarize_reports([legacy, current])["usage"]
+
+    assert usage["reports_with_usage"] == 1
+    assert usage["reports_without_usage"] == 1
+    assert usage["recorded_model_attempts"] == 1
+    assert usage["known_input_tokens"] == 100
+    assert usage["known_output_tokens"] == 20
+    assert usage["input_tokens"] is None
+    assert usage["output_tokens"] is None
+
+
+def test_explicit_zero_attempts_are_distinct_from_missing_usage():
+    report = make_report("completed")
+    report["usage"] = UsageCollector().snapshot()
+
+    usage = summarize_reports([report])["usage"]
+
+    assert usage["reports_with_usage"] == 1
+    assert usage["reports_without_usage"] == 0
+    assert usage["recorded_model_attempts"] == 0
+    assert usage["input_tokens"] == 0
+    assert usage["output_tokens"] == 0

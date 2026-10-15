@@ -451,6 +451,34 @@ These checks justify retaining the timing comparison as an evaluated feature,
 not claiming a general diagnosis-accuracy gain. No new formal review sidecars
 were saved; incorrect quantitative claims and incomplete citations remain open.
 
+New full-pipeline and diagnosis-replay reports include a `usage` object. Each
+recorded model attempt has its stage, model tag, `input_tokens` (Ollama's
+`prompt_eval_count`), and `output_tokens` (`eval_count`). Counts are captured
+before JSON and citation validation, so a rejected response still contributes
+its reported usage. A request exception records unknown counts and preserves
+the original exception. These are server-reported counts, not billing or
+hardware-utilization measurements.
+
+Full-pipeline reports collect investigation and diagnosis usage together,
+including the investigation's final model-selected `finish` call. Replays
+count only newly generated diagnosis calls, never source-report usage. Empty
+evidence that skips generation records no model attempt. Replay CLI output
+also includes usage; full-pipeline CLI output includes the batch aggregation.
+
+Per-run and batch summaries distinguish known token subtotals from complete
+totals. A missing count makes its complete total null, while known counts are
+retained. Batch summaries expose reports with and without usage, recorded model
+attempts, and counted calls for each token direction. Failed runs contribute
+their available counts. Older reports without usage are unknown, not zero.
+An explicitly recorded zero-call run has zero totals.
+
+Live replay `735038a9-5f3c-4b2d-acc4-b124d5bd5f36` verified one new 8B diagnosis
+call with 2,175 input tokens and 863 output tokens. The saved report matched
+the CLI output. The user reported 281 passing tests after batch aggregation,
+covering failure preservation, replay isolation, missing counts, and legacy
+reports. Live full-pipeline token totals have not yet been separately checked;
+their collection and aggregation are covered by deterministic tests.
+
 All three cases use the same incident prompt. The checkout regression requires
 connecting a code change to an AttributeError. The payment-provider case has
 PayBridge HTTP 503 responses and elevated error rates before a nearby
@@ -967,15 +995,16 @@ while the remaining measurement gaps are closed.
 | Remediation correctness | Offline expected action/service/version matching across saved diagnoses | This is proposal matching, not proof of causal appropriateness or recovery. |
 | Safety violations | Tests for approval, target validation, changed state, and repeated execution | No recorded scenario-level safety evaluation summary. |
 | Task success | Pipeline completion, separate simulated execution and recovery verification | Completion is not task success; these outcomes are not yet assessed together in evaluation reports. |
-| Token use | Not recorded | Capture per-call input/output counts and aggregate without treating missing counts as zero. |
+| Token use | Per-call collection, full-run and replay reports, batch totals with missing-data coverage | Server-reported counts; unavailable counts remain null. Live replay verified; full-pipeline aggregation tested with mocked calls. |
 | Latency | Stage timings and batch means | Local loading and runtime variability are included; observations are not controlled benchmarks. |
 | Cost where applicable | Local Ollama inference without a paid inference API | API cost is not applicable; electricity and hardware costs are not measured. |
 
 ### Bounded completion plan
 
-1. Capture token usage for investigation and diagnosis calls, including calls
-   that return a response later rejected by validation. Preserve unavailable
-   counts explicitly and distinguish full-pipeline runs from diagnosis replay.
+1. **Complete: token-usage capture.** Investigation and diagnosis calls retain
+   counts even when response validation fails. Reports and batch summaries
+   preserve unknown counts and separate fresh replay usage from historical
+   investigation usage. Tests and one live replay validate this checkpoint.
 2. Add fixture-specific tool-argument and evidence-content assessments beside
    existing coverage. Keep expected answers outside agent inputs; distinguish
    an appropriate empty lookup from failure to obtain required causal evidence.
@@ -989,8 +1018,9 @@ while the remaining measurement gaps are closed.
    finish the framework. Keep selective improvement examples separate from any
    aggregate accuracy claim.
 
-These are planned completion criteria, not implemented capabilities. The next
-implementation checkpoint is token-usage capture. Prompt/schema fingerprints,
+Items 2–4 remain planned completion criteria. The next implementation
+checkpoint is fixture-specific tool-argument and evidence-content assessment.
+Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
 

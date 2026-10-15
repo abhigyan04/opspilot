@@ -1,6 +1,6 @@
 import json
-
 import pytest
+from types import SimpleNamespace
 
 from app.agent.schemas import diagnosis_adapter
 from app.agent.settings import DiagnosisSettings
@@ -39,14 +39,14 @@ def test_runner_passes_incident_and_observations_without_reference(monkeypatch, 
     })
     calls = []
 
-    def fake_investigate(incident, *, data_dir):
+    def fake_investigate(incident, *, data_dir, usage):
         assert incident == case.incident
         assert data_dir == case.scenario_dir
         assert case.reference_root_cause not in incident
         calls.append("investigate")
         return investigation
 
-    def fake_generate_diagnosis(incident, steps, *, model, settings):
+    def fake_generate_diagnosis(incident, steps, *, model, settings, usage):
         assert incident == case.incident
         assert steps == investigation["steps"]
         assert model == runner.DEFAULT_DIAGNOSIS_MODEL
@@ -108,12 +108,12 @@ def test_failed_run_preserves_available_results(monkeypatch, tmp_path, stage):
         "steps": [],
     }
 
-    def fake_investigate(incident, *, data_dir):
+    def fake_investigate(incident, *, data_dir, usage):
         if stage == "investigation":
             raise RuntimeError("Investigation unavailable")
         return investigation
 
-    def fake_diagnosis(incident, steps, *, model, settings):
+    def fake_diagnosis(incident, steps, *, model, settings, usage):
         if stage == "investigation":
             pytest.fail("Diagnosis must not run after investigation fails.")
         raise ValueError("Invalid diagnosis")
@@ -288,10 +288,10 @@ def test_run_case_forwards_and_records_diagnosis_configuration(monkeypatch, diag
     })
     received = []
 
-    def fake_investigate(incident, *, data_dir):
+    def fake_investigate(incident, *, data_dir, usage):
         return investigation
 
-    def fake_generate(incident, steps, *, model, settings):
+    def fake_generate(incident, steps, *, model, settings, usage):
         received.append((incident, steps, model, settings))
         if diagnosis_fails:
             raise RuntimeError("Diagnosis unavailable")
@@ -403,3 +403,80 @@ def test_invalid_diagnosis_configuration_never_starts_batch(monkeypatch, argumen
         runner.main(arguments)
 
     assert error.value.code == 2
+
+
+@pytest.mark.parametrize("failure_stage", [None, "investigation", "diagnosis"])
+def test_runner_persists_usage_without_leaking_between_runs(monkeypatch, tmp_path, failure_stage):
+    diagnosis = diagnosis_adapter.validate_python({
+        "status": "insufficient_evidence",
+        "reason": "No matching error details were returned.",
+        "missing_evidence": ["Error details"],
+    })
+
+    def fake_investigate(incident, *, data_dir, usage):
+        usage.record(
+            stage="investigation",
+            model="qwen3:4b",
+            response=SimpleNamespace(
+                prompt_eval_count=100,
+                eval_count=20,
+            ),
+        )
+        if failure_stage == "investigation":
+            raise ValueError("Investigation response rejected")
+
+        return {
+            "status": "finished",
+            "reason": "No matching records.",
+            "steps": [],
+        }
+
+    def fake_diagnosis(incident, steps, *, model, settings, usage):
+        usage.record(
+            stage="diagnosis",
+            model=model,
+            response=SimpleNamespace(
+                prompt_eval_count=200,
+                eval_count=40,
+            ),
+        )
+        if failure_stage == "diagnosis":
+            raise ValueError("Diagnosis response rejected")
+        return diagnosis
+
+    monkeypatch.setattr(runner, "investigate", fake_investigate)
+    monkeypatch.setattr(runner, "generate_diagnosis", fake_diagnosis)
+
+    # Each run must start with its own empty collector.
+    for _ in range(2):
+        report = runner.run_case(
+            CHECKOUT_REGRESSION,
+            diagnosis_model="qwen3:8b",
+        )
+
+        investigation_only = failure_stage == "investigation"
+        expected_stages = (
+            ["investigation"]
+            if investigation_only
+            else ["investigation", "diagnosis"]
+        )
+        usage = report["usage"]
+
+        assert [call["stage"] for call in usage["calls"]] == expected_stages
+        assert usage["totals"]["attempts"] == len(expected_stages)
+        assert usage["totals"]["input_tokens"] == (
+            100 if investigation_only else 300
+        )
+        assert usage["totals"]["output_tokens"] == (
+            20 if investigation_only else 60
+        )
+
+        if failure_stage is None:
+            assert report["status"] == "completed"
+        else:
+            assert report["status"] == "failed"
+            assert report["error"]["stage"] == failure_stage
+
+        destination = runner.save_report(report, tmp_path)
+        saved = json.loads(destination.read_text(encoding="utf-8"))
+        assert saved["usage"] == usage

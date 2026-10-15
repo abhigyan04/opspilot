@@ -2,6 +2,46 @@ from collections import Counter
 from statistics import mean
 
 
+def summarize_usage(reports: list[dict]) -> dict:
+    recorded = [
+        report["usage"]["totals"]
+        for report in reports
+        if report.get("usage") is not None
+    ]
+
+    result = {
+        "reports_with_usage": len(recorded),
+        "reports_without_usage": len(reports) - len(recorded),
+        "recorded_model_attempts": sum(
+            totals["attempts"] for totals in recorded
+        ),
+    }
+
+    for direction in ("input", "output"):
+        field = f"{direction}_tokens"
+        known_field = f"known_{direction}_tokens"
+        counted_field = f"{direction}_counted_calls"
+
+        result[counted_field] = sum(
+            totals[counted_field] for totals in recorded
+        )
+        result[known_field] = sum(
+            totals[known_field] for totals in recorded
+        )
+
+        complete = (
+            len(recorded) == len(reports)
+            and all(totals[field] is not None for totals in recorded)
+        )
+        result[field] = (
+            sum(totals[field] for totals in recorded)
+            if complete
+            else None
+        )
+
+    return result
+
+
 def summarize_reports(reports: list[dict]) -> dict:
     if not reports:
         raise ValueError("At least one report is required.")
@@ -61,4 +101,5 @@ def summarize_reports(reports: list[dict]) -> dict:
         ),
         "failure_stages": dict(failure_stages),
         "diagnosis_accuracy": None,
+        "usage": summarize_usage(reports)
     }

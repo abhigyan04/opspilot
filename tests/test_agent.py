@@ -84,7 +84,7 @@ def test_investigation_passes_evidence_to_next_decision(monkeypatch):
     deployment_result = [{"commit_hash": "abc1234"}]
     calls = []
 
-    def fake_choose(messages):
+    def fake_choose(messages, *, usage=None):
         # Snapshot history: investigate mutates the original list afterward.
         calls.append([message.copy() for message in messages])
 
@@ -139,7 +139,7 @@ def test_finish_does_not_execute_a_tool(monkeypatch):
         "reason": "No useful next action.",
     })
 
-    monkeypatch.setattr(agent, "choose_next_tool", lambda messages: finish)
+    monkeypatch.setattr(agent, "choose_next_tool", lambda messages, *, usage=None: finish)
 
     def unexpected_execution(decision, **kwargs):
         pytest.fail("A finish decision must not execute a tool.")
@@ -163,7 +163,7 @@ def test_investigation_stops_at_step_limit(monkeypatch):
     selections = []
     executions = []
 
-    def fake_choose(messages):
+    def fake_choose(messages, *, usage=None):
         selections.append(True)
         return decision
 

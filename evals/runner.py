@@ -12,6 +12,7 @@ from app.agent.agent import (
     investigate
 )
 from app.agent.settings import DiagnosisSettings
+from app.agent.usage import UsageCollector
 from evals.cases import CASES, EvaluationCase
 from evals.evaluator import evaluate_investigation
 from evals.summary import summarize_reports
@@ -27,6 +28,7 @@ def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_M
         else DiagnosisSettings()
     )
     started = perf_counter()
+    usage = UsageCollector()
 
     report = {
         "report_version": 2,
@@ -61,6 +63,7 @@ def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_M
         report["investigation"] = investigate(
             case.incident,
             data_dir=case.scenario_dir,
+            usage=usage
         )
         report["timing"]["investigation_seconds"] = (
             perf_counter() - stage_started
@@ -81,7 +84,8 @@ def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_M
             case.incident,
             report["investigation"]["steps"],
             model=diagnosis_model,
-            settings=settings
+            settings=settings,
+            usage=usage
         )
         report["diagnosis"] = diagnosis.model_dump(mode="json")
         report["timing"]["diagnosis_seconds"] = (
@@ -101,6 +105,7 @@ def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_M
             "message": str(error),
         }
 
+    report["usage"] = usage.snapshot()
     report["timing"]["total_seconds"] = perf_counter() - started
     return report
 
