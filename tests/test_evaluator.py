@@ -1,3 +1,8 @@
+from dataclasses import replace
+
+import pytest
+
+from evals.cases import SPARSE_EVIDENCE
 from evals.cases import CHECKOUT_REGRESSION
 from evals.evaluator import evaluate_investigation
 
@@ -61,3 +66,73 @@ def test_step_limit_is_reported():
 
     assert result["hit_step_limit"] is True
     assert result["stopped_by_model"] is False
+
+
+def test_correct_arguments_do_not_imply_expected_evidence_was_gathered():
+    investigation = {
+        "status": "finished",
+        "steps": [{
+            "decision": {
+                "tool": "search_logs",
+                "arguments": {
+                    "service": "checkout-service",
+                    "level": "ERROR",
+                },
+            },
+            "result": [],
+        }],
+    }
+
+    result = evaluate_investigation(CHECKOUT_REGRESSION, investigation)
+
+    assert result["required_tool_coverage"] == 0.25
+    assert result["tool_arguments"]["status"] == "scored"
+    assert result["tool_arguments"]["argument_match_rate"] == 1.0
+    assert result["evidence_content"]["status"] == "scored"
+    assert result["evidence_content"]["captured_nonempty_results"] == 0
+
+    logs = next(
+        item for item in result["evidence_content"]["assessments"]
+        if item["tool"] == "search_logs"
+    )
+    assert logs["outcome"] == "result_mismatch"
+
+
+def test_sparse_empty_lookup_is_separate_from_nonempty_evidence():
+    investigation = {
+        "status": "finished",
+        "steps": [{
+            "decision": {
+                "tool": "search_logs",
+                "arguments": {
+                    "service": "checkout-service",
+                    "level": "ERROR",
+                },
+            },
+            "result": [],
+        }],
+    }
+
+    result = evaluate_investigation(SPARSE_EVIDENCE, investigation)
+
+    assert result["tool_arguments"]["argument_match_rate"] == 1.0
+    assert result["evidence_content"]["matched_empty_lookups"] == 1
+    assert result["evidence_content"]["captured_nonempty_results"] == 0
+
+
+@pytest.mark.parametrize("changed_directory", [False, True])
+def test_unregistered_configuration_keeps_basic_coverage_only(tmp_path, changed_directory):
+    case = (
+        replace(CHECKOUT_REGRESSION, scenario_dir=tmp_path)
+        if changed_directory
+        else replace(CHECKOUT_REGRESSION, case_id="custom-case")
+    )
+
+    result = evaluate_investigation(
+        case,
+        investigation_with(["search_logs"]),
+    )
+
+    assert result["required_tool_coverage"] == 0.25
+    assert result["tool_arguments"]["status"] == "not_scored"
+    assert result["evidence_content"]["status"] == "not_scored"

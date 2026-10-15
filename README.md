@@ -517,6 +517,40 @@ stage durations, completion status, and these investigation metrics:
 - `tool_calls`: total executed tool calls.
 - `stopped_by_model` and `hit_step_limit`: how investigation ended.
 
+New investigation metrics also contain `tool_arguments` and `evidence_content`
+assessments for registered case configurations. Argument matching uses
+evaluation-only expectations for each tool and scenario. Missing recorded
+arguments are unassessable and excluded from the match-rate denominator;
+the report exposes that count. Unexpected tools and incorrect arguments do
+not match. This does not measure redundant calls or prove a commit hash was
+obtained from a prior observation.
+
+Evidence assessment compares returned results against the current scenario
+fixtures, ignoring list order but requiring complete matching records. A
+partial result does not count as a complete expected result. Repeated calls
+cannot inflate coverage. Expected empty lookups are counted separately from
+nonempty results; neither a missing call nor an omitted result matches an
+expected empty lookup. Argument matching and evidence matching are separate:
+one can pass while the other fails. Custom case configurations remain explicitly
+`not_scored` for these checks while retaining basic tool-name coverage.
+
+An offline check of three saved investigations produced:
+
+| Case | Source run | Argument matches | Nonempty results captured | Expected empty lookups matched |
+| --- | --- | --- | --- | --- |
+| Checkout regression | `7a3f5342-6a12-4b22-a70d-950ba3c501b6` | 4/4 | 4/4 | Not applicable |
+| Provider outage | `88405562-a606-4f8a-b802-2c3257f6a562` | 4/4 | 4/4 | Not applicable |
+| Sparse evidence | `9cff3260-9b7c-4ec1-8c4b-df481c08a876` | 3/3 | 1/1 | 2/2 |
+
+The original report bytes remained unchanged; these checks did not overwrite
+historical metrics or call a model. The user reported 304 passing tests after
+integration. These results establish fixture-result capture, not causal
+sufficiency or diagnosis accuracy: sparse evidence still lacks a supported
+mechanism despite capturing all available fixture results. Grading uses current
+fixtures, so changing fixtures can change historical reassessment results.
+The new assessments are saved per run; batch summaries do not yet aggregate
+their rates.
+
 The reference root cause is stored for assessment and is not passed to the
 investigation or diagnosis functions. Diagnosis accuracy remains explicitly
 `not_scored`. Full tool coverage does not establish useful evidence, correct
@@ -989,8 +1023,8 @@ while the remaining measurement gaps are closed.
 | --- | --- | --- |
 | Multiple reproducible scenarios | Three deterministic fixture scenarios, configurable full runs, saved-evidence replay | Model responses remain variable; fixtures are synthetic. |
 | Root-cause accuracy | Reference explanations and a manual causal-explanation rubric, with review summaries | No universal accuracy scalar; pipeline `diagnosis_accuracy` remains null. Status agreement alone is not correctness. |
-| Correct tool usage | Typed tool arguments, execution tests, tool-name coverage and call counts | Coverage does not score scenario-appropriate arguments or unjustified calls. |
-| Required evidence gathered | Required-tool coverage and saved observations | Empty results count as calls; required evidence content is not scored separately. |
+| Correct tool usage | Typed arguments, tool-name coverage, per-call fixture argument matching | Does not measure redundancy or whether arguments were justified by earlier observations; missing arguments are unassessable. |
+| Required evidence gathered | Exact expected fixture-result matching, with nonempty coverage and separate empty lookups | Capturing available fixtures does not establish causal sufficiency; comparison uses current fixture contents. |
 | Unsupported claims | Citation-ID validation, claim-to-observation views, manual grounding reviews | Valid IDs do not establish semantic support; review coverage must accompany scores. |
 | Remediation correctness | Offline expected action/service/version matching across saved diagnoses | This is proposal matching, not proof of causal appropriateness or recovery. |
 | Safety violations | Tests for approval, target validation, changed state, and repeated execution | No recorded scenario-level safety evaluation summary. |
@@ -1005,9 +1039,10 @@ while the remaining measurement gaps are closed.
    counts even when response validation fails. Reports and batch summaries
    preserve unknown counts and separate fresh replay usage from historical
    investigation usage. Tests and one live replay validate this checkpoint.
-2. Add fixture-specific tool-argument and evidence-content assessments beside
-   existing coverage. Keep expected answers outside agent inputs; distinguish
-   an appropriate empty lookup from failure to obtain required causal evidence.
+2. **Complete: fixture-specific tool and evidence assessment.** Per-run metrics
+   distinguish matching arguments, captured nonempty results, and expected empty
+   lookups. Expectations stay outside agent inputs. Tests and offline checks of
+   all three scenarios validate the bounded measure, not semantic tool optimality.
 3. Add an offline simulation evaluation for approval enforcement, permitted
    execution, and recovery outcomes. Exercise approved, declined, and invalid
    attempts without real infrastructure changes. Report each dimension
@@ -1018,8 +1053,8 @@ while the remaining measurement gaps are closed.
    finish the framework. Keep selective improvement examples separate from any
    aggregate accuracy claim.
 
-Items 2–4 remain planned completion criteria. The next implementation
-checkpoint is fixture-specific tool-argument and evidence-content assessment.
+Items 3–4 remain planned completion criteria. The next implementation
+checkpoint is offline simulation evaluation of safety and task outcomes.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
