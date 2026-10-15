@@ -316,6 +316,7 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, mod
             "reason": "Earlier model reasoning.",
         },
         "result": [{
+            "timestamp": "2026-09-28T14:02:13Z",
             "message": "AttributeError: 'NoneType' object has no attribute 'customer_id'",
         }],
     }]
@@ -348,6 +349,11 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, mod
                 },
                 "result": steps[0]["result"],
             }],
+            "timeline": [{
+                "evidence_id": "evidence-001",
+                "tool": "search_logs",
+                "record": steps[0]["result"][0]
+            }]
         }
 
         assert kwargs["model"] == expected_model

@@ -367,6 +367,56 @@ evidence already shows failures before deployment. This run verifies settings
 integration, not improved diagnosis accuracy; formal assessment remains
 `not_scored`. The user reported 247 passing tests for the completed integration.
 
+On 15 October 2026, diagnostic checks found that replay
+`3156b1d3-f73e-4c83-961a-782d6338f756` started at 00:37:53 IST, about eight
+seconds before the edited diagnosis prompt was saved. Its server log showed
+1,204 input tokens, matching a probe of the previous committed prompt. The
+saved edited prompt used 1,304 tokens. That replay therefore does not establish
+that the edited prompt failed to improve the diagnosis.
+
+A fresh diagnostic call using the saved edit, the same provider observations,
+8B model, and seed-42 settings returned `supported` and identified PayBridge's
+503 responses as the failure mechanism. It still overstated the exact start
+time and gave an unclear deployment conclusion, so this is a partial improvement
+on one input, not a validated quality improvement across scenarios. The test
+suite passed all 247 tests. No additional review sidecar was saved. Request
+provenance remains a gap: reports do not yet hash the exact prompt and schema
+sent to the model, making edits during a run difficult to audit.
+
+The user's saved replay `out/replays/e39f0e53-a8ae-4387-829f-59a5100e7136.json`
+also returned `supported`, identifying PayBridge's 503 responses with the
+matching log citation. Its source hash, copied investigation, model, and
+settings were verified against the original full-pipeline report. However,
+it incorrectly claimed that the error-rate spike coincided with deployment:
+the rate was already 0.30 at 13:54, before the 13:57 deployment. This records
+improved mechanism identification while deployment reasoning and evidence
+grounding remain faulty. No formal review sidecar was created for this replay.
+
+Diagnosis input now includes a chronological view of timestamped observation
+records alongside the original observations. `app/agent/evidence.py` sorts
+timezone-aware timestamps by instant and retains the original evidence IDs.
+Records without usable timestamps are omitted from the timeline but remain in
+the original observations. The timeline copies data; it does not infer failure
+onset, classify metric values, or establish causation. Tests cover timezone
+ordering, source preservation, unusable timestamps, and delivery to diagnosis.
+The full suite passed 250 tests after this integration.
+
+Three local 8B replays on 15 October 2026 used seed 42, context 4096,
+temperature 0.6, top-p 0.95, top-k 20, and thinking enabled:
+
+| Case | Replay ID | Observed diagnosis |
+| --- | --- | --- |
+| Payment provider outage | `2180a07b-adb4-4bed-804b-53b882afaa1b` | Supported PayBridge failure mechanism; removed the earlier false deployment-coincidence claim, but omitted explicit pre-deployment reasoning and overstated exclusion of checkout code changes. |
+| Checkout regression | `32fe8f7f-699a-43bc-9c9a-994f999af86a` | Supported customer-lookup regression with relevant citations; wording about the absence of a guard and definitive deployment causation exceeds what the small diff and log alone establish. |
+| Sparse evidence | `6eb3b985-444c-4f89-97ad-3d581ec9027a` | Appropriately abstained and described unavailable records without inventing a cause. Requested dependency-error evidence is one possible investigation direction, not a known requirement. |
+
+Reports are saved under `out/replays/`, outside Git. Source hashes and copied
+investigations were verified against their original reports. All three status
+choices match scenario expectations, but these single attempts do not establish
+diagnosis accuracy or reliable improvement across seeds. No new formal review
+sidecars were created. Provider timeline reasoning and claim precision remain
+the next diagnosis-quality targets.
+
 All three cases use the same incident prompt. The checkout regression requires
 connecting a code change to an AttributeError. The payment-provider case has
 PayBridge HTTP 503 responses and elevated error rates before a nearby
