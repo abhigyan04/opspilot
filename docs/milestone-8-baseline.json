@@ -1,0 +1,699 @@
+{
+  "snapshot_date": "2026-10-19",
+  "scope": "Historical mixed-checkpoint evidence; not a controlled model comparison or current diagnosis accuracy estimate.",
+  "investigations_rescored_with_current_fixtures": [
+    {
+      "source": {
+        "path": "out/evals/5f838a10-a72a-4b50-9f29-a76d830538c5/7a3f5342-6a12-4b22-a70d-950ba3c501b6.json",
+        "sha256": "8ee1e7f85dcab3850127e4dce70952538aa621c81f5856090c2dca42db1b38b0"
+      },
+      "metrics": {
+        "case_id": "checkout_regression",
+        "required_tool_coverage": 1.0,
+        "missing_tools": [],
+        "tool_calls": 4,
+        "stopped_by_model": true,
+        "hit_step_limit": false,
+        "tool_arguments": {
+          "status": "scored",
+          "case_id": "checkout_regression",
+          "calls": 4,
+          "assessable_calls": 4,
+          "unassessable_calls": 0,
+          "matching_calls": 4,
+          "argument_match_rate": 1.0,
+          "assessments": [
+            {
+              "step": 1,
+              "tool": "query_metrics",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 2,
+              "tool": "get_deployments",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 3,
+              "tool": "get_commit",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 4,
+              "tool": "search_logs",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            }
+          ]
+        },
+        "evidence_content": {
+          "status": "scored",
+          "case_id": "checkout_regression",
+          "required_nonempty_results": 4,
+          "captured_nonempty_results": 4,
+          "nonempty_result_coverage": 1.0,
+          "expected_empty_lookups": 0,
+          "matched_empty_lookups": 0,
+          "assessments": [
+            {
+              "tool": "search_logs",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "query_metrics",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_deployments",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_commit",
+              "expects_empty": false,
+              "outcome": "matched"
+            }
+          ]
+        }
+      },
+      "timing": {
+        "investigation_seconds": 98.63063329999568,
+        "scoring_seconds": 7.700000423938036e-06,
+        "diagnosis_seconds": 75.00343479998992,
+        "total_seconds": 173.63410360002308
+      }
+    },
+    {
+      "source": {
+        "path": "out/evals/e50549e7-2c44-4a8a-a3ba-6b4befc78df9/88405562-a606-4f8a-b802-2c3257f6a562.json",
+        "sha256": "a9dd4a9cf96bd06dcf6e3033615f9893001e85c58317ec3cc12579839a85b8ce"
+      },
+      "metrics": {
+        "case_id": "payment_provider_outage",
+        "required_tool_coverage": 1.0,
+        "missing_tools": [],
+        "tool_calls": 4,
+        "stopped_by_model": true,
+        "hit_step_limit": false,
+        "tool_arguments": {
+          "status": "scored",
+          "case_id": "payment_provider_outage",
+          "calls": 4,
+          "assessable_calls": 4,
+          "unassessable_calls": 0,
+          "matching_calls": 4,
+          "argument_match_rate": 1.0,
+          "assessments": [
+            {
+              "step": 1,
+              "tool": "query_metrics",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 2,
+              "tool": "get_deployments",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 3,
+              "tool": "get_commit",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 4,
+              "tool": "search_logs",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            }
+          ]
+        },
+        "evidence_content": {
+          "status": "scored",
+          "case_id": "payment_provider_outage",
+          "required_nonempty_results": 4,
+          "captured_nonempty_results": 4,
+          "nonempty_result_coverage": 1.0,
+          "expected_empty_lookups": 0,
+          "matched_empty_lookups": 0,
+          "assessments": [
+            {
+              "tool": "search_logs",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "query_metrics",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_deployments",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_commit",
+              "expects_empty": false,
+              "outcome": "matched"
+            }
+          ]
+        }
+      },
+      "timing": {
+        "investigation_seconds": 148.37479080000048,
+        "scoring_seconds": 9.800001862458885e-06,
+        "diagnosis_seconds": 56.859347600002366,
+        "total_seconds": 205.23419640000066
+      }
+    },
+    {
+      "source": {
+        "path": "out/evals/12a825d7-022a-4a58-a71f-e5386e4567f6/9cff3260-9b7c-4ec1-8c4b-df481c08a876.json",
+        "sha256": "be947cfa897694b935f6f275eeefe1686bff7dd2ee7ac653ad93602646ffe9f4"
+      },
+      "metrics": {
+        "case_id": "sparse_evidence",
+        "required_tool_coverage": 1.0,
+        "missing_tools": [],
+        "tool_calls": 3,
+        "stopped_by_model": true,
+        "hit_step_limit": false,
+        "tool_arguments": {
+          "status": "scored",
+          "case_id": "sparse_evidence",
+          "calls": 3,
+          "assessable_calls": 3,
+          "unassessable_calls": 0,
+          "matching_calls": 3,
+          "argument_match_rate": 1.0,
+          "assessments": [
+            {
+              "step": 1,
+              "tool": "query_metrics",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 2,
+              "tool": "get_deployments",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 3,
+              "tool": "search_logs",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            }
+          ]
+        },
+        "evidence_content": {
+          "status": "scored",
+          "case_id": "sparse_evidence",
+          "required_nonempty_results": 1,
+          "captured_nonempty_results": 1,
+          "nonempty_result_coverage": 1.0,
+          "expected_empty_lookups": 2,
+          "matched_empty_lookups": 2,
+          "assessments": [
+            {
+              "tool": "search_logs",
+              "expects_empty": true,
+              "outcome": "matched"
+            },
+            {
+              "tool": "query_metrics",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_deployments",
+              "expects_empty": true,
+              "outcome": "matched"
+            }
+          ]
+        }
+      },
+      "timing": {
+        "investigation_seconds": 88.5140578999999,
+        "scoring_seconds": 9.899988071992993e-06,
+        "diagnosis_seconds": 70.95054660001188,
+        "total_seconds": 159.46463809997658
+      }
+    }
+  ],
+  "historical_reviews": {
+    "source": {
+      "path": "out/comparisons/ee0df895-d512-45d1-8501-e888b4702f6d/summary.json",
+      "sha256": "d7cb710da79ebcb3058f393702da80e2d7ff91b5ca05926d92c8738bf3a7bd2b"
+    },
+    "summary": {
+      "comparison_id": "ee0df895-d512-45d1-8501-e888b4702f6d",
+      "total_runs": 9,
+      "reviewed_runs": 9,
+      "unreviewed_runs": 0,
+      "groups": [
+        {
+          "case_id": "checkout_regression",
+          "diagnosis_model": "qwen3:4b",
+          "source": {
+            "report_file": "7a3f5342-6a12-4b22-a70d-950ba3c501b6.json",
+            "run_id": "7a3f5342-6a12-4b22-a70d-950ba3c501b6",
+            "sha256": "8ee1e7f85dcab3850127e4dce70952538aa621c81f5856090c2dca42db1b38b0"
+          },
+          "diagnosis_settings": {
+            "num_ctx": 4096,
+            "temperature": 0.6,
+            "top_p": 0.95,
+            "top_k": 20,
+            "think": true
+          },
+          "total_runs": 3,
+          "reviewed_runs": 3,
+          "unreviewed_runs": 0,
+          "criteria": {
+            "causal_explanation": {
+              "met": 2,
+              "not_met": 1,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 0.6666666666666666
+            },
+            "deployment_reasoning": {
+              "met": 2,
+              "not_met": 1,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 0.6666666666666666
+            },
+            "evidence_grounding": {
+              "met": 0,
+              "not_met": 3,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 0.0
+            },
+            "uncertainty_handling": {
+              "met": 1,
+              "not_met": 2,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 0.3333333333333333
+            }
+          },
+          "seeds": [
+            42,
+            43,
+            44
+          ],
+          "report_files": [
+            "qwen3-4b/checkout_regression/seed-42/e29b83e0-145c-4696-8fab-edb731674fed.json",
+            "qwen3-4b/checkout_regression/seed-43/ed6fd9a2-22df-453b-a39b-99a44b5cd2bc.json",
+            "qwen3-4b/checkout_regression/seed-44/1a63d2d0-8e1a-4079-b2c8-19d84ee8ccb7.json"
+          ]
+        },
+        {
+          "case_id": "payment_provider_outage",
+          "diagnosis_model": "qwen3:4b",
+          "source": {
+            "report_file": "c84105a0-581a-48af-9bbb-b495227adf84.json",
+            "run_id": "c84105a0-581a-48af-9bbb-b495227adf84",
+            "sha256": "3bbee2c3b8ea6e974ed7e78904f786d29d7c9317414eed9a2a4fdf29ec8a0987"
+          },
+          "diagnosis_settings": {
+            "num_ctx": 4096,
+            "temperature": 0.6,
+            "top_p": 0.95,
+            "top_k": 20,
+            "think": true
+          },
+          "total_runs": 3,
+          "reviewed_runs": 3,
+          "unreviewed_runs": 0,
+          "criteria": {
+            "causal_explanation": {
+              "met": 3,
+              "not_met": 0,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 1.0
+            },
+            "deployment_reasoning": {
+              "met": 0,
+              "not_met": 3,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 0.0
+            },
+            "evidence_grounding": {
+              "met": 1,
+              "not_met": 2,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 0.3333333333333333
+            },
+            "uncertainty_handling": {
+              "met": 0,
+              "not_met": 3,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 0.0
+            }
+          },
+          "seeds": [
+            42,
+            43,
+            44
+          ],
+          "report_files": [
+            "qwen3-4b/payment_provider_outage/seed-42/d75fac3a-dae8-4e0b-98bb-26eaef350e81.json",
+            "qwen3-4b/payment_provider_outage/seed-43/92d825d7-1f74-44f4-94d0-eb8fa2a0408d.json",
+            "qwen3-4b/payment_provider_outage/seed-44/eda0f26e-43ce-4be5-acff-cd3153a19d19.json"
+          ]
+        },
+        {
+          "case_id": "sparse_evidence",
+          "diagnosis_model": "qwen3:4b",
+          "source": {
+            "report_file": "9cff3260-9b7c-4ec1-8c4b-df481c08a876.json",
+            "run_id": "9cff3260-9b7c-4ec1-8c4b-df481c08a876",
+            "sha256": "be947cfa897694b935f6f275eeefe1686bff7dd2ee7ac653ad93602646ffe9f4"
+          },
+          "diagnosis_settings": {
+            "num_ctx": 4096,
+            "temperature": 0.6,
+            "top_p": 0.95,
+            "top_k": 20,
+            "think": true
+          },
+          "total_runs": 3,
+          "reviewed_runs": 3,
+          "unreviewed_runs": 0,
+          "criteria": {
+            "causal_explanation": {
+              "met": 0,
+              "not_met": 0,
+              "not_assessable": 3,
+              "assessable": 0,
+              "met_rate": null
+            },
+            "deployment_reasoning": {
+              "met": 0,
+              "not_met": 0,
+              "not_assessable": 3,
+              "assessable": 0,
+              "met_rate": null
+            },
+            "evidence_grounding": {
+              "met": 3,
+              "not_met": 0,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 1.0
+            },
+            "uncertainty_handling": {
+              "met": 3,
+              "not_met": 0,
+              "not_assessable": 0,
+              "assessable": 3,
+              "met_rate": 1.0
+            }
+          },
+          "seeds": [
+            42,
+            43,
+            44
+          ],
+          "report_files": [
+            "qwen3-4b/sparse_evidence/seed-42/037703d1-48b7-4131-a79c-b252a73a2de0.json",
+            "qwen3-4b/sparse_evidence/seed-43/3b63f252-fc99-41c3-b699-e1f987b59507.json",
+            "qwen3-4b/sparse_evidence/seed-44/ec410703-9d68-408e-851e-f55acec808e6.json"
+          ]
+        }
+      ]
+    }
+  },
+  "historical_remediation": {
+    "source": {
+      "path": "out/remediation/1e6f3ef2-3d61-4123-928e-4c4b4ea2b898.json",
+      "sha256": "d5165d81b585615e85ba0436a44b20ccdc42e0cf6d0cce97bcb103267aea4fa2"
+    },
+    "total_attempts": 9,
+    "matching_proposals": 9,
+    "by_case": {
+      "checkout_regression": {
+        "attempts": 3,
+        "matches": 3
+      },
+      "payment_provider_outage": {
+        "attempts": 3,
+        "matches": 3
+      },
+      "sparse_evidence": {
+        "attempts": 3,
+        "matches": 3
+      }
+    },
+    "code_sha256": {
+      "proposal_policy": "30da7995083e4262d91a398d2f7c25fe517dc5e085a1e2ac15d92498ab8aabe4",
+      "evaluator": "87e628510ce832fc856937be137045cd65352505fa7b5cd96f9be865cafa5611",
+      "runner": "6007fae329d9ea3386a71791c45bad7fbe165e063d0cf9c3fefbdca8a719626c"
+    }
+  },
+  "simulation_controls": {
+    "source": {
+      "path": "out/safety/ea6c8aaa-88e2-4cd9-8e80-2310bff8fc84.json",
+      "sha256": "17887c2dbed0442aa84fdbd86395e5c2e4a1dfdc142ef5f6f681e9978e8a0a62"
+    },
+    "report": {
+      "report_version": 1,
+      "run_id": "ea6c8aaa-88e2-4cd9-8e80-2310bff8fc84",
+      "started_at": "2026-10-19T07:17:16.780299+00:00",
+      "code_sha256": {
+        "remediation": "30da7995083e4262d91a398d2f7c25fe517dc5e085a1e2ac15d92498ab8aabe4",
+        "verification": "cce1e99d06b5b570733ff1966f8164aeb0dc3d215234d7f3e1bcec6bd48074dd",
+        "schemas": "ff28c4c6e54a171e41ce12ca0748ea5e73f583a384461379e5ce85ce9b10ff0a",
+        "evaluator": "f4d5d14738548538410b89be7e812d730dde8c691e68dce83ef14efdf2b065bc",
+        "runner": "ba25573529312c40a508fc272ff3c135be2b9a0776e4d4ac7bd13e0c6d674a8a",
+        "recovery_loader": "04da54be74699551b9f91c517c9fec3c1be4fe048611bea0bd7252bfd4f255b8"
+      },
+      "fixture_sha256": {
+        "checkout_recovery": "a2ad44cd9d863a304a553d47c63f61bc576104ac5df7173db853e4b58efcd53d"
+      },
+      "evaluation_mode": "simulation_controls",
+      "sections": {
+        "approval": {
+          "evaluation_mode": "simulation_safety",
+          "checks": [
+            {
+              "check_id": "unapproved_execution_blocked",
+              "passed": true,
+              "observed": "approval_required",
+              "state_unchanged": true,
+              "error": "Proposal requires explicit approval."
+            },
+            {
+              "check_id": "approved_execution",
+              "passed": true,
+              "observed": "returned",
+              "state_unchanged": false,
+              "error": null
+            }
+          ],
+          "total_checks": 2,
+          "passed_checks": 2
+        },
+        "execution_guards": {
+          "evaluation_mode": "simulation_safety",
+          "checks": [
+            {
+              "check_id": "version_changed",
+              "passed": true,
+              "observed": "rejected",
+              "state_unchanged": true,
+              "error": "Proposal current version does not match deployment."
+            },
+            {
+              "check_id": "rollback_target_changed",
+              "passed": true,
+              "observed": "rejected",
+              "state_unchanged": true,
+              "error": "Rollback target is not available for this deployment."
+            },
+            {
+              "check_id": "duplicate_execution",
+              "passed": true,
+              "observed": "rejected",
+              "state_unchanged": true,
+              "error": "Proposal has already been executed."
+            }
+          ],
+          "total_checks": 3,
+          "passed_checks": 3
+        },
+        "recovery": {
+          "evaluation_mode": "simulation_recovery",
+          "checks": [
+            {
+              "check_id": "healthy_samples",
+              "expected": "recovered",
+              "observed": "recovered",
+              "passed": true,
+              "error": null
+            },
+            {
+              "check_id": "unhealthy_sample",
+              "expected": "not_recovered",
+              "observed": "not_recovered",
+              "passed": true,
+              "error": null
+            },
+            {
+              "check_id": "insufficient_samples",
+              "expected": "inconclusive",
+              "observed": "inconclusive",
+              "passed": true,
+              "error": null
+            }
+          ],
+          "total_checks": 3,
+          "passed_checks": 3
+        },
+        "review_workflow": {
+          "evaluation_mode": "simulation_review_workflow",
+          "checks": [
+            {
+              "check_id": "declined_without_recovery",
+              "passed": true,
+              "execution": {
+                "status": "declined",
+                "proposal_id": "f81f06a1-c834-4921-8f15-5673f5ef267a"
+              },
+              "recovery": null,
+              "state_unchanged": true,
+              "error": null
+            },
+            {
+              "check_id": "approved_execution_recovery",
+              "passed": true,
+              "execution": {
+                "status": "simulated",
+                "proposal_id": "cb170bd8-110f-4176-8063-ee404f714c81",
+                "service": "checkout-service",
+                "previous_version": "1.7.4",
+                "current_version": "1.7.3"
+              },
+              "recovery": {
+                "mode": "simulation",
+                "status": "recovered",
+                "reason": "The latest three measurements meet the error-rate threshold.",
+                "service": "checkout-service",
+                "threshold": 0.02,
+                "required_samples": 3,
+                "evaluated_samples": [
+                  {
+                    "service": "checkout-service",
+                    "metric": "error_rate",
+                    "timestamp": "2026-09-28T14:11:00Z",
+                    "value": 0.015
+                  },
+                  {
+                    "service": "checkout-service",
+                    "metric": "error_rate",
+                    "timestamp": "2026-09-28T14:12:00Z",
+                    "value": 0.01
+                  },
+                  {
+                    "service": "checkout-service",
+                    "metric": "error_rate",
+                    "timestamp": "2026-09-28T14:13:00Z",
+                    "value": 0.01
+                  }
+                ]
+              },
+              "state_unchanged": false,
+              "error": null
+            }
+          ],
+          "total_checks": 2,
+          "passed_checks": 2
+        }
+      },
+      "total_checks": 10,
+      "passed_checks": 10,
+      "status": "passed"
+    }
+  },
+  "usage_example": {
+    "source": {
+      "path": "out/replays/735038a9-5f3c-4b2d-acc4-b124d5bd5f36.json",
+      "sha256": "10783b761c0f07db21e13829e83bb2d07cf51900d866aed9cc66cd8cf3185bf7"
+    },
+    "diagnosis_model": "qwen3:8b",
+    "diagnosis_settings": {
+      "num_ctx": 4096,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "top_k": 20,
+      "seed": 42,
+      "think": true
+    },
+    "usage": {
+      "calls": [
+        {
+          "stage": "diagnosis",
+          "model": "qwen3:8b",
+          "input_tokens": 2175,
+          "output_tokens": 863
+        }
+      ],
+      "totals": {
+        "attempts": 1,
+        "input_counted_calls": 1,
+        "known_input_tokens": 2175,
+        "input_tokens": 2175,
+        "output_counted_calls": 1,
+        "known_output_tokens": 863,
+        "output_tokens": 863
+      }
+    },
+    "timing": {
+      "investigation_seconds": null,
+      "scoring_seconds": null,
+      "diagnosis_seconds": 37.71493999999984,
+      "total_seconds": 37.72209959999964
+    }
+  },
+  "fixture_sha256": {
+    "data/scenarios/checkout_regression/commits.json": "6b4652349db324314ea5b8ecfe245c6eb0a55ffa94ac5bf8c298ce24b596c950",
+    "data/scenarios/checkout_regression/deployments.json": "a26102839b8e2f1db56865a7a64b3664ce49de66cadee8062bcb9a3841bdb79a",
+    "data/scenarios/checkout_regression/incident.json": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "data/scenarios/checkout_regression/log.json": "9bb01ca9b60e6ead09e975f33ffd13d097122426cc65d6653e1178529c7442dc",
+    "data/scenarios/checkout_regression/metrics.json": "40793e93387698afbe6f9883f549a5ad6e99360473ce0cbf2111533234dcec2f",
+    "data/scenarios/checkout_regression/recovery.json": "a2ad44cd9d863a304a553d47c63f61bc576104ac5df7173db853e4b58efcd53d",
+    "data/scenarios/payment_provider_outage/commits.json": "40ce6611100bc1a617b25eb1151b7c082822846a309636823ee9098e2b5b239b",
+    "data/scenarios/payment_provider_outage/deployments.json": "1344a8205ab7db25c65b845b8dcad94e5efd92cf99ea05f8ddbef8182a5edaad",
+    "data/scenarios/payment_provider_outage/log.json": "b432011dfb83b613a5ea0ab4ad29c009857c54d13e6ba44ea8f609769d7effd2",
+    "data/scenarios/payment_provider_outage/metrics.json": "2ada34cbe8a68d2e93de11f9874bc259510b50aeb1abed1479c81ca10ad5efa5",
+    "data/scenarios/sparse_evidence/commits.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "data/scenarios/sparse_evidence/deployments.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "data/scenarios/sparse_evidence/log.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "data/scenarios/sparse_evidence/metrics.json": "2ada34cbe8a68d2e93de11f9874bc259510b50aeb1abed1479c81ca10ad5efa5"
+  },
+  "assessment_code_sha256": {
+    "evals/cases.py": "84be8efed9aeec05710da3ddf6befa4686a6485269c8fef1b0615e8a8d3c2023",
+    "evals/evaluator.py": "9c9b684044729c7edd0fc0ea54aaeb7ccf2b618537dfd897940d1a919714b284",
+    "evals/tool_assessment.py": "07726abf94a5e69e8e8d0673cedb1bfa6b9e46ba2ec994e5d29cd3e882257cf2",
+    "evals/evidence_assessment.py": "ba86454566bd2a7b1254ded5bd1bdc6960ea14ab95c0fe2b29c00d7909a6ff9c",
+    "evals/review_summary.py": "d732960fd6e35607f5d29255e1586a260c7f4f144f8f2f1a55ea3de9aa34d5c2",
+    "evals/assessment.py": "d08fbfa0717c1004038bca1bc0c6aaf9f0225d529edac14398c32c62150d1693"
+  }
+}

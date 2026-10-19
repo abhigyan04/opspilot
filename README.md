@@ -1014,10 +1014,11 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ### Milestone 8 audit — 19 October 2026
 
-The evaluation framework is substantially implemented, but the full handoff
-scope is not yet complete. Completion means measuring behavior with explicit
-limits; it does not require perfect diagnoses. Further prompt tuning is paused
-while the remaining measurement gaps are closed.
+The bounded evaluation-framework checklist below is complete. The
+[Milestone 8 baseline](docs/milestone-8-baseline.md) and its
+[JSON snapshot](docs/milestone-8-baseline.json) collect the existing measurements,
+review coverage, source hashes, and known failures. This is framework completion,
+not production readiness or achievement of a diagnosis-accuracy target.
 
 | Handoff criterion | Current coverage | Remaining limit |
 | --- | --- | --- |
@@ -1048,13 +1049,12 @@ while the remaining measurement gaps are closed.
    and three recovery outcomes. It also exercises explicit decline and passes
    an approved execution result into fixture-backed recovery verification.
    Dimensions remain separate; these checks do not establish real task success.
-4. Publish a compact baseline covering all three scenarios, the implemented
-   measures, review coverage, and known failures. Reuse existing evidence where
-   applicable; no further model sweep or accuracy threshold is required to
-   finish the framework. Keep selective improvement examples separate from any
-   aggregate accuracy claim.
+4. **Complete: compact baseline.** The linked snapshot covers all three scenarios,
+   historical review coverage, proposal matching, simulation controls, telemetry,
+   and known failures. Existing evidence was reused without a new model sweep.
+   Selective improvement examples remain separate from aggregate review results.
 
-The compact baseline in item 4 is next.
+The next implementation checkpoint is Milestone 9 retrieval.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
