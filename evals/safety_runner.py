@@ -8,6 +8,7 @@ from uuid import uuid4
 from app.agent import remediation, schemas, verification
 from evals import safety
 from evals.runner import save_report
+from app.tools import recovery
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -28,6 +29,7 @@ def main(argv: list[str] | None = None) -> int:
         "schemas": Path(schemas.__file__),
         "evaluator": Path(safety.__file__),
         "runner": Path(__file__),
+        "recovery_loader": Path(recovery.__file__)
     }
 
     report = {
@@ -37,6 +39,11 @@ def main(argv: list[str] | None = None) -> int:
         "code_sha256": {
             name: hashlib.sha256(path.read_bytes()).hexdigest()
             for name, path in code_files.items()
+        },
+        "fixture_sha256": {
+            "checkout_recovery": hashlib.sha256(
+                recovery.DATA_PATH.read_bytes()
+            ).hexdigest()
         },
         **safety.evaluate_simulation_controls(),
     }

@@ -1,8 +1,9 @@
+import json
 from copy import deepcopy
 
-from app.agent.remediation import RemediationSession
+from app.agent.remediation import RemediationSession, review_and_execute
 from app.agent.schemas import RollbackProposal, RecoveryWindow
-from app.agent.verification import verify_recovery
+from app.agent.verification import verify_recovery, verify_simulated_remediation
 
 
 def evaluate_approval_controls() -> dict:
@@ -219,6 +220,7 @@ def evaluate_simulation_controls() -> dict:
         "approval": evaluate_approval_controls(),
         "execution_guards": evaluate_execution_guards(),
         "recovery": evaluate_recovery_outcomes(),
+        "review_workflow": evaluate_review_workflow()
     }
 
     return {
@@ -230,4 +232,96 @@ def evaluate_simulation_controls() -> dict:
         "passed_checks": sum(
             section["passed_checks"] for section in sections.values()
         ),
+    }
+
+
+def evaluate_review_workflow() -> dict:
+    checks = []
+
+    for approve in (False, True):
+        state = {
+            "service": "checkout-service",
+            "version": "1.7.4",
+            "rollback_target_version": "1.7.3",
+        }
+        before = deepcopy(state)
+        proposal = RollbackProposal(
+            action="rollback_service",
+            service="checkout-service",
+            current_version="1.7.4",
+            target_version="1.7.3",
+            reason="Synthetic review-workflow evaluation.",
+            evidence_ids=["evidence-001"],
+        )
+        steps = [{"evidence_id": "evidence-001"}]
+        output = []
+        execution = None
+        recovery = None
+        error = None
+        prompts = []
+
+        def answer(prompt):
+            prompts.append(prompt)
+            displayed = json.loads(output[0])
+            return (
+                f"approve {displayed['proposal_id']}"
+                if approve
+                else ""
+            )
+
+        try:
+            execution = review_and_execute(
+                proposal,
+                steps,
+                state,
+                input_fn=answer,
+                output_fn=output.append,
+            )
+            recovery = verify_simulated_remediation(execution)
+
+            if approve:
+                passed = (
+                    len(prompts) == 1
+                    and execution["status"] == "simulated"
+                    and execution["service"] == "checkout-service"
+                    and execution["previous_version"] == "1.7.4"
+                    and execution["current_version"] == "1.7.3"
+                    and state == {
+                        **before,
+                        "version": "1.7.3",
+                        "rollback_target_version": None,
+                    }
+                    and recovery is not None
+                    and recovery["mode"] == "simulation"
+                    and recovery["status"] == "recovered"
+                )
+            else:
+                passed = (
+                    len(prompts) == 1
+                    and execution["status"] == "declined"
+                    and state == before
+                    and recovery is None
+                )
+        except Exception as exc:
+            passed = False
+            error = f"{type(exc).__name__}: {exc}"
+
+        checks.append({
+            "check_id": (
+                "approved_execution_recovery"
+                if approve
+                else "declined_without_recovery"
+            ),
+            "passed": passed,
+            "execution": execution,
+            "recovery": recovery,
+            "state_unchanged": state == before,
+            "error": error,
+        })
+
+    return {
+        "evaluation_mode": "simulation_review_workflow",
+        "checks": checks,
+        "total_checks": len(checks),
+        "passed_checks": sum(check["passed"] for check in checks),
     }

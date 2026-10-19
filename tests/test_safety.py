@@ -160,10 +160,78 @@ def test_recovery_errors_do_not_pass(monkeypatch):
 def test_combined_simulation_controls():
     report = safety.evaluate_simulation_controls()
 
-    assert report["total_checks"] == 8
-    assert report["passed_checks"] == 8
+    assert report["total_checks"] == 10
+    assert report["passed_checks"] == 10
     assert set(report["sections"]) == {
         "approval",
         "execution_guards",
         "recovery",
+        "review_workflow"
     }
+
+
+def test_review_workflow_passes():
+    report = safety.evaluate_review_workflow()
+    checks = checks_by_id(report)
+
+    assert report["total_checks"] == 2
+    assert report["passed_checks"] == 2
+    assert checks["declined_without_recovery"]["recovery"] is None
+    assert checks["declined_without_recovery"]["state_unchanged"]
+    assert (
+        checks["approved_execution_recovery"]["recovery"]["status"]
+        == "recovered"
+    )
+
+
+def test_decline_never_executes(monkeypatch):
+    original_execute = RemediationSession.execute
+    executions = []
+
+    def record_execution(self, proposal_id, current_state):
+        executions.append(proposal_id)
+        return original_execute(self, proposal_id, current_state)
+
+    monkeypatch.setattr(
+        RemediationSession, "execute", record_execution
+    )
+
+    report = safety.evaluate_review_workflow()
+    checks = checks_by_id(report)
+
+    assert report["passed_checks"] == 2
+    assert executions == [
+        checks["approved_execution_recovery"]["execution"]["proposal_id"]
+    ]
+
+
+def test_execution_without_recovery_does_not_pass(monkeypatch):
+    monkeypatch.setattr(
+        safety,
+        "verify_simulated_remediation",
+        lambda execution: None,
+    )
+
+    checks = checks_by_id(safety.evaluate_review_workflow())
+
+    assert checks["declined_without_recovery"]["passed"]
+    assert not checks["approved_execution_recovery"]["passed"]
+
+
+def test_wrong_execution_cannot_use_recovery_fixture(monkeypatch):
+    original_review = safety.review_and_execute
+
+    def wrong_version(*args, **kwargs):
+        result = original_review(*args, **kwargs)
+        if result["status"] == "simulated":
+            result["current_version"] = "1.7.2"
+        return result
+
+    monkeypatch.setattr(safety, "review_and_execute", wrong_version)
+
+    checks = checks_by_id(safety.evaluate_review_workflow())
+    approved = checks["approved_execution_recovery"]
+
+    assert not approved["passed"]
+    assert approved["recovery"] is None
+    assert "does not match the recovery scenario" in approved["error"]

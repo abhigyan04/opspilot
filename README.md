@@ -1012,7 +1012,7 @@ necessarily every intended test. The exercise was kept off `master`.
 
 ## Next milestone
 
-### Milestone 8 audit — 16 October 2026
+### Milestone 8 audit — 19 October 2026
 
 The evaluation framework is substantially implemented, but the full handoff
 scope is not yet complete. Completion means measuring behavior with explicit
@@ -1027,8 +1027,8 @@ while the remaining measurement gaps are closed.
 | Required evidence gathered | Exact expected fixture-result matching, with nonempty coverage and separate empty lookups | Capturing available fixtures does not establish causal sufficiency; comparison uses current fixture contents. |
 | Unsupported claims | Citation-ID validation, claim-to-observation views, manual grounding reviews | Valid IDs do not establish semantic support; review coverage must accompany scores. |
 | Remediation correctness | Offline expected action/service/version matching across saved diagnoses | This is proposal matching, not proof of causal appropriateness or recovery. |
-| Safety violations | Tests plus a saved synthetic evaluation of approval enforcement, changed state, and repeated execution | Not a scenario-level safety violation rate; the report does not exercise the interactive decline path. |
-| Task success | Pipeline completion and a control report with separate execution and recovery checks | Recovery windows are synthetic and independent of execution; end-to-end incident resolution remains unmeasured. |
+| Safety violations | Tests plus a saved synthetic evaluation of approval enforcement, explicit decline, changed state, and repeated execution | A finite control suite, not a scenario-level safety violation rate. |
+| Task success | Pipeline completion, separate recovery checks, and a linked simulated review-execution-recovery check | Recovery uses a matching static fixture; real incident resolution and causal recovery remain unmeasured. |
 | Token use | Per-call collection, full-run and replay reports, batch totals with missing-data coverage | Server-reported counts; unavailable counts remain null. Live replay verified; full-pipeline aggregation tested with mocked calls. |
 | Latency | Stage timings and batch means | Local loading and runtime variability are included; observations are not controlled benchmarks. |
 | Cost where applicable | Local Ollama inference without a paid inference API | API cost is not applicable; electricity and hardware costs are not measured. |
@@ -1043,18 +1043,18 @@ while the remaining measurement gaps are closed.
    distinguish matching arguments, captured nonempty results, and expected empty
    lookups. Expectations stay outside agent inputs. Tests and offline checks of
    all three scenarios validate the bounded measure, not semantic tool optimality.
-3. **Partially complete: offline simulation evaluation.** A saved control report
+3. **Complete: offline simulation evaluation.** A saved control report
    covers unapproved and approved execution, stale state, repeated execution,
-   and three recovery outcomes. Interactive decline and a linked simulated
-   execution-to-recovery outcome remain outside this report. Keep each dimension
-   separate rather than relabeling pipeline completion as task success.
+   and three recovery outcomes. It also exercises explicit decline and passes
+   an approved execution result into fixture-backed recovery verification.
+   Dimensions remain separate; these checks do not establish real task success.
 4. Publish a compact baseline covering all three scenarios, the implemented
    measures, review coverage, and known failures. Reuse existing evidence where
    applicable; no further model sweep or accuracy threshold is required to
    finish the framework. Keep selective improvement examples separate from any
    aggregate accuracy claim.
 
-The remaining parts of item 3 and the compact baseline in item 4 are next.
+The compact baseline in item 4 is next.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1074,13 +1074,14 @@ python -m evals.safety_runner
 ```
 
 Use `--output-dir PATH` to choose the destination (default: `out/safety`). Each
-report includes a unique run ID, UTC start time, code hashes, and individual
-results grouped into approval, execution guards, and recovery. The command
+report includes a unique run ID, UTC start time, code hashes (including the
+recovery loader), a recovery-fixture hash, and individual results grouped into
+approval, execution guards, recovery, and review workflow. The command
 returns exit code 0 when all checks pass and 1 when a check fails. Unexpected
 setup or write errors propagate rather than producing a successful report.
 
-On 16 October 2026 (India time), report
-`out/safety/a00ae0d8-ad66-487f-9d2f-2e734b0867c9.json` recorded 8/8 passing checks:
+On 19 October 2026, report
+`out/safety/ea6c8aaa-88e2-4cd9-8e80-2310bff8fc84.json` recorded 10/10 passing checks:
 
 - Approval: unapproved execution blocked without mutation; approved execution
   changes the version and consumes approval (2/2).
@@ -1088,14 +1089,20 @@ On 16 October 2026 (India time), report
   repeated execution rejected without further state changes (3/3).
 - Recovery: healthy measurements yield `recovered`, an unhealthy measurement
   yields `not_recovered`, and insufficient measurements yield `inconclusive` (3/3).
+- Review workflow: explicit decline leaves state unchanged with no recovery
+  result; approval executes the rollback and passes its result into recovery
+  verification, which returns `recovered` for the matching checkout fixture (2/2).
 
-The user-reported full test run passed 317 tests. Tests also deliberately bypass
+The user-reported full test run passed 321 tests. Tests also deliberately bypass
 guards or force incorrect recovery results to check that evaluation detects
 failures. The execution-guard evaluator accepts a `ValueError` with unchanged
 state; it does not validate the precise rejection reason. Its approved-execution
 control is therefore important but does not prove every rejection is correct.
 
 This is a control-check pass count, not diagnosis accuracy, a safety violation
-rate across incidents, or task success. Recovery measurements are supplied
-independently of the simulated rollback and do not demonstrate that rollback
-caused recovery. Generated reports remain local artifacts under `out/`.
+rate across incidents, or task success. The linked workflow checks the actual
+execution result against the fixture's service and version transition, but the
+static measurements do not demonstrate that rollback caused recovery. Review
+responses are supplied by the evaluator; no human approval or real infrastructure
+action occurs during this command. Generated reports remain local artifacts
+under `out/`.
