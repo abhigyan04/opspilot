@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "documents": [
+    {
+      "document_id": "runbook-dependency-errors",
+      "document_type": "runbook",
+      "title": "Investigating dependency errors",
+      "path": "runbooks/dependency-errors.md",
+      "synthetic": true
+    },
+    {
+      "document_id": "runbook-application-exceptions",
+      "document_type": "runbook",
+      "title": "Investigating application exceptions",
+      "path": "runbooks/application-exceptions.md",
+      "synthetic": true
+    },
+    {
+      "document_id": "incident-inventory-timeout",
+      "document_type": "historical_incident",
+      "title": "Inventory reservation timeouts",
+      "path": "incidents/inventory-timeout.md",
+      "synthetic": true
+    }
+  ]
+}

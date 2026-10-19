@@ -1054,13 +1054,14 @@ not production readiness or achievement of a diagnosis-accuracy target.
    and known failures. Existing evidence was reused without a new model sweep.
    Selective improvement examples remain separate from aggregate review results.
 
-The next implementation checkpoint is Milestone 9 retrieval.
+Milestone 9 is underway: the reference collection and loader are implemented;
+the next implementation checkpoint is splitting documents into citable passages.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
 
-After these checks, proceed to Milestone 9: retrieve runbooks and historical
-incidents, then evaluate whether that additional evidence helps. MCP follows
+Milestone 9 will retrieve runbooks and historical incidents, then evaluate
+whether that additional evidence helps. MCP follows
 direct integration experience; LangGraph follows demonstrated workflow
 complexity. UI and deployment come after a deployable service exists. RAG is
 not assumed to fix timestamp or citation errors by itself.
@@ -1106,3 +1107,25 @@ static measurements do not demonstrate that rollback caused recovery. Review
 responses are supplied by the evaluator; no human approval or real infrastructure
 action occurs during this command. Generated reports remain local artifacts
 under `out/`.
+
+### Milestone 9: local knowledge collection
+
+The [knowledge catalog](data/knowledge/catalog.json) lists two synthetic
+runbooks and one fictional historical incident. Their Markdown files live under
+`data/knowledge/`, separately from evaluation fixtures in `data/scenarios/`.
+The documents provide operational guidance without copying scenario-specific
+commits, versions, timestamps, or expected diagnoses. Historical observations
+are reference material, not evidence about a current incident.
+
+[`load_documents`](app/retrieval/documents.py) validates catalog metadata and
+loads UTF-8 Markdown into immutable document records. Each record retains its
+stable document ID, type, title, relative source path, synthetic flag, text,
+and SHA-256 hash of the exact file bytes. The loader rejects duplicate IDs or
+resolved paths, blank titles or contents, unsupported document types, and
+invalid paths. Resolved document paths must remain inside the knowledge root.
+Missing files and decoding errors propagate rather than silently omitting data.
+
+The user-reported suite passed 337 tests after adding the collection and loader.
+This checkpoint does not yet perform chunking, embedding, semantic search,
+pgvector storage, or diagnosis augmentation. Next is passage construction with
+source metadata, followed by retrieval and evaluation before agent integration.
