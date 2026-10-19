@@ -1054,8 +1054,8 @@ not production readiness or achievement of a diagnosis-accuracy target.
    and known failures. Existing evidence was reused without a new model sweep.
    Selective improvement examples remain separate from aggregate review results.
 
-Milestone 9 is underway: the reference collection and loader are implemented;
-the next implementation checkpoint is splitting documents into citable passages.
+Milestone 9 is underway: the reference collection, loader, and passage splitter
+are implemented; the next implementation checkpoint is local embeddings.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1125,7 +1125,22 @@ resolved paths, blank titles or contents, unsupported document types, and
 invalid paths. Resolved document paths must remain inside the knowledge root.
 Missing files and decoding errors propagate rather than silently omitting data.
 
-The user-reported suite passed 337 tests after adding the collection and loader.
-This checkpoint does not yet perform chunking, embedding, semantic search,
-pgvector storage, or diagnosis augmentation. Next is passage construction with
-source metadata, followed by retrieval and evaluation before agent integration.
+[`chunk_document`](app/retrieval/chunks.py) splits the current prose documents
+at Markdown `##` headings. It retains opening text as an introduction, keeps
+subheadings within their section, and skips empty sections. Each immutable
+passage carries document metadata, its section, the source-file hash, and an ID
+formed from the document ID, source hash, and passage position. Editing any part
+of a document changes all its passage IDs; the IDs identify document versions,
+not permanent anchors across revisions.
+
+The three current documents produce 14 nonempty passages (5, 5, and 4), with
+passage bodies ranging from 113 to 589 characters. The splitter has no length
+limit and is not a general Markdown parser: heading-like lines inside fenced
+code need handling before such documents are added. A splitter algorithm change
+also requires index invalidation; document hashes alone do not version that code.
+
+The user-reported suite passed 344 tests after adding passage construction.
+This checkpoint does not yet perform embedding, semantic search, pgvector
+storage, or diagnosis augmentation. Next are local embeddings and retrieval
+evaluation before agent integration. Retrieved passages must remain labeled as
+reference material, including when the introduction disclaimer is not retrieved.
