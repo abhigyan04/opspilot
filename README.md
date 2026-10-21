@@ -1054,8 +1054,8 @@ not production readiness or achievement of a diagnosis-accuracy target.
    and known failures. Existing evidence was reused without a new model sweep.
    Selective improvement examples remain separate from aggregate review results.
 
-Milestone 9 is underway: the reference collection, loader, and passage splitter
-are implemented; the next implementation checkpoint is local embeddings.
+Milestone 9 is underway: the reference collection, loader, passage splitter,
+and local embeddings are implemented; the next checkpoint is search ranking.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1139,8 +1139,35 @@ limit and is not a general Markdown parser: heading-like lines inside fenced
 code need handling before such documents are added. A splitter algorithm change
 also requires index invalidation; document hashes alone do not version that code.
 
-The user-reported suite passed 344 tests after adding passage construction.
-This checkpoint does not yet perform embedding, semantic search, pgvector
-storage, or diagnosis augmentation. Next are local embeddings and retrieval
-evaluation before agent integration. Retrieved passages must remain labeled as
-reference material, including when the introduction disclaimer is not retrieved.
+Retrieved passages must remain labeled as reference material, including when
+the introduction disclaimer is not retrieved.
+
+### Local embeddings
+
+[`embeddings.py`](app/retrieval/embeddings.py) uses `embeddinggemma:300m` through
+Ollama at `http://localhost:11434`, with 768-dimensional vectors and input
+format version 1. Queries use `task: search result | query: ...`; passages use
+`title: DOCUMENT TITLE — SECTION | text: ...`. Formatting is separate from
+the original passage contents used for citations.
+
+Prepare the local model:
+
+```powershell
+ollama pull embeddinggemma:300m
+```
+
+Ollama must be running for live embedding calls. Open the Ollama application or
+run `ollama serve` in a separate terminal. The adapter rejects blank inputs,
+incorrect vector counts or dimensions, nonfinite values, and zero vectors.
+It requests `truncate=False`, makes no server call for empty batches, and lets
+server errors propagate. Tests use fake clients and require no running server.
+
+The user-reported suite passed 368 tests. The live smoke check then embedded all
+3 documents' 14 passages and one query successfully, producing 14 passage
+vectors and a query vector with 768 dimensions. This establishes that the
+formatted embedding path works; it does not establish retrieval relevance.
+
+Search ranking, index persistence, pgvector storage, and diagnosis augmentation
+are not yet implemented. The future index must identify its embedding model,
+format version, and source contents so incompatible vectors are not mixed.
+Next is ranking and retrieval evaluation before agent integration.
