@@ -4,6 +4,9 @@ import re
 from app.retrieval.documents import KnowledgeDocument
 
 
+# Increment when passage splitting behavior changes.
+CHUNKING_VERSION = 1
+
 SECTION_HEADING = re.compile(r"^##[ \t]+(.+?)\s*$")
 
 

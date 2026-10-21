@@ -1056,8 +1056,8 @@ not production readiness or achievement of a diagnosis-accuracy target.
 
 Milestone 9 is underway: the reference collection, loader, passage splitter,
 local embeddings, cosine-similarity ranking, and a development retrieval
-evaluation are implemented. Index provenance and persistence are next, before
-diagnosis integration.
+evaluation are implemented, along with local index provenance and persistence.
+Query-time index compatibility is next, before diagnosis integration.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1169,9 +1169,9 @@ The user-reported suite passed 368 tests. The live smoke check then embedded all
 vectors and a query vector with 768 dimensions. This establishes that the
 formatted embedding path works; it does not establish retrieval relevance.
 
-Index persistence, pgvector storage, and diagnosis augmentation are not yet
-implemented. The future index must identify its embedding model,
-format version, and source contents so incompatible vectors are not mixed.
+Local JSON index persistence is implemented below. Pgvector storage and diagnosis
+augmentation are not yet implemented. Index manifests identify the embedding
+model digest, format version, and source contents.
 The development retrieval evaluation below precedes agent integration.
 
 ### Passage ranking
@@ -1232,7 +1232,48 @@ has been calibrated, and the report does not measure diagnosis improvement.
 
 Reports retain per-query ranks and judgments, passage text and metadata, source
 hashes, code hashes, model tag, format version, and elapsed time. The installed
-model digest is not yet recorded. `completed` means the evaluation ran, not
+model digest is not yet recorded by this evaluation runner (the index preparation
+path below does record it). `completed` means the evaluation ran, not
 that retrieval met a quality threshold. Errors propagate without saving an
 incomplete report as completed. The user-reported suite passed 407 tests;
 runner tests use fake embeddings and do not require Ollama.
+
+### Local index preparation and reuse
+
+[`prepare_index`](app/retrieval/prepare.py) loads the current collection, creates
+passages, and obtains the exact configured model tag's digest from local Ollama.
+The manifest includes model identity, dimensions, embedding format version,
+chunking version, and complete ordered passage records. Its deterministic
+fingerprint names the JSON index file inside the caller's chosen directory.
+Changes to these inputs select a different file rather than overwriting an old
+index. Increment the chunking or formatting version when those algorithms change.
+
+```python
+from pathlib import Path
+from app.retrieval.prepare import prepare_index
+
+index = prepare_index(Path("out/indexes"))
+print(index.path, index.reused, len(index.chunks))
+```
+
+A matching index loads vectors without embedding the passages again. Ollama
+must still be running: preparation checks model identity before and after the
+operation. An observed identity change prevents a newly built index from being
+saved. This detects changes across the operation but does not lock the model
+registry or guarantee query-time compatibility; that integration is next.
+
+The index loader checks payload integrity, the expected manifest, vector counts,
+dimensions, finite numeric values, and nonzero vectors. Corrupt files raise an
+error rather than triggering silent replacement. Hashes detect accidental edits,
+not malicious modification with recomputed hashes. Exclusive file creation
+prevents overwrites; writes are not atomic, and an interrupted write can leave
+an invalid file that must be handled explicitly.
+
+The user-reported suite passed 450 tests. The live smoke check built and then
+reused 14 passage vectors of 768 dimensions under
+`out/indexes/85e42b4b-ac69-4cb5-af3c-167ea0f9abc3/` with manifest fingerprint
+`001659867233cd610c9b1efea24272c117a545cd8b756b4612fdf9db3d90c695`.
+The model digest was
+`85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1`.
+The saved file's integrity and vector shape were checked separately without
+calling Ollama. Generated indexes remain local under ignored `out/`.

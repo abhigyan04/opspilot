@@ -1,4 +1,5 @@
 import math
+import re
 
 from ollama import Client
 
@@ -87,3 +88,32 @@ def embed_chunks(chunks: list[KnowledgeChunk], *, client: Client | None = None) 
         [format_chunk(chunk) for chunk in chunks],
         client=client,
     )
+
+
+def get_embedding_identity(*, client: Client | None = None) -> dict:
+    if client is None:
+        client = Client(host="http://localhost:11434")
+
+    matches = [
+        model
+        for model in client.list().models
+        if model.model == EMBEDDING_MODEL
+    ]
+
+    if len(matches) != 1:
+        raise ValueError(
+            f"Expected exactly one installed model named {EMBEDDING_MODEL}."
+        )
+
+    digest = matches[0].digest
+    if not isinstance(digest, str) or not re.fullmatch(
+        r"[0-9a-fA-F]{64}", digest
+    ):
+        raise ValueError("Installed model has an invalid digest.")
+
+    return {
+        "model": EMBEDDING_MODEL,
+        "digest": digest.lower(),
+        "dimensions": EMBEDDING_DIMENSIONS,
+        "format_version": EMBEDDING_FORMAT_VERSION,
+    }

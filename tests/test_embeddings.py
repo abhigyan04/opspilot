@@ -11,7 +11,9 @@ from app.retrieval.embeddings import (
     EMBEDDING_MODEL,
     embed_texts,
     embed_chunks,
-    embed_query
+    embed_query,
+    EMBEDDING_FORMAT_VERSION,
+    get_embedding_identity
 )
 
 
@@ -152,3 +154,72 @@ def test_blank_chunk_is_rejected_before_prefix_can_hide_it():
         embed_chunks([blank], client=client)
 
     assert client.calls == []
+
+
+class FakeModelClient:
+    def __init__(self, models):
+        self.models = models
+
+    def list(self):
+        return SimpleNamespace(models=self.models)
+
+
+def installed_model(name=EMBEDDING_MODEL, digest="a" * 64):
+    return SimpleNamespace(model=name, digest=digest)
+
+
+def test_reads_exact_embedding_model_identity():
+    client = FakeModelClient([
+        installed_model(name="another-model:latest"),
+        installed_model(digest="B" * 64),
+    ])
+
+    assert get_embedding_identity(client=client) == {
+        "model": EMBEDDING_MODEL,
+        "digest": "b" * 64,
+        "dimensions": EMBEDDING_DIMENSIONS,
+        "format_version": EMBEDDING_FORMAT_VERSION,
+    }
+
+
+def test_missing_model_is_not_replaced_by_an_alias():
+    client = FakeModelClient([
+        installed_model(name="embeddinggemma:latest"),
+    ])
+
+    with pytest.raises(ValueError, match="exactly one"):
+        get_embedding_identity(client=client)
+
+
+def test_duplicate_model_entries_are_rejected():
+    client = FakeModelClient([
+        installed_model(),
+        installed_model(),
+    ])
+
+    with pytest.raises(ValueError, match="exactly one"):
+        get_embedding_identity(client=client)
+
+
+@pytest.mark.parametrize("digest", [
+    None,
+    "",
+    "abc",
+    "g" * 64,
+])
+def test_invalid_model_digest_is_rejected(digest):
+    client = FakeModelClient([
+        installed_model(digest=digest),
+    ])
+
+    with pytest.raises(ValueError, match="digest"):
+        get_embedding_identity(client=client)
+
+
+def test_identity_lookup_connection_errors_propagate():
+    class UnavailableClient:
+        def list(self):
+            raise ConnectionError("Ollama unavailable")
+
+    with pytest.raises(ConnectionError, match="Ollama unavailable"):
+        get_embedding_identity(client=UnavailableClient())
