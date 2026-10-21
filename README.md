@@ -1055,8 +1055,9 @@ not production readiness or achievement of a diagnosis-accuracy target.
    Selective improvement examples remain separate from aggregate review results.
 
 Milestone 9 is underway: the reference collection, loader, passage splitter,
-local embeddings, and cosine-similarity ranking are implemented. Retrieval
-evaluation is next, before diagnosis integration.
+local embeddings, cosine-similarity ranking, and a development retrieval
+evaluation are implemented. Index provenance and persistence are next, before
+diagnosis integration.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1171,7 +1172,7 @@ formatted embedding path works; it does not establish retrieval relevance.
 Index persistence, pgvector storage, and diagnosis augmentation are not yet
 implemented. The future index must identify its embedding model,
 format version, and source contents so incompatible vectors are not mixed.
-Next is retrieval evaluation before agent integration.
+The development retrieval evaluation below precedes agent integration.
 
 ### Passage ranking
 
@@ -1197,3 +1198,41 @@ returns up to `top_k` hits when passages are available, even for unrelated
 queries; no relevance threshold or abstention policy is calibrated yet. The
 symptom matches rank above investigation guidance in the two runbook examples,
 so document-level matching alone is insufficient to measure useful retrieval.
+
+### Retrieval development evaluation
+
+```powershell
+python -m evals.retrieval_runner --top-k 3
+```
+
+The runner embeds the collection once, evaluates eight queries, and saves a
+report under `out/retrieval/` (`--output-dir` overrides the destination).
+Expectations in `evals/retrieval_cases.py` identify document/section pairs and
+are used only for scoring, not supplied to the retriever. Six positive cases
+include paraphrases; two negative cases cover cooking and unsupported production
+database details. This small authored development set is not held-out evidence
+of generalization.
+
+Report `ef6a523e-7ed4-4bb8-a2cc-1978248f3e96` completed with `top_k=3`:
+
+| Measure | Result |
+| --- | --- |
+| Positive queries with an expected section in top 3 | 6/6 (hit rate 1.0) |
+| Mean expected-section recall at 3 | 1.0 |
+| Mean reciprocal rank at 3 | 0.8333 |
+| Negative queries returning passages | 2/2 |
+
+The first relevant section ranked second for `dependency_investigation` and
+`exception_investigation`, and first for the other four positive cases. Both
+expected inventory sections appeared in its top three. Negative cases are
+excluded from positive-case averages; their highest scores were 0.1408 for
+cooking and 0.3911 for unsupported database details. The latter demonstrates
+that topical similarity does not establish answerability. No relevance cutoff
+has been calibrated, and the report does not measure diagnosis improvement.
+
+Reports retain per-query ranks and judgments, passage text and metadata, source
+hashes, code hashes, model tag, format version, and elapsed time. The installed
+model digest is not yet recorded. `completed` means the evaluation ran, not
+that retrieval met a quality threshold. Errors propagate without saving an
+incomplete report as completed. The user-reported suite passed 407 tests;
+runner tests use fake embeddings and do not require Ollama.
