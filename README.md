@@ -1057,9 +1057,10 @@ not production readiness or achievement of a diagnosis-accuracy target.
 Milestone 9 is underway: the reference collection, loader, passage splitter,
 local embeddings, cosine-similarity ranking, and a development retrieval
 evaluation are implemented, along with local index provenance and persistence.
-Saved-index retrieval checks query-time model identity. Pgvector storage and
-diagnosis integration remain pending; the local PostgreSQL/pgvector service is
-configured and its extension smoke check has passed.
+Saved-index retrieval checks query-time model identity. PostgreSQL import and
+SQL ranking are implemented and tested. The high-level retrieval entry point
+still uses JSON storage; database-backed retrieval orchestration and diagnosis
+integration remain pending.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1171,8 +1172,8 @@ The user-reported suite passed 368 tests. The live smoke check then embedded all
 vectors and a query vector with 768 dimensions. This establishes that the
 formatted embedding path works; it does not establish retrieval relevance.
 
-Local JSON index persistence is implemented below. Pgvector storage and diagnosis
-augmentation are not yet implemented. Index manifests identify the embedding
+Local JSON index persistence and pgvector storage are implemented below.
+Diagnosis augmentation is not yet implemented. Index manifests identify the embedding
 model digest, format version, and source contents.
 The development retrieval evaluation below precedes agent integration.
 
@@ -1341,8 +1342,8 @@ explicitly.
 The user verified a healthy container, extension version `0.8.7`, and cosine
 distance 0 for two identical vectors. These checks establish database and
 extension availability. Retrieval tables and schema integration tests are now
-implemented below. Passage import and SQL ranking remain pending; Python
-retrieval still uses the JSON index.
+implemented below, together with passage import and SQL ranking. The high-level
+`retrieve()` function still uses the JSON index.
 
 Stop the service while preserving data with:
 
@@ -1374,8 +1375,9 @@ already exist. There is not yet an automated migration-history mechanism.
 Python connects through the `psycopg[binary]` project dependency. The user
 verified connectivity to `opspilot`, extension version 0.8.7, and both tables.
 The schema does not itself prove that a manifest matches its fingerprint or
-passages, or that all expected passages exist; importer validation and atomic
-insertion are the next checkpoint.
+passages, or that all expected passages exist. The importer validates its input
+file against the caller's expected manifest and inserts all rows atomically;
+SQL search also checks stored metadata and passage counts.
 
 Database tests require an explicit connection string:
 
@@ -1393,3 +1395,34 @@ user-reported results were 458 passed / 10 skipped without configuration,
 10 passed for the schema tests alone, and 468 passed for the configured full
 suite. Existing CI does not configure this database, so those integration tests
 remain skipped there.
+
+### PostgreSQL import and search
+
+[`pg_store.py`](app/retrieval/pg_store.py) provides `import_index()` and
+`search_index()`. Both require an expected manifest supplied by the caller.
+Import validates the saved JSON index, requires 768-dimensional vectors, and
+inserts the manifest and ordered passages in one transaction. An insertion
+failure rolls back the entire import; duplicate index fingerprints raise an
+error rather than overwriting existing data. Within an existing transaction,
+the importer uses a savepoint and leaves the outer commit to its caller.
+
+SQL search scopes results to the manifest fingerprint, checks stored manifest
+metadata and passage count, validates the query vector, and verifies returned
+passage metadata against the expected records. It ranks by cosine similarity
+(`1 - cosine distance`) with chunk-ID ties sorted using the `C` collation.
+No approximate vector index or relevance cutoff is used. These checks do not
+revalidate every stored vector's provenance or lock against concurrent database
+edits. The caller still owns query-model compatibility checks.
+
+The live import reused the local index with fingerprint
+`001659867233cd610c9b1efea24272c117a545cd8b756b4612fdf9db3d90c695` and stored all
+14 expected passages. A subsequent shared-query-vector smoke check found the
+same three dependency-runbook passages as Python, in the same order, with scores
+matching within `rel_tol=1e-5, abs_tol=1e-6`. Pgvector stores single-precision
+values, so small differences are expected. This was one-query parity validation,
+not a full database-backed retrieval evaluation.
+
+The user-reported importer/search integration suite passed 12 tests and the full
+database-enabled suite passed 480 tests. Tests cover atomic rollback, duplicate
+imports, stale manifests, ranking, missing/incomplete indexes, changed returned
+content, tie order, and invalid query vectors. All test records are rolled back.

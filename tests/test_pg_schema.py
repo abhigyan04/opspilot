@@ -38,16 +38,7 @@ def index_id(connection):
     return identifier
 
 
-def insert_passage(
-    connection,
-    index_id,
-    *,
-    chunk_id="test-chunk",
-    position=0,
-    content="Synthetic test passage.",
-    document_type="runbook",
-    vector=None,
-):
+def insert_passage(connection, index_id, *, chunk_id="test-chunk", position=0, content="Synthetic test passage.", document_type="runbook", vector=None):
     if vector is None:
         vector = [1.0] + [0.0] * 767
 
