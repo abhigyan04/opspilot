@@ -6,11 +6,17 @@ from datetime import datetime, timezone
 from time import perf_counter
 from uuid import uuid4
 import argparse
+from psycopg import Connection
+import os
+import psycopg
 
 from evals.runner import save_report
 from app.agent.agent import generate_diagnosis, DEFAULT_DIAGNOSIS_MODEL
 from app.agent.settings import DiagnosisSettings
 from app.agent.usage import UsageCollector
+from app.retrieval.context import build_reference_context
+from app.retrieval.search import SearchHit
+from app.retrieval.pg_retrieve import retrieve_postgres
 
 
 def load_replay_source(report_path: Path) -> dict:
@@ -41,7 +47,15 @@ def load_replay_source(report_path: Path) -> dict:
     }
 
 
-def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL, settings: DiagnosisSettings | None = None) -> dict:
+def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL, settings: DiagnosisSettings | None = None, reference_hits: list[SearchHit] | None = None, retrieval_connection: Connection | None = None, retrieval_top_k: int = 3) -> dict:
+    if retrieval_connection is not None:
+        if reference_hits is not None:
+            raise ValueError(
+                "Choose supplied reference hits or PostgreSQL retrieval, not both."
+            )
+        if type(retrieval_top_k) is not int or retrieval_top_k < 1:
+            raise ValueError("retrieval_top_k must be a positive integer.")
+    
     started = perf_counter()
     effective_settings = (
         DiagnosisSettings() if settings is None else settings
@@ -49,6 +63,9 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL,
     source = load_replay_source(report_path)
     original = source["report"]
     usage = UsageCollector()
+    
+    supplied_hits = deepcopy(reference_hits or [])
+    reference_context = build_reference_context(supplied_hits)
 
     assessment = {
         "status": "not_scored",
@@ -64,6 +81,8 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL,
         "evaluation_mode": "diagnosis_replay",
         "diagnosis_model": model,
         "diagnosis_settings": effective_settings.model_dump(mode="json"),
+        "reference_context": reference_context,
+        "retrieval": None,
         "run_id": str(uuid4()),
         "started_at": datetime.now(timezone.utc).isoformat(),
         "case_id": original["case_id"],
@@ -80,6 +99,7 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL,
             "scoring_seconds": None,
             "diagnosis_seconds": None,
             "total_seconds": None,
+            "retrieval_seconds": None
         },
         "metrics": None,
         "diagnosis_assessment": assessment,
@@ -87,29 +107,82 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL,
         "diagnosis": None,
     }
 
-    diagnosis_started = perf_counter()
+    stage = "retrieval" if retrieval_connection is not None else "diagnosis"
+    diagnosis_started = None
+
     try:
+        if retrieval_connection is not None:
+            report["retrieval"] = {
+                "backend": "postgres",
+                "query": report["incident"],
+                "top_k": retrieval_top_k,
+                "index_id": None,
+                "embedding_identity": None,
+                "results": None,
+            }
+
+            retrieval_started = perf_counter()
+            try:
+                retrieved = retrieve_postgres(
+                    report["incident"],
+                    retrieval_connection,
+                    top_k=retrieval_top_k,
+                )
+                supplied_hits = deepcopy(retrieved.hits)
+                report["reference_context"] = build_reference_context(
+                    supplied_hits
+                )
+                report["retrieval"].update({
+                    "index_id": retrieved.index_id,
+                    "embedding_identity": deepcopy(
+                        retrieved.embedding_identity
+                    ),
+                    "results": [
+                        {
+                            "chunk_id": hit.chunk.chunk_id,
+                            "score": hit.score,
+                        }
+                        for hit in supplied_hits
+                    ],
+                })
+            finally:
+                report["timing"]["retrieval_seconds"] = (
+                    perf_counter() - retrieval_started
+                )
+
+        diagnosis_arguments = {}
+        if supplied_hits:
+            diagnosis_arguments["reference_hits"] = supplied_hits
+
+        stage = "diagnosis"
+        diagnosis_started = perf_counter()
+
         diagnosis = generate_diagnosis(
             report["incident"],
             deepcopy(report["investigation"]["steps"]),
             model=model,
             settings=effective_settings,
-            usage=usage
+            usage=usage,
+            **diagnosis_arguments,
         )
         report["diagnosis"] = diagnosis.model_dump(mode="json")
         report["status"] = "completed"
+
     except Exception as error:
         report["status"] = "failed"
         report["error"] = {
-            "stage": "diagnosis",
+            "stage": stage,
             "type": type(error).__name__,
             "message": str(error),
         }
 
     report["usage"] = usage.snapshot()
-    report["timing"]["diagnosis_seconds"] = (
-        perf_counter() - diagnosis_started
-    )
+
+    if diagnosis_started is not None:
+        report["timing"]["diagnosis_seconds"] = (
+            perf_counter() - diagnosis_started
+        )
+
     report["timing"]["total_seconds"] = perf_counter() - started
     return report
 
@@ -140,8 +213,30 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--think", action=argparse.BooleanOptionalAction,
                         default=defaults.think,
                         help="Enable thinking; use --no-think to disable it.")
+    parser.add_argument(
+        "--with-references",
+        action="store_true",
+        help="Retrieve references from PostgreSQL before diagnosis.",
+    )
+    parser.add_argument(
+        "--retrieval-top-k",
+        type=int,
+        default=3,
+        help="Number of reference passages to retrieve (default: 3).",
+    )
 
     args = parser.parse_args(argv)
+    
+    if args.retrieval_top_k < 1:
+        parser.error("--retrieval-top-k must be positive.")
+
+    database_url = None
+    if args.with_references:
+        database_url = os.environ.get("OPSPILOT_DATABASE_URL")
+        if not database_url or not database_url.strip():
+            parser.error(
+                "--with-references requires OPSPILOT_DATABASE_URL."
+            )
 
     try:
         settings = DiagnosisSettings(
@@ -156,8 +251,34 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(str(error))
 
     try:
-        report = replay_diagnosis(args.report, model=args.model, settings=settings)
+        if args.with_references:
+            with psycopg.connect(
+                database_url,
+                autocommit=True,
+                connect_timeout=5,
+            ) as connection:
+                report = replay_diagnosis(
+                    args.report,
+                    model=args.model,
+                    settings=settings,
+                    retrieval_connection=connection,
+                    retrieval_top_k=args.retrieval_top_k,
+                )
+        else:
+            report = replay_diagnosis(
+                args.report,
+                model=args.model,
+                settings=settings,
+            )
+
         destination = save_report(report, args.output_dir)
+
+    except psycopg.Error:
+        print(
+            "Replay failed: PostgreSQL connection or database operation failed. "
+            "Check OPSPILOT_DATABASE_URL and database availability."
+        )
+        return 1
     except (OSError, ValueError, KeyError) as error:
         print(f"Replay failed: {error}")
         return 1

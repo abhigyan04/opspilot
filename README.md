@@ -1060,8 +1060,8 @@ evaluation are implemented, along with local index provenance and persistence.
 Saved-index retrieval checks query-time model identity. PostgreSQL import and
 SQL ranking are implemented and tested. Both JSON-backed and PostgreSQL-backed
 retrieval entry points are available. Diagnosis accepts optional retrieved
-references; automatic retrieval wiring and controlled diagnosis comparisons
-remain pending.
+references, and replay can retrieve them from PostgreSQL on request. Controlled
+diagnosis comparisons remain pending.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1492,6 +1492,44 @@ test URL. Tests cover reference serialization, separate payloads, citation
 validation, and the no-observations guard. They do not establish model resistance
 to instructions embedded in references or improved diagnosis accuracy.
 
-Retrieval is not automatically invoked by diagnosis or the replay CLI. Reference
-input currently has no token budget or relevance-abstention filter. Controlled
-comparisons and recording the exact reference input are the next evaluation work.
+Reference input currently has no token budget or relevance-abstention filter.
+Controlled comparisons remain necessary before claiming diagnosis improvement.
+
+### Replay with PostgreSQL references
+
+The replay CLI supports opt-in retrieval using the saved incident text as its
+query. Previous diagnoses and expected answers are not used as retrieval queries.
+The database must already contain the index matching the current knowledge
+collection and embedding identity; replay does not import or rebuild it.
+
+```powershell
+docker compose up -d --wait postgres
+$env:OPSPILOT_DATABASE_URL = "postgresql://opspilot:opspilot_local_dev@127.0.0.1:5433/opspilot"
+python -m evals.replay <saved-report.json> --model qwen3:8b --seed 42 --num-ctx 4096 --think --with-references --retrieval-top-k 3
+Remove-Item Env:OPSPILOT_DATABASE_URL
+```
+
+Replace `<saved-report.json>` with a version 2 investigation report. Ollama must
+be running with the diagnosis and embedding models available. The URL shown is
+for the local development Compose service. This command reads the process
+environment, not an `.env` file. `OPSPILOT_TEST_DATABASE_URL` remains the separate
+opt-in setting for database tests.
+
+Without `--with-references`, replay does not connect to PostgreSQL.
+`--retrieval-top-k` controls passage count; `--top-k` controls model sampling.
+The CLI owns and closes the connection. A connection failure exits with code 1
+before creating a report. Retrieval and diagnosis failures inside replay are
+saved with their respective error stages.
+
+Saved reports include the supplied `reference_context` separately from the
+unchanged investigation. PostgreSQL runs also record the retrieval query,
+requested passage count, index ID, embedding identity, ordered chunk IDs and
+scores, and retrieval duration. Scores are not passed to diagnosis. Reference
+context is retained on diagnosis failure; its presence records supplied input,
+not proof that the model used it. CLI output is a compact summary; inspect the
+saved report for the reference context and retrieval metadata.
+
+The reported CLI checkpoint passed **37 replay tests**, with **486 passed,
+22 skipped** in the full suite. These tests mock database and model calls;
+they verify orchestration and reporting, not a live retrieval-enabled diagnosis
+or its accuracy. A paired live comparison is the next checkpoint.

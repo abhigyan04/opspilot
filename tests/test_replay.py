@@ -2,6 +2,7 @@ import hashlib
 import json
 import pytest
 from types import SimpleNamespace
+from contextlib import contextmanager
 
 from evals.replay import load_replay_source
 from app.agent.schemas import diagnosis_adapter
@@ -9,6 +10,9 @@ from evals import replay
 from evals.summary import summarize_reports
 from app.agent.settings import DiagnosisSettings
 from app.agent.usage import UsageCollector
+from app.retrieval.chunks import KnowledgeChunk
+from app.retrieval.context import build_reference_context
+from app.retrieval.search import SearchHit
 
 
 def sample_report():
@@ -432,10 +436,9 @@ def test_replay_records_the_settings_passed_to_diagnosis(
     ["--top-p", "1.1"],
     ["--top-k", "0"],
     ["--seed", "-1"],
+    ["retrieval-top-k", "0"]
 ])
-def test_invalid_cli_settings_stop_before_replay(
-    monkeypatch, tmp_path, capsys, arguments
-):
+def test_invalid_cli_settings_stop_before_replay(monkeypatch, tmp_path, capsys, arguments):
     def unexpected_replay(*args, **kwargs):
         pytest.fail("Invalid settings must not start replay.")
 
@@ -516,3 +519,311 @@ def test_replay_records_only_new_usage_and_preserves_source(monkeypatch, tmp_pat
         assert saved["usage"] == result["usage"]
 
     assert path.read_bytes() == original_bytes
+
+
+@pytest.mark.parametrize("diagnosis_fails", [False, True])
+def test_replay_records_references_even_when_diagnosis_fails(monkeypatch, tmp_path, diagnosis_fails):
+    original = sample_report()
+    original["investigation"]["steps"] = [{
+        "evidence_id": "evidence-001",
+        "decision": {
+            "tool": "search_logs",
+            "arguments": {"service": "checkout-service"},
+        },
+        "result": [{"message": "Request timed out."}],
+    }]
+    path = write_report(tmp_path, original)
+    original_bytes = path.read_bytes()
+
+    hit = SearchHit(
+        chunk=KnowledgeChunk(
+            chunk_id="dependency-guide:abc:1",
+            document_id="dependency-guide",
+            document_type="runbook",
+            title="Dependency guide",
+            section="Investigation",
+            source_path="runbooks/dependency-guide.md",
+            synthetic=True,
+            source_sha256="a" * 64,
+            content="Compare dependency failures with deployment timing.",
+        ),
+        score=0.8,
+    )
+    hits = [hit]
+    expected_context = build_reference_context(hits)
+    calls = []
+
+    def fake_generate(
+        incident, steps, *, model, settings, usage, reference_hits
+    ):
+        assert incident == original["incident"]
+        assert steps == original["investigation"]["steps"]
+        assert build_reference_context(reference_hits) == expected_context
+        calls.append(True)
+
+        # Mutation by the callee must not alter the caller or saved context.
+        reference_hits.clear()
+
+        if diagnosis_fails:
+            raise RuntimeError("Model unavailable")
+
+        return diagnosis_adapter.validate_python({
+            "status": "insufficient_evidence",
+            "reason": "The timeout's cause is not established.",
+            "missing_evidence": ["Dependency error details"],
+        })
+
+    monkeypatch.setattr(replay, "generate_diagnosis", fake_generate)
+
+    result = replay.replay_diagnosis(path, reference_hits=hits)
+
+    assert calls == [True]
+    assert hits == [hit]
+    assert result["reference_context"] == expected_context
+    assert result["investigation"] == original["investigation"]
+    assert path.read_bytes() == original_bytes
+
+    if diagnosis_fails:
+        assert result["status"] == "failed"
+        assert result["error"]["stage"] == "diagnosis"
+        assert result["diagnosis"] is None
+    else:
+        assert result["status"] == "completed"
+        assert result["error"] is None
+
+
+def test_replay_without_references_records_empty_context(monkeypatch, tmp_path):
+    path = write_report(tmp_path, sample_report())
+
+    def fake_generate(incident, steps, *, model, settings, usage):
+        return diagnosis_adapter.validate_python({
+            "status": "insufficient_evidence",
+            "reason": "No operational evidence was collected.",
+            "missing_evidence": ["Operational tool results"],
+        })
+
+    monkeypatch.setattr(replay, "generate_diagnosis", fake_generate)
+
+    result = replay.replay_diagnosis(path)
+
+    assert result["status"] == "completed"
+    assert result["reference_context"] == []
+
+
+@pytest.mark.parametrize("failure_stage", [None, "retrieval", "diagnosis"])
+def test_postgres_replay_records_provenance_and_failure_stage(monkeypatch, tmp_path, failure_stage):
+    original = sample_report()
+    original["diagnosis"] = {"reason": "OLD ANSWER"}
+    original["diagnosis_assessment"] = {
+        "reference_root_cause": "EXPECTED ANSWER"
+    }
+    path = write_report(tmp_path, original)
+    connection = object()
+    calls = []
+
+    hit = SearchHit(
+        chunk=KnowledgeChunk(
+            chunk_id="dependency-guide:abc:1",
+            document_id="dependency-guide",
+            document_type="runbook",
+            title="Dependency guide",
+            section="Investigation",
+            source_path="runbooks/dependency-guide.md",
+            synthetic=True,
+            source_sha256="a" * 64,
+            content="Compare failure and deployment timing.",
+        ),
+        score=0.8,
+    )
+    identity = {
+        "model": "embeddinggemma:300m",
+        "digest": "b" * 64,
+        "dimensions": 768,
+        "format_version": 1,
+    }
+
+    def fake_retrieve(query, supplied_connection, *, top_k):
+        assert query == original["incident"]
+        assert supplied_connection is connection
+        assert top_k == 2
+        calls.append("retrieval")
+
+        if failure_stage == "retrieval":
+            raise RuntimeError("Database unavailable")
+
+        return SimpleNamespace(
+            index_id="c" * 64,
+            embedding_identity=identity,
+            hits=[hit],
+        )
+
+    def fake_generate(
+        incident, steps, *, model, settings, usage, reference_hits
+    ):
+        calls.append("diagnosis")
+        assert incident == original["incident"]
+        assert steps == original["investigation"]["steps"]
+        assert reference_hits == [hit]
+
+        if failure_stage == "diagnosis":
+            raise RuntimeError("Model unavailable")
+
+        return diagnosis_adapter.validate_python({
+            "status": "insufficient_evidence",
+            "reason": "No operational evidence was collected.",
+            "missing_evidence": ["Operational tool results"],
+        })
+
+    monkeypatch.setattr(replay, "retrieve_postgres", fake_retrieve)
+    monkeypatch.setattr(replay, "generate_diagnosis", fake_generate)
+
+    result = replay.replay_diagnosis(
+        path,
+        retrieval_connection=connection,
+        retrieval_top_k=2,
+    )
+
+    assert result["retrieval"]["query"] == original["incident"]
+    assert result["retrieval"]["backend"] == "postgres"
+    assert result["retrieval"]["top_k"] == 2
+    assert result["timing"]["retrieval_seconds"] >= 0
+
+    if failure_stage == "retrieval":
+        assert calls == ["retrieval"]
+        assert result["retrieval"]["index_id"] is None
+        assert result["reference_context"] == []
+        assert result["timing"]["diagnosis_seconds"] is None
+    else:
+        assert calls == ["retrieval", "diagnosis"]
+        assert result["retrieval"]["index_id"] == "c" * 64
+        assert result["retrieval"]["embedding_identity"] == identity
+        assert result["retrieval"]["results"] == [{
+            "chunk_id": hit.chunk.chunk_id,
+            "score": 0.8,
+        }]
+        assert result["reference_context"] == build_reference_context([hit])
+        assert result["timing"]["diagnosis_seconds"] >= 0
+
+        # Report provenance must not alias the retrieval result.
+        identity["model"] = "changed"
+        assert (
+            result["retrieval"]["embedding_identity"]["model"]
+            == "embeddinggemma:300m"
+        )
+
+    if failure_stage is None:
+        assert result["status"] == "completed"
+        assert result["error"] is None
+    else:
+        assert result["status"] == "failed"
+        assert result["error"]["stage"] == failure_stage
+        assert result["diagnosis"] is None
+
+
+def test_replay_rejects_two_reference_sources(tmp_path):
+    with pytest.raises(ValueError, match="not both"):
+        replay.replay_diagnosis(
+            tmp_path / "unused.json",
+            reference_hits=[],
+            retrieval_connection=object(),
+        )
+
+
+def test_cli_opens_and_closes_database_for_reference_replay(monkeypatch, tmp_path, capsys):
+    database_url = "postgresql://test-only"
+    monkeypatch.setenv("OPSPILOT_DATABASE_URL", database_url)
+
+    connection = object()
+    events = []
+    output_dir = tmp_path / "replays"
+
+    @contextmanager
+    def fake_connect(url, *, autocommit, connect_timeout):
+        assert url == database_url
+        assert autocommit is True
+        assert connect_timeout == 5
+        events.append("open")
+        try:
+            yield connection
+        finally:
+            events.append("close")
+
+    def fake_replay(
+        path, *, model, settings, retrieval_connection, retrieval_top_k
+    ):
+        events.append("replay")
+        assert retrieval_connection is connection
+        assert retrieval_top_k == 2
+
+        return {
+            "run_id": "reference-replay",
+            "evaluation_mode": "diagnosis_replay",
+            "diagnosis_model": model,
+            "diagnosis_settings": settings.model_dump(mode="json"),
+            "status": "completed",
+            "source": {"run_id": "original"},
+            "timing": {},
+            "error": None,
+            "usage": UsageCollector().snapshot(),
+        }
+
+    monkeypatch.setattr(replay.psycopg, "connect", fake_connect)
+    monkeypatch.setattr(replay, "replay_diagnosis", fake_replay)
+
+    exit_code = replay.main([
+        str(tmp_path / "source.json"),
+        "--with-references",
+        "--retrieval-top-k", "2",
+        "--output-dir", str(output_dir),
+    ])
+
+    assert exit_code == 0
+    assert events == ["open", "replay", "close"]
+    assert (output_dir / "reference-replay.json").exists()
+    assert database_url not in capsys.readouterr().out
+
+
+def test_reference_cli_requires_database_url(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPSPILOT_DATABASE_URL", raising=False)
+
+    def unexpected_connect(*args, **kwargs):
+        pytest.fail("Missing configuration must not open a connection.")
+
+    monkeypatch.setattr(replay.psycopg, "connect", unexpected_connect)
+
+    with pytest.raises(SystemExit) as error:
+        replay.main([
+            str(tmp_path / "source.json"),
+            "--with-references",
+        ])
+
+    assert error.value.code == 2
+
+
+def test_reference_cli_handles_connection_failure(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv(
+        "OPSPILOT_DATABASE_URL",
+        "postgresql://test-only",
+    )
+    output_dir = tmp_path / "replays"
+
+    def failed_connect(*args, **kwargs):
+        raise replay.psycopg.OperationalError("private connection details")
+
+    def unexpected_replay(*args, **kwargs):
+        pytest.fail("Replay must not start after connection failure.")
+
+    monkeypatch.setattr(replay.psycopg, "connect", failed_connect)
+    monkeypatch.setattr(replay, "replay_diagnosis", unexpected_replay)
+
+    exit_code = replay.main([
+        str(tmp_path / "source.json"),
+        "--with-references",
+        "--output-dir", str(output_dir),
+    ])
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "PostgreSQL" in output
+    assert "private connection details" not in output
+    assert not output_dir.exists()
