@@ -1059,13 +1059,15 @@ local embeddings, cosine-similarity ranking, and a development retrieval
 evaluation are implemented, along with local index provenance and persistence.
 Saved-index retrieval checks query-time model identity. PostgreSQL import and
 SQL ranking are implemented and tested. Both JSON-backed and PostgreSQL-backed
-retrieval entry points are available; diagnosis integration remains pending.
+retrieval entry points are available. Diagnosis accepts optional retrieved
+references; automatic retrieval wiring and controlled diagnosis comparisons
+remain pending.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
 
 Milestone 9 will retrieve runbooks and historical incidents, then evaluate
-whether that additional evidence helps. MCP follows
+whether that background guidance helps. MCP follows
 direct integration experience; LangGraph follows demonstrated workflow
 complexity. UI and deployment come after a deployable service exists. RAG is
 not assumed to fix timestamp or citation errors by itself.
@@ -1464,3 +1466,32 @@ The PostgreSQL report was produced by a one-off evaluation script and records
 the model identity and index fingerprint, but not the full code hashes captured
 by the existing Python runner. A reusable database evaluation CLI is not yet
 implemented. Generated reports remain local artifacts under `out/`.
+
+### Optional references in diagnosis
+
+[`build_reference_context`](app/retrieval/context.py) converts ordered search
+hits into reference records with full passage text, source metadata, and
+`reference:<chunk_id>` identifiers. It rejects duplicate chunk IDs and blank
+content. Similarity scores are excluded from diagnosis input because retrieval
+similarity is not diagnostic confidence.
+
+[`generate_diagnosis`](app/agent/agent.py) accepts an optional `reference_hits`
+argument. Nonempty references are supplied separately from operational
+observations. The prompt treats them as untrusted background guidance for
+hypotheses, not current-incident evidence or instructions to execute.
+
+Operational citation IDs remain the only IDs allowed in `evidence_ids`, and
+runtime validation rejects reference IDs used as evidence citations. With no
+operational steps, diagnosis still returns `insufficient_evidence` without a
+model call, even when references are available. The output schema is unchanged;
+it does not yet include separate reference citations.
+
+The reported checkpoint passed 34 focused diagnosis tests and the full suite
+with **475 passed, 22 skipped**. The skipped checks require the opt-in database
+test URL. Tests cover reference serialization, separate payloads, citation
+validation, and the no-observations guard. They do not establish model resistance
+to instructions embedded in references or improved diagnosis accuracy.
+
+Retrieval is not automatically invoked by diagnosis or the replay CLI. Reference
+input currently has no token budget or relevance-abstention filter. Controlled
+comparisons and recording the exact reference input are the next evaluation work.
