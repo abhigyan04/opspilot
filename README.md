@@ -1058,7 +1058,8 @@ Milestone 9 is underway: the reference collection, loader, passage splitter,
 local embeddings, cosine-similarity ranking, and a development retrieval
 evaluation are implemented, along with local index provenance and persistence.
 Saved-index retrieval checks query-time model identity. Pgvector storage and
-diagnosis integration remain pending.
+diagnosis integration remain pending; the local PostgreSQL/pgvector service is
+configured and its extension smoke check has passed.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1313,3 +1314,41 @@ Symptoms (0.5055), Investigation (0.4806), and Response considerations (0.3859),
 matching the earlier evaluation's order and scores to four decimal places.
 This validates the reuse path for one query, not general retrieval quality or
 diagnosis improvement. No relevance cutoff or abstention policy is applied.
+
+### Local PostgreSQL and pgvector
+
+[`docker-compose.yml`](docker-compose.yml) runs PostgreSQL 17 with pgvector
+0.8.7 using `pgvector/pgvector:0.8.7-pg17-bookworm`. The published port is
+`127.0.0.1:5433`, mapped to container port 5432. The database and user are
+`opspilot`; `opspilot_local_dev` is the explicit local development password.
+This setup uses the image's bootstrap database user, not a production
+least-privilege application role.
+
+```powershell
+docker compose config --quiet
+docker compose up -d --wait postgres
+docker compose ps
+docker compose exec -T postgres psql -U opspilot -d opspilot -v ON_ERROR_STOP=1 -c "SELECT extversion FROM pg_extension WHERE extname = 'vector';"
+```
+
+The named `postgres_data` volume persists database files across container
+recreation. [`001_enable_vector.sql`](infra/postgres/init/001_enable_vector.sql)
+enables the extension during first initialization. Initialization scripts run
+only for a new database volume; adding later SQL files does not automatically
+apply them to an existing database. Subsequent schema changes must be applied
+explicitly.
+
+The user verified a healthy container, extension version `0.8.7`, and cosine
+distance 0 for two identical vectors. These checks establish database and
+extension availability, not application integration. Retrieval tables, passage
+import, and SQL ranking remain to be implemented; Python retrieval still uses
+the JSON index.
+
+Stop the service while preserving data with:
+
+```powershell
+docker compose stop postgres
+```
+
+`docker compose down -v` removes the database volume and its data; it is not
+needed for normal startup, shutdown, or schema updates.
