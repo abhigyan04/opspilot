@@ -1055,7 +1055,8 @@ not production readiness or achievement of a diagnosis-accuracy target.
    Selective improvement examples remain separate from aggregate review results.
 
 Milestone 9 is underway: the reference collection, loader, passage splitter,
-and local embeddings are implemented; the next checkpoint is search ranking.
+local embeddings, and cosine-similarity ranking are implemented. Retrieval
+evaluation is next, before diagnosis integration.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1167,7 +1168,32 @@ The user-reported suite passed 368 tests. The live smoke check then embedded all
 vectors and a query vector with 768 dimensions. This establishes that the
 formatted embedding path works; it does not establish retrieval relevance.
 
-Search ranking, index persistence, pgvector storage, and diagnosis augmentation
-are not yet implemented. The future index must identify its embedding model,
+Index persistence, pgvector storage, and diagnosis augmentation are not yet
+implemented. The future index must identify its embedding model,
 format version, and source contents so incompatible vectors are not mixed.
-Next is ranking and retrieval evaluation before agent integration.
+Next is retrieval evaluation before agent integration.
+
+### Passage ranking
+
+[`rank_chunks`](app/retrieval/search.py) normalizes query and passage vectors,
+ranks by descending cosine similarity, and uses chunk IDs to break equal-score
+ties deterministically. Hits retain the full passage metadata for later citation.
+The ranker validates vector values and dimensions, chunk/vector counts, unique
+chunk IDs, and positive integer `top_k`. It does not call Ollama.
+
+The user-reported suite passed 386 tests. A live exploratory search over the
+14 passages returned the following results with `top_k=3`:
+
+| Query topic | Highest-ranked passage | Score | Other observations |
+| --- | --- | --- | --- |
+| Upstream HTTP 503 | Dependency errors / Symptoms | 0.5733 | Investigation ranked second; all three hits came from the dependency runbook. |
+| AttributeError involving None | Application exceptions / Symptoms | 0.5631 | Investigation ranked second; all three hits came from the exception runbook. |
+| Inventory reservation timeouts | Inventory incident / Historical observations | 0.7063 | All three hits came from the historical incident. |
+| Chocolate cake | Application exceptions / Investigation | 0.1299 | All returned passages were unrelated to the query. |
+
+These four queries are a smoke check, not a retrieval benchmark or diagnosis
+accuracy result. Similarity is not a relevance probability. The ranker always
+returns up to `top_k` hits when passages are available, even for unrelated
+queries; no relevance threshold or abstention policy is calibrated yet. The
+symptom matches rank above investigation guidance in the two runbook examples,
+so document-level matching alone is insufficient to measure useful retrieval.
