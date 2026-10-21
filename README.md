@@ -1340,9 +1340,9 @@ explicitly.
 
 The user verified a healthy container, extension version `0.8.7`, and cosine
 distance 0 for two identical vectors. These checks establish database and
-extension availability, not application integration. Retrieval tables, passage
-import, and SQL ranking remain to be implemented; Python retrieval still uses
-the JSON index.
+extension availability. Retrieval tables and schema integration tests are now
+implemented below. Passage import and SQL ranking remain pending; Python
+retrieval still uses the JSON index.
 
 Stop the service while preserving data with:
 
@@ -1352,3 +1352,44 @@ docker compose stop postgres
 
 `docker compose down -v` removes the database volume and its data; it is not
 needed for normal startup, shutdown, or schema updates.
+
+### Retrieval schema and database tests
+
+Apply [`001_retrieval_tables.sql`](infra/postgres/migrations/001_retrieval_tables.sql)
+once to an initialized database:
+
+```powershell
+Get-Content -Raw infra/postgres/migrations/001_retrieval_tables.sql |
+    docker compose exec -T postgres psql -U opspilot -d opspilot -v ON_ERROR_STOP=1 -f -
+```
+
+The migration creates `retrieval.indexes` for manifests and expected passage
+counts, and `retrieval.passages` for metadata and `vector(768)` embeddings.
+Passages reference an index fingerprint; chunk IDs and positions are unique
+within each index. Constraints reject invalid metadata, zero vectors, and
+missing parent indexes. Pgvector enforces vector dimensions and finite values.
+The migration runs in a transaction and intentionally fails if its tables
+already exist. There is not yet an automated migration-history mechanism.
+
+Python connects through the `psycopg[binary]` project dependency. The user
+verified connectivity to `opspilot`, extension version 0.8.7, and both tables.
+The schema does not itself prove that a manifest matches its fingerprint or
+passages, or that all expected passages exist; importer validation and atomic
+insertion are the next checkpoint.
+
+Database tests require an explicit connection string:
+
+```powershell
+$env:OPSPILOT_TEST_DATABASE_URL = "postgresql://opspilot:opspilot_local_dev@127.0.0.1:5433/opspilot"
+python -m pytest tests/test_pg_schema.py -q
+python -m pytest -q
+Remove-Item Env:OPSPILOT_TEST_DATABASE_URL
+```
+
+Use the local development database for these tests. Each test rolls back its
+temporary records, including on failure. Without the variable, database tests
+skip; with it set, connection errors fail rather than skip. The verified
+user-reported results were 458 passed / 10 skipped without configuration,
+10 passed for the schema tests alone, and 468 passed for the configured full
+suite. Existing CI does not configure this database, so those integration tests
+remain skipped there.

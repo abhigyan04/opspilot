@@ -5,6 +5,7 @@ requires-python = ">=3.10"
 dependencies = [
 	"ollama>=0.6.3",
 	"pydantic>=2.13.5",
+	"psycopg[binary]>=3.2,<4"
 ]
 
 [project.optional-dependencies]
@@ -20,3 +21,8 @@ build-backend = "setuptools.build_meta"
 where = ["."]
 include = ["app", "app.*"]
 namespaces = false
+
+[tool.pytest.ini_options]
+markers = [
+	"integration: requires an explicitly configured local database"
+]
