@@ -1058,9 +1058,8 @@ Milestone 9 is underway: the reference collection, loader, passage splitter,
 local embeddings, cosine-similarity ranking, and a development retrieval
 evaluation are implemented, along with local index provenance and persistence.
 Saved-index retrieval checks query-time model identity. PostgreSQL import and
-SQL ranking are implemented and tested. The high-level retrieval entry point
-still uses JSON storage; database-backed retrieval orchestration and diagnosis
-integration remain pending.
+SQL ranking are implemented and tested. Both JSON-backed and PostgreSQL-backed
+retrieval entry points are available; diagnosis integration remains pending.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1426,3 +1425,42 @@ The user-reported importer/search integration suite passed 12 tests and the full
 database-enabled suite passed 480 tests. Tests cover atomic rollback, duplicate
 imports, stale manifests, ranking, missing/incomplete indexes, changed returned
 content, tie order, and invalid query vectors. All test records are rolled back.
+
+### PostgreSQL retrieval orchestration and development parity
+
+[`retrieve_postgres`](app/retrieval/pg_retrieve.py) builds the expected manifest
+from current documents, passages, and the installed embedding model identity.
+It embeds only the query, rechecks model identity, and calls SQL search for the
+matching imported index. It does not import data or generate passage embeddings
+during a search. Missing indexes and observed model changes raise errors. The
+caller supplies and owns the database connection; the function does not commit
+or close it. As with JSON-backed retrieval, identity checks do not lock Ollama's
+model registry against concurrent changes.
+
+The user-reported normal suite passed 466 tests with 22 database tests skipped
+after adding this entry point. Its eight orchestration unit tests use fake
+backends; the live checks below separately exercise PostgreSQL and Ollama.
+
+Saved development report `out/retrieval/8508ffc5-edff-4bfa-9b48-a7cf46a4dbf7.json`
+evaluated all eight queries through PostgreSQL against index
+`001659867233cd610c9b1efea24272c117a545cd8b756b4612fdf9db3d90c695`:
+
+| Measure | PostgreSQL result |
+| --- | --- |
+| Positive queries with an expected section in top 3 | 6/6 |
+| Mean expected-section recall at 3 | 1.0 |
+| Mean reciprocal rank at 3 | 0.8333 |
+| Negative queries returning passages | 2/2 |
+
+Comparison with Python report `ef6a523e-7ed4-4bb8-a2cc-1978248f3e96` verified
+identical queries, expected sections, ordered top-three chunk IDs, and relevance
+judgments for every case. All 24 scores matched within `rel_tol=1e-5,
+abs_tol=1e-6`; the largest absolute difference was approximately `9.79e-8`.
+This establishes parity on this small development set, not new relevance gains,
+held-out generalization, or diagnosis improvement. Both negative queries still
+return passages because no abstention filter is applied.
+
+The PostgreSQL report was produced by a one-off evaluation script and records
+the model identity and index fingerprint, but not the full code hashes captured
+by the existing Python runner. A reusable database evaluation CLI is not yet
+implemented. Generated reports remain local artifacts under `out/`.
