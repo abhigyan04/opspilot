@@ -1057,7 +1057,8 @@ not production readiness or achievement of a diagnosis-accuracy target.
 Milestone 9 is underway: the reference collection, loader, passage splitter,
 local embeddings, cosine-similarity ranking, and a development retrieval
 evaluation are implemented, along with local index provenance and persistence.
-Query-time index compatibility is next, before diagnosis integration.
+Saved-index retrieval checks query-time model identity. Pgvector storage and
+diagnosis integration remain pending.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
@@ -1260,7 +1261,7 @@ A matching index loads vectors without embedding the passages again. Ollama
 must still be running: preparation checks model identity before and after the
 operation. An observed identity change prevents a newly built index from being
 saved. This detects changes across the operation but does not lock the model
-registry or guarantee query-time compatibility; that integration is next.
+registry. The retrieval entry point below adds a check after query embedding.
 
 The index loader checks payload integrity, the expected manifest, vector counts,
 dimensions, finite numeric values, and nonzero vectors. Corrupt files raise an
@@ -1277,3 +1278,38 @@ The model digest was
 `85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1`.
 The saved file's integrity and vector shape were checked separately without
 calling Ollama. Generated indexes remain local under ignored `out/`.
+
+### Search a saved index
+
+[`retrieve`](app/retrieval/retrieve.py) validates the query and `top_k`, prepares
+or reuses the matching passage index, embeds the query, and checks model identity
+again before ranking. Observed identity changes raise an error instead of
+returning results that may mix incompatible vectors. These before/after checks
+do not lock the model registry against concurrent updates.
+
+```python
+from pathlib import Path
+from app.retrieval.retrieve import retrieve
+
+result = retrieve(
+    "What should I investigate when a dependency returns HTTP 503?",
+    Path("out/indexes"),
+    top_k=3,
+)
+print(result.index_reused)
+for hit in result.hits:
+    print(hit.chunk.document_id, hit.chunk.section, hit.score)
+```
+
+Repeated searches in the same directory reuse passage vectors while generating
+a fresh query vector. The result includes index path, reuse status, embedding
+identity, and ranked hits with citation metadata. Ollama is still required for
+identity checks and query embedding.
+
+The user-reported suite passed 458 tests. A live search reused the index under
+`out/indexes/85e42b4b-ac69-4cb5-af3c-167ea0f9abc3/` for the development query about
+upstream 503 errors and deployment reasoning. Dependency-runbook sections ranked
+Symptoms (0.5055), Investigation (0.4806), and Response considerations (0.3859),
+matching the earlier evaluation's order and scores to four decimal places.
+This validates the reuse path for one query, not general retrieval quality or
+diagnosis improvement. No relevance cutoff or abstention policy is applied.
