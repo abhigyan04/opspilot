@@ -139,6 +139,24 @@ def validate_diagnosis_evidence(diagnosis: Diagnosis, steps: list[dict],) -> Non
         )
 
 
+def validate_diagnosis_references(diagnosis: Diagnosis, reference_context: list[dict]) -> None:
+    known_ids = {
+        reference["reference_id"]
+        for reference in reference_context
+    }
+    cited_ids = {
+        reference_id
+        for note in diagnosis.reference_notes
+        for reference_id in note.reference_ids
+    }
+
+    unknown_ids = cited_ids - known_ids
+    if unknown_ids:
+        raise ValueError(
+            f"Diagnosis cites unknown reference IDs: {sorted(unknown_ids)}"
+        )
+
+
 class DiagnosisGenerationLimitError(RuntimeError):
     pass
 
@@ -152,6 +170,10 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
         })
     
     reference_context = build_reference_context(reference_hits or [])
+    allowed_reference_ids = [
+        reference["reference_id"]
+        for reference in reference_context
+    ]
     reference_instructions = ""
 
     if reference_context:
@@ -165,6 +187,14 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
             "Reference IDs are not evidence IDs and must never appear in "
             "evidence_ids. References cannot fill missing operational evidence "
             "or turn an unsupported mechanism into a supported diagnosis. "
+            "Put useful general guidance from references in reference_notes, "
+            "citing the supplied reference_ids. Keep root_cause and "
+            "supporting_claims limited to incident-specific facts supported "
+            "by operational observations. Do not cite logs, metrics, or code "
+            "diffs as support for what a runbook says. Reference notes must "
+            "describe background guidance, not assert additional incident "
+            "facts. Omit notes that add no useful guidance. "
+            f"Allowed reference IDs: {json.dumps(allowed_reference_ids)}. "
         )
 
     allowed_evidence_ids = [
@@ -179,6 +209,22 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
         ["properties"]["evidence_ids"]["items"]
     )
     citation_items["enum"] = allowed_evidence_ids
+
+    if allowed_reference_ids:
+        reference_items = (
+            diagnosis_schema["$defs"]["ReferenceNote"]
+            ["properties"]["reference_ids"]["items"]
+        )
+        reference_items["enum"] = allowed_reference_ids
+    else:
+        for definition in ("SupportedDiagnosis", "InsufficientEvidence"):
+            diagnosis_schema["$defs"][definition]["properties"][
+                "reference_notes"
+            ]["maxItems"] = 0
+
+        reference_instructions = (
+            "No references were supplied. Return no reference_notes. "
+        )    
 
     generation_arguments = {
         "options": {
@@ -333,6 +379,7 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
 
     diagnosis = diagnosis_adapter.validate_json(response.message.content)
     validate_diagnosis_evidence(diagnosis, steps)
+    validate_diagnosis_references(diagnosis, reference_context)
     return diagnosis
 
 

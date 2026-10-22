@@ -100,7 +100,11 @@ def test_builder_receives_only_operational_inputs(tmp_path, monkeypatch):
     )
 
     original = json.loads(path.read_text(encoding="utf-8"))
-    assert calls == [(original["diagnosis"], "checkout-service", [])]
+    expected_diagnosis = {
+        **original["diagnosis"],
+        "reference_notes": original["diagnosis"].get("reference_notes", []),
+    }
+    assert calls == [(expected_diagnosis, "checkout-service", [])]
     assert result["matches_expectation"] is False
     assert result["expected_proposal"] is None
     assert result["actual_proposal"]["action"] == "rollback_service"

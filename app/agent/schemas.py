@@ -18,11 +18,20 @@ class EvidenceClaim(StrictModel):
     evidence_ids: list[str] = Field(min_length=1, max_length=12)
 
 
+class ReferenceNote(StrictModel):
+    statement: DiagnosisText
+    reference_ids: list[str] = Field(min_length=1, max_length=3)
+
+
 class SupportedDiagnosis(StrictModel):
     status: Literal["supported"]
     root_cause: EvidenceClaim
     supporting_claims: list[EvidenceClaim] = Field(max_length=6)
     limitations: list[DiagnosisText] = Field(max_length=4)
+    reference_notes: list[ReferenceNote] = Field(
+        default_factory=list,
+        max_length=3,
+    )
 
     @model_validator(mode="after")
     def reject_duplicate_claims(self):
@@ -47,6 +56,10 @@ class InsufficientEvidence(StrictModel):
     missing_evidence: list[DiagnosisText] = Field(
         min_length=1,
         max_length=6,
+    )
+    reference_notes: list[ReferenceNote] = Field(
+        default_factory=list,
+        max_length=3,
     )
 
 

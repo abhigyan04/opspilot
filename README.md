@@ -1483,8 +1483,25 @@ hypotheses, not current-incident evidence or instructions to execute.
 Operational citation IDs remain the only IDs allowed in `evidence_ids`, and
 runtime validation rejects reference IDs used as evidence citations. With no
 operational steps, diagnosis still returns `insufficient_evidence` without a
-model call, even when references are available. The output schema is unchanged;
-it does not yet include separate reference citations.
+model call, even when references are available.
+
+Both diagnosis statuses now support a separate `reference_notes` list for
+background guidance. Each note contains a statement of up to 600 characters and
+one to three `reference_ids`; at most three notes are allowed. Older diagnoses
+without this field default to an empty list, which appears in newly serialized
+output. Root cause and supporting claims still require operational `evidence_ids`.
+
+The generation schema restricts reference citations to supplied passage IDs.
+Without references it permits zero notes. Runtime validation independently
+rejects unknown reference IDs, including operational evidence IDs used in notes,
+for both supported and insufficient-evidence diagnoses. The prompt directs
+runbook guidance into reference notes rather than operational claims. These
+checks establish citation membership and separation, not whether a cited source
+actually supports the statement.
+
+The reference-note integration checkpoint passed **548 tests, 22 skipped** in
+the user-reported full suite. Live verification of the new output structure
+and its effect on citation quality remains pending.
 
 The reported checkpoint passed 34 focused diagnosis tests and the full suite
 with **475 passed, 22 skipped**. The skipped checks require the opt-in database
@@ -1581,6 +1598,16 @@ schema; saved artifacts are not rewritten.
 The reported checkpoint passed **54 focused generation-limit/replay tests** and
 **527 passed, 22 skipped** in the full suite. Offline tests verify option
 forwarding, schema bounds, duplicate rejection, and a saved limit-termination
-failure with usage preserved and no retry. Live validation of these new controls
-is pending. These controls bound accepted output and request generation limits;
-they do not establish improved diagnosis accuracy.
+failure with usage preserved and no retry. These controls bound accepted output
+and request generation limits; they do not establish improved diagnosis accuracy.
+
+A subsequent live provider-outage replay (`830a0606-6fe9-4585-9110-e34b56d081b0`,
+under `out/comparisons/40359ea0-b6fa-47a6-aa13-f3b4cb71084a/bounded-ctx8192/`)
+completed with Qwen3 8B, an 8,192-token context, and a 2,048-token generation cap.
+It reported 899 output tokens, six supporting claims, four limitations, and
+43.76 seconds for diagnosis. The user reported 100% GPU placement at that context.
+This run avoided the previous repetition loop, but did not hit the token cap,
+so live limit-termination handling remains untested. Schema and generation limits
+changed together; their individual effects cannot be isolated from this run.
+The diagnosis still cited the logging diff for a general dependency-pattern
+claim, so semantic citation support remains unresolved.

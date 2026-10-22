@@ -336,6 +336,8 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, mod
     def fake_chat(**kwargs):
         expected_schema = diagnosis_adapter.json_schema()
         expected_schema["$defs"]["EvidenceClaim"]["properties"]["evidence_ids"]["items"]["enum"] = ["evidence-001"]
+        for definition in ("SupportedDiagnosis", "InsufficientEvidence"):
+                expected_schema["$defs"][definition]["properties"]["reference_notes"]["maxItems"] = 0
 
         assert kwargs["format"] == expected_schema
 
@@ -386,7 +388,10 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, mod
             steps,
             **model_kwargs,
         )
-        assert diagnosis.model_dump() == payload
+        assert diagnosis.model_dump() == {
+            **payload,
+            "reference_notes": [],
+        }
 
 
 def test_generate_diagnosis_without_evidence_skips_model(monkeypatch):
