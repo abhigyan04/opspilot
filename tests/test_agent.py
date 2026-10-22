@@ -280,6 +280,7 @@ def test_insufficient_evidence_requires_no_citations():
                 "model": "qwen3:8b",
                 "settings": DiagnosisSettings(
                     num_ctx=2048,
+                    num_predict=2048,
                     temperature=0.7,
                     top_p=0.8,
                     top_k=30,
@@ -290,6 +291,7 @@ def test_insufficient_evidence_requires_no_citations():
             "qwen3:8b",
             {
                 "num_ctx": 2048,
+                "num_predict": 2048,
                 "temperature": 0.7,
                 "top_p": 0.8,
                 "top_k": 30,
@@ -359,7 +361,7 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, mod
 
         assert kwargs["model"] == expected_model
         if expected_options is None:
-            assert "options" not in kwargs
+            assert kwargs["options"] == {"num_predict": 2048}
             assert "think" not in kwargs
         else:
             assert kwargs["options"] == expected_options

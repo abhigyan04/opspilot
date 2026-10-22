@@ -8,6 +8,7 @@ from evals.replay import load_replay_source
 from app.agent.schemas import diagnosis_adapter
 from evals import replay
 from evals.summary import summarize_reports
+from app.agent import agent
 from app.agent.settings import DiagnosisSettings
 from app.agent.usage import UsageCollector
 from app.retrieval.chunks import KnowledgeChunk
@@ -308,6 +309,7 @@ def test_cli_preserves_existing_report_on_save_collision(
         ],
         DiagnosisSettings(
             num_ctx=2048,
+            num_predict=2048,
             temperature=0.7,
             top_p=0.8,
             top_k=30,
@@ -390,6 +392,7 @@ def test_replay_records_the_settings_passed_to_diagnosis(
 
     requested = DiagnosisSettings(
         num_ctx=2048,
+        num_predict=2048,
         temperature=0.7,
         top_p=0.8,
         top_k=30,
@@ -420,6 +423,7 @@ def test_replay_records_the_settings_passed_to_diagnosis(
     assert received == [requested]
     assert result["diagnosis_settings"] == {
         "num_ctx": 2048,
+        "num_predict": 2048,
         "temperature": 0.7,
         "top_p": 0.8,
         "top_k": 30,
@@ -432,6 +436,8 @@ def test_replay_records_the_settings_passed_to_diagnosis(
 
 @pytest.mark.parametrize("arguments", [
     ["--num-ctx", "0"],
+    ["--num-predict", "0"],
+    ["--num-predict", "-1"],
     ["--temperature", "nan"],
     ["--top-p", "1.1"],
     ["--top-k", "0"],
@@ -851,3 +857,58 @@ def test_reference_cli_handles_connection_failure(monkeypatch, tmp_path, capsys)
     assert "PostgreSQL" in output
     assert "private connection details" not in output
     assert not output_dir.exists()
+
+
+def test_cli_saves_generation_limit_failure_with_usage(monkeypatch, tmp_path, capsys):
+    original = sample_report()
+    original["investigation"]["steps"] = [{
+        "evidence_id": "evidence-001",
+        "decision": {
+            "tool": "search_logs",
+            "arguments": {
+                "service": "checkout-service",
+                "level": "ERROR",
+            },
+        },
+        "result": [],
+    }]
+    source_path = write_report(tmp_path, original)
+    source_bytes = source_path.read_bytes()
+    output_dir = tmp_path / "replays"
+    calls = []
+
+    def fake_chat(**kwargs):
+        assert kwargs["options"]["num_predict"] == 512
+        calls.append(True)
+        return SimpleNamespace(
+            done_reason="length",
+            prompt_eval_count=100,
+            eval_count=512,
+            message=SimpleNamespace(content='{"status":'),
+        )
+
+    # Exercise the real diagnosis function and replay error handling.
+    monkeypatch.setattr(agent, "chat", fake_chat)
+
+    exit_code = replay.main([
+        str(source_path),
+        "--num-predict", "512",
+        "--output-dir", str(output_dir),
+    ])
+
+    printed = json.loads(capsys.readouterr().out)
+    saved_path = output_dir / f"{printed['run_id']}.json"
+    saved = json.loads(saved_path.read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert calls == [True]  # No automatic retry.
+    assert saved["status"] == "failed"
+    assert saved["diagnosis"] is None
+    assert saved["error"]["stage"] == "diagnosis"
+    assert saved["error"]["type"] == "DiagnosisGenerationLimitError"
+    assert saved["diagnosis_settings"]["num_predict"] == 512
+    assert saved["investigation"] == original["investigation"]
+    assert saved["usage"]["totals"]["attempts"] == 1
+    assert saved["usage"]["totals"]["input_tokens"] == 100
+    assert saved["usage"]["totals"]["output_tokens"] == 512
+    assert source_path.read_bytes() == source_bytes

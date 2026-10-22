@@ -7,22 +7,47 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+DiagnosisText = Annotated[
+    str,
+    Field(min_length=1, max_length=600),
+]
+
+
 class EvidenceClaim(StrictModel):
-    statement: str = Field(min_length=1)
-    evidence_ids: list[str] = Field(min_length=1)
+    statement: DiagnosisText
+    evidence_ids: list[str] = Field(min_length=1, max_length=12)
 
 
 class SupportedDiagnosis(StrictModel):
     status: Literal["supported"]
     root_cause: EvidenceClaim
-    supporting_claims: list[EvidenceClaim]
-    limitations: list[str]
+    supporting_claims: list[EvidenceClaim] = Field(max_length=6)
+    limitations: list[DiagnosisText] = Field(max_length=4)
+
+    @model_validator(mode="after")
+    def reject_duplicate_claims(self):
+        statements = [
+            self.root_cause.statement,
+            *[claim.statement for claim in self.supporting_claims],
+        ]
+        normalized = [
+            " ".join(statement.split()).casefold()
+            for statement in statements
+        ]
+
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("Diagnosis contains duplicate claims.")
+
+        return self
 
 
 class InsufficientEvidence(StrictModel):
     status: Literal["insufficient_evidence"]
-    reason: str = Field(min_length=1)
-    missing_evidence: list[str] = Field(min_length=1)
+    reason: DiagnosisText
+    missing_evidence: list[DiagnosisText] = Field(
+        min_length=1,
+        max_length=6,
+    )
 
 
 Diagnosis = Annotated[

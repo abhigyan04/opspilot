@@ -10,6 +10,7 @@ class DiagnosisSettings(BaseModel):
     )
 
     num_ctx: int = Field(default=4096, gt=0)
+    num_predict: int = Field(default=2048, gt=0)
     temperature: float = Field(default=0.6, ge=0)
     top_p: float = Field(default=0.95, gt=0, le=1)
     top_k: int = Field(default=20, gt=0)

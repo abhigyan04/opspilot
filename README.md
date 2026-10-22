@@ -1551,6 +1551,36 @@ Investigation ranked third for provider outage. Less relevant historical materia
 still appeared at rank three with error-only queries.
 
 This is a retrieval improvement on two known development cases, not held-out
-generalization or demonstrated diagnosis improvement. Query version 2 still
-needs a controlled diagnosis comparison. No relevance-abstention policy is
+generalization or demonstrated diagnosis improvement. Query version 2 has not
+established an overall diagnosis accuracy gain. No relevance-abstention policy is
 implemented, and sparse evidence can still retrieve unrelated references.
+
+### Bounded diagnosis generation
+
+Diagnosis generation now supplies a positive `num_predict` limit, defaulting to
+2,048 tokens. Both `evals.replay` and `evals.runner` accept `--num-predict`; the
+effective value is recorded in diagnosis settings. This controls diagnosis
+generation only, not investigation tool-selection calls. It is not a wall-clock
+timeout or a guarantee that the input and output fit within `num_ctx`.
+
+A response with `done_reason="length"` raises `DiagnosisGenerationLimitError`
+before JSON parsing, even if its content could be parsed. Usage is collected
+first. Replay saves the attempt as a diagnosis-stage failure with no accepted
+diagnosis, retaining the investigation and available token counts. It does not
+automatically retry.
+
+The diagnosis schema also limits supporting claims to six, limitations to four,
+missing-evidence items to six, and citation IDs per claim to twelve. Claim text,
+limitations, the insufficient-evidence reason, and missing-evidence items are
+limited to 600 characters each. Runtime validation rejects duplicate statements
+across the root cause and supporting claims after case and whitespace
+normalization. This does not detect paraphrases or verify factual support.
+Oversized historical diagnoses may therefore fail validation under the current
+schema; saved artifacts are not rewritten.
+
+The reported checkpoint passed **54 focused generation-limit/replay tests** and
+**527 passed, 22 skipped** in the full suite. Offline tests verify option
+forwarding, schema bounds, duplicate rejection, and a saved limit-termination
+failure with usage preserved and no retry. Live validation of these new controls
+is pending. These controls bound accepted output and request generation limits;
+they do not establish improved diagnosis accuracy.

@@ -139,6 +139,10 @@ def validate_diagnosis_evidence(diagnosis: Diagnosis, steps: list[dict],) -> Non
         )
 
 
+class DiagnosisGenerationLimitError(RuntimeError):
+    pass
+
+
 def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT_DIAGNOSIS_MODEL, settings: DiagnosisSettings | None = None, usage: UsageCollector | None = None, reference_hits: list[SearchHit] | None = None) -> Diagnosis:
     if not steps:
         return diagnosis_adapter.validate_python({
@@ -176,7 +180,11 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
     )
     citation_items["enum"] = allowed_evidence_ids
 
-    generation_arguments = {}
+    generation_arguments = {
+        "options": {
+            "num_predict": DiagnosisSettings().num_predict,
+        }
+    }
     if settings is not None:
         generation_arguments = {
             "think": settings.think,
@@ -317,6 +325,11 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
         format=diagnosis_schema,
         **generation_arguments
     )
+
+    if getattr(response, "done_reason", None) == "length":
+        raise DiagnosisGenerationLimitError(
+            "Diagnosis generation reached its output-token limit."
+        )
 
     diagnosis = diagnosis_adapter.validate_json(response.message.content)
     validate_diagnosis_evidence(diagnosis, steps)

@@ -371,6 +371,7 @@ def test_cli_forwards_configuration_and_returns_batch_status(monkeypatch, capsys
         "model": "qwen3:8b",
         "settings": {
             "num_ctx": 4096,
+            "num_predict": 2048,
             "temperature": 0.2,
             "top_p": 0.9,
             "top_k": 30,

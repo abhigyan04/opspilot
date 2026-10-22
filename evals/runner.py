@@ -178,6 +178,7 @@ def parse_arguments(argv: list[str] | None = None):
 
     defaults = DiagnosisSettings()
     parser.add_argument("--num-ctx", type=int, default=defaults.num_ctx)
+    parser.add_argument("--num-predict", type=int, default=defaults.num_predict, help="Maximum diagnosis generation tokens (default: %(default)s).")
     parser.add_argument(
         "--temperature", type=float, default=defaults.temperature
     )
@@ -202,6 +203,7 @@ def parse_arguments(argv: list[str] | None = None):
     try:
         args.diagnosis_settings = DiagnosisSettings(
             num_ctx=args.num_ctx,
+            num_predict=args.num_predict,
             temperature=args.temperature,
             top_p=args.top_p,
             top_k=args.top_k,
