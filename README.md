@@ -1497,8 +1497,14 @@ Controlled comparisons remain necessary before claiming diagnosis improvement.
 
 ### Replay with PostgreSQL references
 
-The replay CLI supports opt-in retrieval using the saved incident text as its
-query. Previous diagnoses and expected answers are not used as retrieval queries.
+The replay CLI supports opt-in retrieval using query version 2 from
+[`build_retrieval_query`](app/retrieval/query.py). It searches with up to three
+distinct ERROR/CRITICAL log messages in observation order, normalizing whitespace
+and limiting each message to 300 characters. When a record omits its level, the
+requested log level is used. Without usable messages, it falls back to normalized
+incident text limited to 400 characters, without an added label. These are query
+character limits, not a diagnosis token budget. Previous model reasoning,
+diagnoses, and expected answers are not used as retrieval queries.
 The database must already contain the index matching the current knowledge
 collection and embedding identity; replay does not import or rebuild it.
 
@@ -1523,6 +1529,7 @@ saved with their respective error stages.
 
 Saved reports include the supplied `reference_context` separately from the
 unchanged investigation. PostgreSQL runs also record the retrieval query,
+query version and strategy,
 requested passage count, index ID, embedding identity, ordered chunk IDs and
 scores, and retrieval duration. Scores are not passed to diagnosis. Reference
 context is retained on diagnosis failure; its presence records supplied input,
@@ -1531,5 +1538,19 @@ saved report for the reference context and retrieval metadata.
 
 The reported CLI checkpoint passed **37 replay tests**, with **486 passed,
 22 skipped** in the full suite. These tests mock database and model calls;
-they verify orchestration and reporting, not a live retrieval-enabled diagnosis
-or its accuracy. A paired live comparison is the next checkpoint.
+they verify orchestration and reporting, not diagnosis accuracy.
+
+The subsequent query-version-2 checkpoint passed **50 focused query/replay
+tests**, with **499 passed, 22 skipped** in the full suite. Database checks remain
+opt-in. Retrieval-only development comparisons on checkout regression and
+provider outage used the same index and embedding identity. Error-only queries
+ranked the respective runbook's Symptoms section first and Investigation second.
+With incident-plus-error queries, inventory history ranked first; checkout's
+application Investigation section was absent from the top three, and dependency
+Investigation ranked third for provider outage. Less relevant historical material
+still appeared at rank three with error-only queries.
+
+This is a retrieval improvement on two known development cases, not held-out
+generalization or demonstrated diagnosis improvement. Query version 2 still
+needs a controlled diagnosis comparison. No relevance-abstention policy is
+implemented, and sparse evidence can still retrieve unrelated references.

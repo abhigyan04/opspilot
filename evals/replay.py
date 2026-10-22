@@ -17,6 +17,7 @@ from app.agent.usage import UsageCollector
 from app.retrieval.context import build_reference_context
 from app.retrieval.search import SearchHit
 from app.retrieval.pg_retrieve import retrieve_postgres
+from app.retrieval.query import QUERY_VERSION, build_retrieval_query
 
 
 def load_replay_source(report_path: Path) -> dict:
@@ -112,9 +113,16 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL,
 
     try:
         if retrieval_connection is not None:
+            retrieval_query = build_retrieval_query(
+                            report["incident"],
+                            report["investigation"]["steps"]
+                        )
+            
             report["retrieval"] = {
                 "backend": "postgres",
-                "query": report["incident"],
+                "query": retrieval_query,
+                "query_version": QUERY_VERSION,
+                "query_strategy": "errors_only_with_incident_fallback",
                 "top_k": retrieval_top_k,
                 "index_id": None,
                 "embedding_identity": None,
@@ -124,7 +132,7 @@ def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL,
             retrieval_started = perf_counter()
             try:
                 retrieved = retrieve_postgres(
-                    report["incident"],
+                    retrieval_query,
                     retrieval_connection,
                     top_k=retrieval_top_k,
                 )

@@ -611,8 +611,28 @@ def test_replay_without_references_records_empty_context(monkeypatch, tmp_path):
 
 
 @pytest.mark.parametrize("failure_stage", [None, "retrieval", "diagnosis"])
-def test_postgres_replay_records_provenance_and_failure_stage(monkeypatch, tmp_path, failure_stage):
+@pytest.mark.parametrize("with_errors", [False, True])
+def test_postgres_replay_records_provenance_and_failure_stage(monkeypatch, tmp_path, failure_stage, with_errors):
     original = sample_report()
+    
+    error_message = "Payment authorization failed: PayBridge returned HTTP 503."
+    
+    if with_errors:
+        original["investigation"]["steps"] = [{
+            "evidence_id": "evidence_001",
+            "decision": {
+                "tool": "search_logs",
+                "arguments": {"level": "ERROR"},
+                "reason": "UNSUPPORTED MODEL REASONING"
+            },
+            "result": [{
+                "level": "ERROR",
+                "message": error_message
+            }]
+        }]
+    
+    expected_query = error_message if with_errors else original["incident"]
+    
     original["diagnosis"] = {"reason": "OLD ANSWER"}
     original["diagnosis_assessment"] = {
         "reference_root_cause": "EXPECTED ANSWER"
@@ -643,7 +663,7 @@ def test_postgres_replay_records_provenance_and_failure_stage(monkeypatch, tmp_p
     }
 
     def fake_retrieve(query, supplied_connection, *, top_k):
-        assert query == original["incident"]
+        assert query == expected_query
         assert supplied_connection is connection
         assert top_k == 2
         calls.append("retrieval")
@@ -683,7 +703,11 @@ def test_postgres_replay_records_provenance_and_failure_stage(monkeypatch, tmp_p
         retrieval_top_k=2,
     )
 
-    assert result["retrieval"]["query"] == original["incident"]
+    assert result["retrieval"]["query"] == expected_query
+    assert result["retrieval"]["query_version"] == 2
+    assert result["retrieval"]["query_strategy"] == (
+        "errors_only_with_incident_fallback"
+    )
     assert result["retrieval"]["backend"] == "postgres"
     assert result["retrieval"]["top_k"] == 2
     assert result["timing"]["retrieval_seconds"] >= 0
