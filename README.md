@@ -1144,10 +1144,26 @@ python -m evals.runner --case checkout_regression --runs 1 --tool-backend mcp --
 ```
 
 `--model` selects the diagnosis model; investigation tool selection retains its
-existing model configuration. This command has not yet been verified in a live
-model run over MCP. The reported runner checkpoint passed **53 focused tests**
+existing model configuration. The reported runner checkpoint passed **53 focused tests**
 and **593 passed, 22 skipped** in the full suite. Tests cover backend forwarding,
 saved backend metadata, unsupported selections, and recorded connection failure.
+
+On 23 October 2026, live checkout-regression run
+`51f67ded-4203-405a-b8bf-94f79b137250` in batch
+`b0804070-d105-44c9-9d70-9d0470cc38aa` completed with `tool_backend="mcp"`.
+It collected metrics, deployments, commit details, and logs in four tool calls,
+then stopped by model decision. Required-tool coverage, fixture argument match,
+and nonempty-result coverage were all 1.0. Total time was 104.39 seconds
+(74.84 investigation, 29.55 diagnosis). Usage recorded five Qwen3 4B
+investigation selections and one Qwen3 8B diagnosis call.
+
+This verifies live execution through the MCP backend for one synthetic case,
+not a diagnosis accuracy improvement. Inspection found that the diagnosis
+identified the relevant deployment and expression but described a missing
+`user` attribute rather than `request.user` being `None`. A claim connecting
+the exception to the refactor cited only the log, omitting the commit evidence.
+Formal diagnosis assessment remains `not_scored`. The full report is stored
+locally under `out/evals/` and is not included in this documentation.
 
 ### Offline simulation control report
 
