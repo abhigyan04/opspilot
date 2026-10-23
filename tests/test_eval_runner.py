@@ -156,7 +156,7 @@ def test_batch_saves_failed_attempt_before_continuing(monkeypatch, tmp_path, cus
     )
     received_configuration = []
 
-    def fake_run_case(case, *, diagnosis_model, diagnosis_settings):
+    def fake_run_case(case, *, diagnosis_model, diagnosis_settings, tool_backend):
         received_configuration.append(
             (diagnosis_model, diagnosis_settings)
         )
@@ -167,6 +167,8 @@ def test_batch_saves_failed_attempt_before_continuing(monkeypatch, tmp_path, cus
             assert len(saved) == 1
             first = json.loads(saved[0].read_text(encoding="utf-8"))
             assert first["status"] == "failed"
+
+        assert tool_backend == "direct"
 
         failed = index == 0
         report = {
@@ -335,14 +337,9 @@ def test_cli_defaults_to_explicit_diagnosis_settings():
 def test_cli_forwards_configuration_and_returns_batch_status(monkeypatch, capsys, failed):
     calls = []
 
-    def fake_run_batch(
-        case,
-        runs,
-        output_directory,
-        *,
-        diagnosis_model,
-        diagnosis_settings,
-    ):
+    def fake_run_batch(case, runs, output_directory, *, diagnosis_model, diagnosis_settings, tool_backend):
+        assert tool_backend == "direct"
+
         calls.append({
             "case": case.case_id,
             "runs": runs,

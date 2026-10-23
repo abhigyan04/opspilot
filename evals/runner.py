@@ -5,7 +5,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
 from uuid import uuid4
+import asyncio
 
+from app.agent.agent import investigate_async
+from app.mcp_server.client import connect_local_tools
+from app.tools.data import DEFAULT_SCENARIO_DIR
 from app.agent.agent import (
     DEFAULT_DIAGNOSIS_MODEL, 
     generate_diagnosis, 
@@ -18,7 +22,28 @@ from evals.evaluator import evaluate_investigation
 from evals.summary import summarize_reports
 
 
-def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None) -> dict:
+async def investigate_over_mcp(incident: str, *, usage: UsageCollector):
+    async with connect_local_tools() as executor:
+        return await investigate_async(
+            incident,
+            usage=usage,
+            tool_executor=executor.execute,
+        )
+
+
+def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct") -> dict:
+    if tool_backend not in {"direct", "mcp"}:
+        raise ValueError("tool_backend must be 'direct' or 'mcp'")
+
+    if tool_backend == "mcp" and (
+        case.case_id != "checkout_regression"
+        or case.scenario_dir.resolve() != DEFAULT_SCENARIO_DIR.resolve()
+    ):
+        raise ValueError(
+            "The MCP backend currently supports only the default "
+            "checkout_regression fixtures."
+        )
+
     if not isinstance(diagnosis_model, str) or not diagnosis_model.strip():
         raise ValueError("A nonblank diagnosis model is required.")
     
@@ -54,17 +79,23 @@ def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_M
         },
         "investigation": None,
         "diagnosis": None,
+        "tool_backend": tool_backend
     }
 
     stage = "investigation"
     stage_started = perf_counter()
 
     try:
-        report["investigation"] = investigate(
-            case.incident,
-            data_dir=case.scenario_dir,
-            usage=usage
-        )
+        if tool_backend == "direct":
+            report["investigation"] = investigate(
+                case.incident,
+                data_dir=case.scenario_dir,
+                usage=usage,
+            )
+        else:
+            report["investigation"] = asyncio.run(
+                investigate_over_mcp(case.incident, usage=usage)
+            )
         report["timing"]["investigation_seconds"] = (
             perf_counter() - stage_started
         )
@@ -122,7 +153,7 @@ def save_report(report: dict, output_directory: Path) -> Path:
     return destination
 
 
-def run_batch(case: EvaluationCase, runs: int, output_directory: Path, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None) -> dict:
+def run_batch(case: EvaluationCase, runs: int, output_directory: Path, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct") -> dict:
     if runs < 1:
         raise ValueError("runs must be at least 1")
 
@@ -132,7 +163,7 @@ def run_batch(case: EvaluationCase, runs: int, output_directory: Path, *, diagno
     report_files = []
 
     for _ in range(runs):
-        report = run_case(case, diagnosis_model=diagnosis_model, diagnosis_settings=diagnosis_settings)
+        report = run_case(case, diagnosis_model=diagnosis_model, diagnosis_settings=diagnosis_settings, tool_backend=tool_backend)
 
         # Persist this attempt before starting another.
         destination = save_report(report, batch_directory)
@@ -144,6 +175,7 @@ def run_batch(case: EvaluationCase, runs: int, output_directory: Path, *, diagno
         "batch_id": batch_id,
         "report_files": report_files,
         "summary": summarize_reports(reports),
+        "tool_backend": tool_backend
     }
     destination = save_report(batch, batch_directory)
 
@@ -191,6 +223,12 @@ def parse_arguments(argv: list[str] | None = None):
         default=defaults.think,
         help="Enable thinking; use --no-think to disable it.",
     )
+    parser.add_argument(
+        "--tool-backend",
+        choices=["direct", "mcp"],
+        default="direct",
+        help="Investigation tool backend (default: %(default)s).",
+    )
 
     args = parser.parse_args(argv)
 
@@ -199,6 +237,9 @@ def parse_arguments(argv: list[str] | None = None):
     
     if not args.model.strip():
         parser.error("--model must not be blank")
+
+    if args.tool_backend == "mcp" and args.case != "checkout_regression":
+        parser.error("--tool-backend mcp currently supports only checkout_regression")
 
     try:
         args.diagnosis_settings = DiagnosisSettings(
@@ -228,6 +269,7 @@ def main(argv: list[str] | None = None) -> int:
         output_directory,
         diagnosis_model=args.model,
         diagnosis_settings=args.diagnosis_settings,
+        tool_backend=args.tool_backend
     )
 
     print(json.dumps(batch, indent=2))

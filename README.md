@@ -1128,8 +1128,26 @@ malformed log-search arguments followed by a valid call, and a deployment-to-
 commit sequence through the adapter on one connection. Stub-client tests cover
 adapter failure handling. A scripted-decision investigation test uses the real
 MCP subprocess, feeds deployment evidence into the next commit lookup, and
-verifies the final investigation record. This checkpoint does not exercise
-live model selection over MCP or provide a CLI backend switch.
+verifies the final investigation record.
+
+The evaluation runner accepts `--tool-backend direct|mcp`, defaulting to
+`direct`. MCP currently supports only the default checkout-regression fixtures;
+other cases and custom fixture directories are rejected. Each attempt and batch
+summary records `tool_backend`. MCP connection startup and shutdown are included
+in investigation timing, and connection failures are recorded at that stage.
+Diagnosis continues to use the existing model path.
+
+Example live evaluation (requires Ollama):
+
+```powershell
+python -m evals.runner --case checkout_regression --runs 1 --tool-backend mcp --model qwen3:8b --num-ctx 8192 --num-predict 2048 --seed 42 --think
+```
+
+`--model` selects the diagnosis model; investigation tool selection retains its
+existing model configuration. This command has not yet been verified in a live
+model run over MCP. The reported runner checkpoint passed **53 focused tests**
+and **593 passed, 22 skipped** in the full suite. Tests cover backend forwarding,
+saved backend metadata, unsupported selections, and recorded connection failure.
 
 ### Offline simulation control report
 
