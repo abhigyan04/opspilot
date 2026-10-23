@@ -8,6 +8,9 @@ from app.agent import agent
 from app.agent.schemas import diagnosis_adapter
 from app.agent.settings import DiagnosisSettings
 from app.agent.workflow import build_investigation_graph
+from app.agent.schemas import agent_decision_adapter
+from app.tools.data import SCENARIOS_ROOT
+from app.tools.logs import search_logs
 
 
 @pytest.mark.parametrize("status", ["finished", "step_limit"])
@@ -152,3 +155,93 @@ def test_graph_usage_is_isolated_between_runs(monkeypatch):
 
     first["usage"]["investigation"]["calls"].clear()
     assert len(second["usage"]["investigation"]["calls"]) == 1
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["checkout_regression", "payment_provider_outage", "sparse_evidence"],
+)
+def test_graph_investigates_through_real_mcp(monkeypatch, scenario):
+    data_dir = SCENARIOS_ROOT / scenario
+    expected = search_logs(
+        service="checkout-service",
+        level="ERROR",
+        data_dir=data_dir,
+    )
+    decisions = iter([
+        agent_decision_adapter.validate_python({
+            "tool": "search_logs",
+            "arguments": {
+                "service": "checkout-service",
+                "level": "ERROR",
+            },
+            "reason": "Collect scenario logs.",
+        }),
+        agent_decision_adapter.validate_python({
+            "tool": "finish",
+            "reason": "Scripted investigation completed.",
+        }),
+    ])
+    diagnosis_inputs = []
+
+    def fake_choose(messages, *, usage=None):
+        return next(decisions)
+
+    def fake_diagnose(incident, steps, *, model, settings, usage):
+        diagnosis_inputs.append(steps)
+        assert len(steps) == 1
+        assert steps[0]["result"] == expected
+        return diagnosis_adapter.validate_python({
+            "status": "insufficient_evidence",
+            "reason": "Diagnosis is stubbed for this transport test.",
+            "missing_evidence": ["A real diagnosis assessment"],
+        })
+
+    def unexpected_direct(*args, **kwargs):
+        pytest.fail("The graph must execute tools through MCP.")
+
+    monkeypatch.setattr(agent, "choose_next_tool", fake_choose)
+    monkeypatch.setattr(agent, "generate_diagnosis", fake_diagnose)
+    monkeypatch.setattr(agent, "execute_tool", unexpected_direct)
+
+    graph = build_investigation_graph(
+        data_dir=data_dir,
+        max_steps=2,
+        tool_backend="mcp",
+    )
+    result = asyncio.run(
+        graph.ainvoke({"incident": "Investigate checkout-service."})
+    )
+
+    assert result["investigation"]["status"] == "finished"
+    assert len(diagnosis_inputs) == 1
+    step = result["investigation"]["steps"][0]
+    assert step["evidence_id"] == "evidence-001"
+    assert step["result"] == expected
+
+    # Model calls are stubbed, so no model usage should be recorded.
+    assert result["usage"]["investigation"]["totals"]["attempts"] == 0
+    assert result["usage"]["diagnosis"]["totals"]["attempts"] == 0
+
+
+def test_graph_rejects_unknown_backend():
+    with pytest.raises(ValueError, match="tool_backend"):
+        build_investigation_graph(tool_backend="unknown")
+
+
+def test_graph_rejects_custom_mcp_fixture_directory(tmp_path):
+    custom_dir = tmp_path / "checkout_regression"
+
+    with pytest.raises(ValueError, match="standard fixture directory"):
+        build_investigation_graph(
+            data_dir=custom_dir,
+            tool_backend="mcp",
+        )
+
+
+def test_graph_rejects_unknown_mcp_scenario():
+    with pytest.raises(ValueError, match="Unsupported MCP scenario"):
+        build_investigation_graph(
+            data_dir=SCENARIOS_ROOT / "unknown",
+            tool_backend="mcp",
+        )

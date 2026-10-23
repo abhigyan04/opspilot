@@ -1184,7 +1184,8 @@ execution over MCP has so far been verified only for checkout regression.
 `app.agent.workflow.build_investigation_graph()` builds an async
 `START -> investigate -> diagnose -> END` graph around the existing agent
 functions. It accepts a fixture directory, investigation step limit, diagnosis
-model, and diagnosis settings. Both finished and step-limited investigations
+model, diagnosis settings, and `tool_backend="direct"` or `"mcp"`.
+Both finished and step-limited investigations
 proceed to diagnosis; investigation exceptions stop execution.
 
 Each node invocation creates a fresh usage collector and returns a plain
@@ -1192,8 +1193,12 @@ snapshot in state, separated under `usage.investigation` and `usage.diagnosis`.
 Collectors are not stored in graph state or shared across runs. Usage from a
 failed node is not yet preserved in returned state.
 
-The graph currently uses direct Python tools and is separate from the evaluation
-runner. It has no persistent checkpointer, approval pause, or resume support.
+Direct Python tools remain the default. With MCP, each investigation node opens
+its own subprocess connection for the selected scenario and closes it before
+diagnosis. MCP requires one of the three standard scenario fixture directories;
+unknown scenarios and custom directories are rejected. The graph remains separate
+from the evaluation runner. It has no persistent checkpointer, approval pause,
+or resume support.
 The intended next capability is a workflow that can pause for approval and
 resume later while preserving the existing remediation guards.
 
@@ -1203,6 +1208,13 @@ and **610 passed, 22 skipped** in the full suite. Tests use mocked agent calls
 to verify state passing, configuration forwarding, failure propagation, and
 usage isolation across repeated invocations of the same compiled graph. They
 do not establish live model behavior or persistent recovery.
+
+The subsequent graph backend checkpoint passed **10 workflow tests** and
+**616 passed, 22 skipped** in the full suite. It exercises the real MCP
+subprocess for all three scenarios with scripted tool selection and stubbed
+diagnosis, verifies scenario-specific logs reach diagnosis input, and checks
+rejection of unsupported backends and fixture directories. These are transport
+and orchestration checks, not live model accuracy evaluations.
 
 ```powershell
 python -m pytest tests/test_workflow.py -q
