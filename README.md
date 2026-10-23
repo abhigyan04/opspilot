@@ -1179,6 +1179,35 @@ sparse evidence, checking observation messages and diagnosis inputs against the
 selected fixtures. Diagnosis generation is stubbed in those tests. Live model
 execution over MCP has so far been verified only for checkout regression.
 
+### Milestone 11: LangGraph foundation
+
+`app.agent.workflow.build_investigation_graph()` builds an async
+`START -> investigate -> diagnose -> END` graph around the existing agent
+functions. It accepts a fixture directory, investigation step limit, diagnosis
+model, and diagnosis settings. Both finished and step-limited investigations
+proceed to diagnosis; investigation exceptions stop execution.
+
+Each node invocation creates a fresh usage collector and returns a plain
+snapshot in state, separated under `usage.investigation` and `usage.diagnosis`.
+Collectors are not stored in graph state or shared across runs. Usage from a
+failed node is not yet preserved in returned state.
+
+The graph currently uses direct Python tools and is separate from the evaluation
+runner. It has no persistent checkpointer, approval pause, or resume support.
+The intended next capability is a workflow that can pause for approval and
+resume later while preserving the existing remediation guards.
+
+The user verified LangGraph **1.2.16**, successful imports, and `pip check` with
+no broken requirements. The foundation checkpoint passed **4 workflow tests**
+and **610 passed, 22 skipped** in the full suite. Tests use mocked agent calls
+to verify state passing, configuration forwarding, failure propagation, and
+usage isolation across repeated invocations of the same compiled graph. They
+do not establish live model behavior or persistent recovery.
+
+```powershell
+python -m pytest tests/test_workflow.py -q
+```
+
 ### Offline simulation control report
 
 Run the deterministic control evaluation without Ollama or infrastructure access:

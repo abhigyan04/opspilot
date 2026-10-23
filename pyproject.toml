@@ -6,7 +6,8 @@ dependencies = [
 	"ollama>=0.6.3",
 	"pydantic>=2.13.5",
 	"psycopg[binary]>=3.2,<4",
-	"mcp>=2,<3"
+	"mcp>=2,<3",
+	"langgraph"
 ]
 
 [project.optional-dependencies]
