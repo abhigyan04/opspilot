@@ -1,0 +1,1268 @@
+{
+  "snapshot_version": 1,
+  "description": "Six original report payloads preserved for the Milestone 9 development comparison. SHA256 values identify the original files, not the reserialized report objects.",
+  "scope": "Three known synthetic cases, one seed, no aggregate diagnosis accuracy score.",
+  "decision": "Keep reference retrieval opt-in; no overall diagnosis benefit established.",
+  "entries": [
+    {
+      "source_path": "out/comparisons/40359ea0-b6fa-47a6-aa13-f3b4cb71084a/matched-baseline-provider/3fb5f02f-0b78-4d90-adfe-c7e262431d32.json",
+      "sha256": "a240bb08d5bccc7cd8f3b89e92220500833081ee3454435ccc2458e081e1db1f",
+      "report": {
+        "report_version": 2,
+        "evaluation_mode": "diagnosis_replay",
+        "diagnosis_model": "qwen3:8b",
+        "diagnosis_settings": {
+          "num_ctx": 8192,
+          "num_predict": 2048,
+          "temperature": 0.6,
+          "top_p": 0.95,
+          "top_k": 20,
+          "seed": 42,
+          "think": true
+        },
+        "reference_context": [],
+        "retrieval": null,
+        "run_id": "3fb5f02f-0b78-4d90-adfe-c7e262431d32",
+        "started_at": "2026-10-23T04:29:04.149784+00:00",
+        "case_id": "payment_provider_outage",
+        "incident": "Errors in checkout-service have increased significantly. Investigate.",
+        "source": {
+          "report_file": "88405562-a606-4f8a-b802-2c3257f6a562.json",
+          "run_id": "88405562-a606-4f8a-b802-2c3257f6a562",
+          "sha256": "a9dd4a9cf96bd06dcf6e3033615f9893001e85c58317ec3cc12579839a85b8ce"
+        },
+        "status": "completed",
+        "error": null,
+        "timing": {
+          "investigation_seconds": null,
+          "scoring_seconds": null,
+          "diagnosis_seconds": 26.450655800057575,
+          "total_seconds": 26.459383200039156,
+          "retrieval_seconds": null
+        },
+        "metrics": null,
+        "diagnosis_assessment": {
+          "status": "not_scored",
+          "reference_root_cause": "Checkout payment authorization fails because PayBridge returns HTTP 503. Failures and elevated error rates began before the checkout deployment and affect both versions 1.7.3 and 1.7.4. The deployment changes logging only and does not explain the onset. Rolling back checkout is not supported as a remedy by this evidence. The provider's internal reason for returning 503 remains unknown."
+        },
+        "investigation": {
+          "status": "finished",
+          "reason": "The error logs consistently show PayBridge returning 503 responses, indicating an external service issue. However, without additional tools to check PayBridge's status or network conditions, further investigation into the root cause cannot be completed. The available evidence confirms the error pattern but does not provide conclusive confirmation of the external service as the sole cause.",
+          "steps": [
+            {
+              "evidence_id": "evidence-001",
+              "decision": {
+                "tool": "query_metrics",
+                "arguments": {
+                  "service": "checkout-service",
+                  "metric_name": "error_rate"
+                },
+                "reason": "To quantify the current error rate in checkout-service and confirm if the reported increase is significant. The error rate metric provides a direct numerical measure of errors, which is critical for understanding the severity and trend of the issue without assuming root causes."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:50:00Z",
+                  "value": 0.01
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:54:00Z",
+                  "value": 0.3
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T14:02:00Z",
+                  "value": 0.4
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-002",
+              "decision": {
+                "tool": "get_deployments",
+                "arguments": {
+                  "service": "checkout-service"
+                },
+                "reason": "To identify recent deployments of checkout-service that could have introduced the error spike. The error rate increased rapidly (from 0.01 to 0.4 in less than an hour), suggesting a recent change like a deployment might be the cause. Checking deployments will help correlate the error increase with specific release versions."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "version": "1.7.4",
+                  "timestamp": "2026-09-28T13:57:00Z",
+                  "commit_hash": "b72d9e1",
+                  "rollback_target_version": "1.7.3"
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-003",
+              "decision": {
+                "tool": "get_commit",
+                "arguments": {
+                  "commit_hash": "b72d9e1"
+                },
+                "reason": "To determine what changes were introduced in the latest deployment commit (b72d9e1) that could have caused the error rate increase. Since the error rate spiked shortly after the deployment (1.7.4), inspecting the commit details will help identify potential faulty code changes, configuration updates, or other modifications that might be responsible for the observed errors."
+              },
+              "result": {
+                "hash": "b72d9e1",
+                "message": "Add checkout request logging",
+                "diff": " def checkout(request):\n+    logger.info(\"Checkout request received\")\n     return process_checkout(request)"
+              }
+            },
+            {
+              "evidence_id": "evidence-004",
+              "decision": {
+                "tool": "search_logs",
+                "arguments": {
+                  "service": "checkout-service",
+                  "level": "ERROR"
+                },
+                "reason": "To identify recent error logs in checkout-service that may be directly related to the commit that introduced the logging change (b72d9e1). The error rate spiked immediately after deployment, so checking error logs around the deployment timestamp (2026-09-28T13:57:00Z) will help determine if the new logging implementation caused the errors."
+              },
+              "result": [
+                {
+                  "timestamp": "2026-09-28T13:54:00Z",
+                  "service": "checkout-service",
+                  "version": "1.7.3",
+                  "level": "ERROR",
+                  "message": "Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE"
+                },
+                {
+                  "timestamp": "2026-09-28T14:02:00Z",
+                  "service": "checkout-service",
+                  "version": "1.7.4",
+                  "level": "ERROR",
+                  "message": "Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE"
+                }
+              ]
+            }
+          ]
+        },
+        "diagnosis": {
+          "status": "supported",
+          "root_cause": {
+            "statement": "checkout-service errors are caused by PayBridge returning HTTP 503 SERVICE_UNAVAILABLE responses.",
+            "evidence_ids": [
+              "evidence-004"
+            ]
+          },
+          "supporting_claims": [
+            {
+              "statement": "The error rate spiked from 0.01 to 0.3 at 2026-09-28T13:54:00Z and further to 0.4 at 2026-09-28T14:02:00Z.",
+              "evidence_ids": [
+                "evidence-001"
+              ]
+            },
+            {
+              "statement": "The deployment of checkout-service version 1.7.4 occurred at 2026-09-28T13:57:00Z, after the first error spike.",
+              "evidence_ids": [
+                "evidence-002"
+              ]
+            },
+            {
+              "statement": "The first error occurred in version 1.7.3, while subsequent errors occurred in version 1.7.4.",
+              "evidence_ids": [
+                "evidence-004"
+              ]
+            }
+          ],
+          "limitations": [
+            "Insufficient evidence to determine if the PayBridge outage was caused by an external factor, configuration change, or transient issue."
+          ],
+          "reference_notes": []
+        },
+        "usage": {
+          "calls": [
+            {
+              "stage": "diagnosis",
+              "model": "qwen3:8b",
+              "input_tokens": 2186,
+              "output_tokens": 746
+            }
+          ],
+          "totals": {
+            "attempts": 1,
+            "input_counted_calls": 1,
+            "known_input_tokens": 2186,
+            "input_tokens": 2186,
+            "output_counted_calls": 1,
+            "known_output_tokens": 746,
+            "output_tokens": 746
+          }
+        }
+      }
+    },
+    {
+      "source_path": "out/comparisons/40359ea0-b6fa-47a6-aa13-f3b4cb71084a/reference-notes/8dc79d7b-f131-4fdd-843c-853446eed920.json",
+      "sha256": "703ce9e4f1ad77fe0a7734568adcbb06951774abe188b9e99cde826c8c782afc",
+      "report": {
+        "report_version": 2,
+        "evaluation_mode": "diagnosis_replay",
+        "diagnosis_model": "qwen3:8b",
+        "diagnosis_settings": {
+          "num_ctx": 8192,
+          "num_predict": 2048,
+          "temperature": 0.6,
+          "top_p": 0.95,
+          "top_k": 20,
+          "seed": 42,
+          "think": true
+        },
+        "reference_context": [
+          {
+            "reference_id": "reference:runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:2",
+            "chunk_id": "runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:2",
+            "document_id": "runbook-dependency-errors",
+            "document_type": "runbook",
+            "title": "Investigating dependency errors",
+            "section": "Symptoms",
+            "source_path": "runbooks/dependency-errors.md",
+            "synthetic": true,
+            "source_sha256": "d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe",
+            "content": "Requests to an upstream dependency may return HTTP 502, 503, or 504,\nor fail with connection and read timeouts. The calling service may\nalso report increased errors or latency."
+          },
+          {
+            "reference_id": "reference:runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:3",
+            "chunk_id": "runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:3",
+            "document_id": "runbook-dependency-errors",
+            "document_type": "runbook",
+            "title": "Investigating dependency errors",
+            "section": "Investigation",
+            "source_path": "runbooks/dependency-errors.md",
+            "synthetic": true,
+            "source_sha256": "d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe",
+            "content": "Identify the dependency and operation named in the failing requests.\nCompare dependency failures with the calling service's error metrics.\n\nEstablish the earliest observed failure and compare it with deployment\ntimestamps. Failures observed before a deployment weaken the hypothesis\nthat this deployment initiated the incident. They do not rule out a\nlater deployment worsening it.\n\nCheck whether failures affect multiple application versions or callers.\nSeek dependency health information when available. A 503 response alone\ndoes not establish the underlying cause inside the dependency."
+          },
+          {
+            "reference_id": "reference:incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:2",
+            "chunk_id": "incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:2",
+            "document_id": "incident-inventory-timeout",
+            "document_type": "historical_incident",
+            "title": "Inventory reservation timeouts",
+            "section": "Historical observations",
+            "source_path": "incidents/inventory-timeout.md",
+            "synthetic": true,
+            "source_sha256": "07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec",
+            "content": "Checkout requests experienced inventory reservation timeouts. The incident\nrecord described elevated inventory latency and saturation of the inventory\nservice's database connection pool.\n\nTimeouts affected callers running two application versions. The investigation\ndid not find evidence connecting the latest caller deployment to the onset."
+          }
+        ],
+        "retrieval": {
+          "backend": "postgres",
+          "query": "Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE",
+          "query_version": 2,
+          "query_strategy": "errors_only_with_incident_fallback",
+          "top_k": 3,
+          "index_id": "001659867233cd610c9b1efea24272c117a545cd8b756b4612fdf9db3d90c695",
+          "embedding_identity": {
+            "model": "embeddinggemma:300m",
+            "digest": "85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1",
+            "dimensions": 768,
+            "format_version": 1
+          },
+          "results": [
+            {
+              "chunk_id": "runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:2",
+              "score": 0.3245545238787526
+            },
+            {
+              "chunk_id": "runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:3",
+              "score": 0.22723274204340838
+            },
+            {
+              "chunk_id": "incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:2",
+              "score": 0.2074506558624939
+            }
+          ]
+        },
+        "run_id": "8dc79d7b-f131-4fdd-843c-853446eed920",
+        "started_at": "2026-10-22T11:01:49.999861+00:00",
+        "case_id": "payment_provider_outage",
+        "incident": "Errors in checkout-service have increased significantly. Investigate.",
+        "source": {
+          "report_file": "88405562-a606-4f8a-b802-2c3257f6a562.json",
+          "run_id": "88405562-a606-4f8a-b802-2c3257f6a562",
+          "sha256": "a9dd4a9cf96bd06dcf6e3033615f9893001e85c58317ec3cc12579839a85b8ce"
+        },
+        "status": "completed",
+        "error": null,
+        "timing": {
+          "investigation_seconds": null,
+          "scoring_seconds": null,
+          "diagnosis_seconds": 47.98144019994652,
+          "total_seconds": 61.99317139998311,
+          "retrieval_seconds": 14.00798350002151
+        },
+        "metrics": null,
+        "diagnosis_assessment": {
+          "status": "not_scored",
+          "reference_root_cause": "Checkout payment authorization fails because PayBridge returns HTTP 503. Failures and elevated error rates began before the checkout deployment and affect both versions 1.7.3 and 1.7.4. The deployment changes logging only and does not explain the onset. Rolling back checkout is not supported as a remedy by this evidence. The provider's internal reason for returning 503 remains unknown."
+        },
+        "investigation": {
+          "status": "finished",
+          "reason": "The error logs consistently show PayBridge returning 503 responses, indicating an external service issue. However, without additional tools to check PayBridge's status or network conditions, further investigation into the root cause cannot be completed. The available evidence confirms the error pattern but does not provide conclusive confirmation of the external service as the sole cause.",
+          "steps": [
+            {
+              "evidence_id": "evidence-001",
+              "decision": {
+                "tool": "query_metrics",
+                "arguments": {
+                  "service": "checkout-service",
+                  "metric_name": "error_rate"
+                },
+                "reason": "To quantify the current error rate in checkout-service and confirm if the reported increase is significant. The error rate metric provides a direct numerical measure of errors, which is critical for understanding the severity and trend of the issue without assuming root causes."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:50:00Z",
+                  "value": 0.01
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:54:00Z",
+                  "value": 0.3
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T14:02:00Z",
+                  "value": 0.4
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-002",
+              "decision": {
+                "tool": "get_deployments",
+                "arguments": {
+                  "service": "checkout-service"
+                },
+                "reason": "To identify recent deployments of checkout-service that could have introduced the error spike. The error rate increased rapidly (from 0.01 to 0.4 in less than an hour), suggesting a recent change like a deployment might be the cause. Checking deployments will help correlate the error increase with specific release versions."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "version": "1.7.4",
+                  "timestamp": "2026-09-28T13:57:00Z",
+                  "commit_hash": "b72d9e1",
+                  "rollback_target_version": "1.7.3"
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-003",
+              "decision": {
+                "tool": "get_commit",
+                "arguments": {
+                  "commit_hash": "b72d9e1"
+                },
+                "reason": "To determine what changes were introduced in the latest deployment commit (b72d9e1) that could have caused the error rate increase. Since the error rate spiked shortly after the deployment (1.7.4), inspecting the commit details will help identify potential faulty code changes, configuration updates, or other modifications that might be responsible for the observed errors."
+              },
+              "result": {
+                "hash": "b72d9e1",
+                "message": "Add checkout request logging",
+                "diff": " def checkout(request):\n+    logger.info(\"Checkout request received\")\n     return process_checkout(request)"
+              }
+            },
+            {
+              "evidence_id": "evidence-004",
+              "decision": {
+                "tool": "search_logs",
+                "arguments": {
+                  "service": "checkout-service",
+                  "level": "ERROR"
+                },
+                "reason": "To identify recent error logs in checkout-service that may be directly related to the commit that introduced the logging change (b72d9e1). The error rate spiked immediately after deployment, so checking error logs around the deployment timestamp (2026-09-28T13:57:00Z) will help determine if the new logging implementation caused the errors."
+              },
+              "result": [
+                {
+                  "timestamp": "2026-09-28T13:54:00Z",
+                  "service": "checkout-service",
+                  "version": "1.7.3",
+                  "level": "ERROR",
+                  "message": "Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE"
+                },
+                {
+                  "timestamp": "2026-09-28T14:02:00Z",
+                  "service": "checkout-service",
+                  "version": "1.7.4",
+                  "level": "ERROR",
+                  "message": "Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE"
+                }
+              ]
+            }
+          ]
+        },
+        "diagnosis": {
+          "status": "supported",
+          "root_cause": {
+            "statement": "checkout-service errors are caused by upstream dependency failures from PayBridge returning HTTP 503 SERVICE_UNAVAILABLE",
+            "evidence_ids": [
+              "evidence-004",
+              "evidence-001"
+            ]
+          },
+          "supporting_claims": [
+            {
+              "statement": "The error rate spiked from 1% to 40% between 13:50 and 14:02",
+              "evidence_ids": [
+                "evidence-001"
+              ]
+            },
+            {
+              "statement": "Errors are consistently tied to PayBridge's 503 SERVICE_UNAVAILABLE response",
+              "evidence_ids": [
+                "evidence-004"
+              ]
+            },
+            {
+              "statement": "Deployment of version 1.7.4 occurred after the earliest observed error (13:54)",
+              "evidence_ids": [
+                "evidence-002",
+                "evidence-004"
+              ]
+            }
+          ],
+          "limitations": [
+            "The exact cause of PayBridge's 503 error is unknown and requires further investigation",
+            "No evidence connects the checkout-service code changes to the dependency failure"
+          ],
+          "reference_notes": [
+            {
+              "statement": "Reference:runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:2 suggests 503 errors indicate upstream dependency failures",
+              "reference_ids": [
+                "reference:runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:2"
+              ]
+            },
+            {
+              "statement": "Reference:runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:3 advises comparing error timing with deployments",
+              "reference_ids": [
+                "reference:runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:3"
+              ]
+            }
+          ]
+        },
+        "usage": {
+          "calls": [
+            {
+              "stage": "diagnosis",
+              "model": "qwen3:8b",
+              "input_tokens": 3573,
+              "output_tokens": 1207
+            }
+          ],
+          "totals": {
+            "attempts": 1,
+            "input_counted_calls": 1,
+            "known_input_tokens": 3573,
+            "input_tokens": 3573,
+            "output_counted_calls": 1,
+            "known_output_tokens": 1207,
+            "output_tokens": 1207
+          }
+        }
+      }
+    },
+    {
+      "source_path": "out/comparisons/40359ea0-b6fa-47a6-aa13-f3b4cb71084a/matched-baseline-checkout/8d052563-dbd1-4122-8752-c2f53a3f3d37.json",
+      "sha256": "b3d6c154cadf191c8dfbee7fcefa0c1645f1f7a294436a36e251b93aeb1e0404",
+      "report": {
+        "report_version": 2,
+        "evaluation_mode": "diagnosis_replay",
+        "diagnosis_model": "qwen3:8b",
+        "diagnosis_settings": {
+          "num_ctx": 8192,
+          "num_predict": 2048,
+          "temperature": 0.6,
+          "top_p": 0.95,
+          "top_k": 20,
+          "seed": 42,
+          "think": true
+        },
+        "reference_context": [],
+        "retrieval": null,
+        "run_id": "8d052563-dbd1-4122-8752-c2f53a3f3d37",
+        "started_at": "2026-10-23T04:29:31.571616+00:00",
+        "case_id": "checkout_regression",
+        "incident": "Errors in checkout-service have increased significantly. Investigate.",
+        "source": {
+          "report_file": "7a3f5342-6a12-4b22-a70d-950ba3c501b6.json",
+          "run_id": "7a3f5342-6a12-4b22-a70d-950ba3c501b6",
+          "sha256": "8ee1e7f85dcab3850127e4dce70952538aa621c81f5856090c2dca42db1b38b0"
+        },
+        "status": "completed",
+        "error": null,
+        "timing": {
+          "investigation_seconds": null,
+          "scoring_seconds": null,
+          "diagnosis_seconds": 25.697365600033663,
+          "total_seconds": 25.69882430008147,
+          "retrieval_seconds": null
+        },
+        "metrics": null,
+        "diagnosis_assessment": {
+          "status": "not_scored",
+          "reference_root_cause": "The deployed change accesses request.user.customer_id. When request.user is None, this access raises AttributeError. The change does not itself make request.user become None."
+        },
+        "investigation": {
+          "status": "finished",
+          "reason": "The error logs confirm that the recent deployment (commit a1b2c3d4e5f6g7h8i9j0) introduced a customer lookup refactor that caused 'AttributeError: 'NoneType' object has no attribute 'customer_id' when the user object is missing. This directly explains the error rate spike observed after the deployment, and no further evidence is needed to establish the root cause.",
+          "steps": [
+            {
+              "evidence_id": "evidence-001",
+              "decision": {
+                "tool": "query_metrics",
+                "arguments": {
+                  "service": "checkout-service",
+                  "metric_name": "error_rate"
+                },
+                "reason": "To determine the current error rate and quantify the magnitude of the increase, which is essential for understanding the incident's severity and guiding further investigation."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:55:00Z",
+                  "value": 0.01
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T14:02:00Z",
+                  "value": 0.35
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T14:05:00Z",
+                  "value": 0.4
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-002",
+              "decision": {
+                "tool": "get_deployments",
+                "arguments": {
+                  "service": "checkout-service"
+                },
+                "reason": "To identify recent deployments that might have caused the error rate increase, as deployments are a common source of incidents in production services."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "version": "1.7.4",
+                  "timestamp": "2026-09-28T13:57:00Z",
+                  "commit_hash": "a1b2c3d4e5f6g7h8i9j0",
+                  "rollback_target_version": "1.7.3"
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-003",
+              "decision": {
+                "tool": "get_commit",
+                "arguments": {
+                  "commit_hash": "a1b2c3d4e5f6g7h8i9j0"
+                },
+                "reason": "To determine if the recent deployment commit introduced a specific change that could cause the error rate increase, as the deployment to version 1.7.4 with this commit hash occurred just before the error rate spiked."
+              },
+              "result": {
+                "hash": "a1b2c3d4e5f6g7h8i9j0",
+                "message": "Refactor customer lookup",
+                "diff": "- customer_id = request.customer_id\n+ customer_id = request.user.customer_id"
+              }
+            },
+            {
+              "evidence_id": "evidence-004",
+              "decision": {
+                "tool": "search_logs",
+                "arguments": {
+                  "service": "checkout-service",
+                  "level": "ERROR"
+                },
+                "reason": "To identify specific error messages occurring during the error rate spike (after the deployment at 13:57 UTC), which would reveal whether the customer lookup refactor introduced a bug causing checkout failures."
+              },
+              "result": [
+                {
+                  "timestamp": "2026-09-28T14:02:13Z",
+                  "service": "checkout-service",
+                  "level": "ERROR",
+                  "message": "AttributeError: 'NoneType' object has no attribute 'customer_id'"
+                }
+              ]
+            }
+          ]
+        },
+        "diagnosis": {
+          "status": "supported",
+          "root_cause": {
+            "statement": "The deployment of checkout-service version 1.7.4 introduced an AttributeError due to accessing request.user.customer_id when request.user was None.",
+            "evidence_ids": [
+              "evidence-002",
+              "evidence-003",
+              "evidence-004"
+            ]
+          },
+          "supporting_claims": [
+            {
+              "statement": "The error rate spiked after the deployment of version 1.7.4.",
+              "evidence_ids": [
+                "evidence-001",
+                "evidence-002",
+                "evidence-004"
+              ]
+            },
+            {
+              "statement": "The deployment changed code to access request.user.customer_id instead of request.customer_id.",
+              "evidence_ids": [
+                "evidence-003"
+              ]
+            },
+            {
+              "statement": "The error log shows an AttributeError from accessing customer_id on a None-type request.user.",
+              "evidence_ids": [
+                "evidence-004"
+              ]
+            }
+          ],
+          "limitations": [
+            "The error message does not explicitly confirm that request.user was None, though the code change suggests this could be the case."
+          ],
+          "reference_notes": []
+        },
+        "usage": {
+          "calls": [
+            {
+              "stage": "diagnosis",
+              "model": "qwen3:8b",
+              "input_tokens": 2037,
+              "output_tokens": 950
+            }
+          ],
+          "totals": {
+            "attempts": 1,
+            "input_counted_calls": 1,
+            "known_input_tokens": 2037,
+            "input_tokens": 2037,
+            "output_counted_calls": 1,
+            "known_output_tokens": 950,
+            "output_tokens": 950
+          }
+        }
+      }
+    },
+    {
+      "source_path": "out/comparisons/40359ea0-b6fa-47a6-aa13-f3b4cb71084a/reference-notes-checkout/f694293c-2dc2-4a00-b8ce-8d28937bf0e7.json",
+      "sha256": "5bab7bc97cd50c269aba2e7e58623f17e19748c80ac7fe98bc1eab249bd74c3b",
+      "report": {
+        "report_version": 2,
+        "evaluation_mode": "diagnosis_replay",
+        "diagnosis_model": "qwen3:8b",
+        "diagnosis_settings": {
+          "num_ctx": 8192,
+          "num_predict": 2048,
+          "temperature": 0.6,
+          "top_p": 0.95,
+          "top_k": 20,
+          "seed": 42,
+          "think": true
+        },
+        "reference_context": [
+          {
+            "reference_id": "reference:runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:2",
+            "chunk_id": "runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:2",
+            "document_id": "runbook-application-exceptions",
+            "document_type": "runbook",
+            "title": "Investigating application exceptions",
+            "section": "Symptoms",
+            "source_path": "runbooks/application-exceptions.md",
+            "synthetic": true,
+            "source_sha256": "5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11",
+            "content": "Unhandled exceptions can cause request failures. Attribute errors involving\nNone may indicate that code assumed an object existed when it did not."
+          },
+          {
+            "reference_id": "reference:runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:3",
+            "chunk_id": "runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:3",
+            "document_id": "runbook-application-exceptions",
+            "document_type": "runbook",
+            "title": "Investigating application exceptions",
+            "section": "Investigation",
+            "source_path": "runbooks/application-exceptions.md",
+            "synthetic": true,
+            "source_sha256": "5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11",
+            "content": "Capture the exact exception and available stack trace. Identify the failing\nexpression and determine which object could be absent.\n\nInspect changes to that code path and compare deployment timing with the\nobserved errors. A matching code change and exception strengthen a regression\nhypothesis, but timing alone does not prove causation.\n\nCheck affected request types and application versions. Do not infer a specific\nuser state, such as unauthenticated access, without supporting observations."
+          },
+          {
+            "reference_id": "reference:incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:4",
+            "chunk_id": "incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:4",
+            "document_id": "incident-inventory-timeout",
+            "document_type": "historical_incident",
+            "title": "Inventory reservation timeouts",
+            "section": "Transferable lessons",
+            "source_path": "incidents/inventory-timeout.md",
+            "synthetic": true,
+            "source_sha256": "07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec",
+            "content": "Investigate the dependency named in timeout errors. Compare failures across\ncaller versions and inspect dependency resource metrics when available.\n\nSimilar symptoms can have different causes. This historical incident does\nnot justify assuming database saturation or reducing workloads in another\nincident without current supporting evidence."
+          }
+        ],
+        "retrieval": {
+          "backend": "postgres",
+          "query": "AttributeError: 'NoneType' object has no attribute 'customer_id'",
+          "query_version": 2,
+          "query_strategy": "errors_only_with_incident_fallback",
+          "top_k": 3,
+          "index_id": "001659867233cd610c9b1efea24272c117a545cd8b756b4612fdf9db3d90c695",
+          "embedding_identity": {
+            "model": "embeddinggemma:300m",
+            "digest": "85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1",
+            "dimensions": 768,
+            "format_version": 1
+          },
+          "results": [
+            {
+              "chunk_id": "runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:2",
+              "score": 0.37820990020663614
+            },
+            {
+              "chunk_id": "runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:3",
+              "score": 0.2355323303318121
+            },
+            {
+              "chunk_id": "incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:4",
+              "score": 0.21525884316143706
+            }
+          ]
+        },
+        "run_id": "f694293c-2dc2-4a00-b8ce-8d28937bf0e7",
+        "started_at": "2026-10-23T04:16:25.483852+00:00",
+        "case_id": "checkout_regression",
+        "incident": "Errors in checkout-service have increased significantly. Investigate.",
+        "source": {
+          "report_file": "7a3f5342-6a12-4b22-a70d-950ba3c501b6.json",
+          "run_id": "7a3f5342-6a12-4b22-a70d-950ba3c501b6",
+          "sha256": "8ee1e7f85dcab3850127e4dce70952538aa621c81f5856090c2dca42db1b38b0"
+        },
+        "status": "completed",
+        "error": null,
+        "timing": {
+          "investigation_seconds": null,
+          "scoring_seconds": null,
+          "diagnosis_seconds": 41.804041799972765,
+          "total_seconds": 47.3295924999984,
+          "retrieval_seconds": 5.5172099999617785
+        },
+        "metrics": null,
+        "diagnosis_assessment": {
+          "status": "not_scored",
+          "reference_root_cause": "The deployed change accesses request.user.customer_id. When request.user is None, this access raises AttributeError. The change does not itself make request.user become None."
+        },
+        "investigation": {
+          "status": "finished",
+          "reason": "The error logs confirm that the recent deployment (commit a1b2c3d4e5f6g7h8i9j0) introduced a customer lookup refactor that caused 'AttributeError: 'NoneType' object has no attribute 'customer_id' when the user object is missing. This directly explains the error rate spike observed after the deployment, and no further evidence is needed to establish the root cause.",
+          "steps": [
+            {
+              "evidence_id": "evidence-001",
+              "decision": {
+                "tool": "query_metrics",
+                "arguments": {
+                  "service": "checkout-service",
+                  "metric_name": "error_rate"
+                },
+                "reason": "To determine the current error rate and quantify the magnitude of the increase, which is essential for understanding the incident's severity and guiding further investigation."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:55:00Z",
+                  "value": 0.01
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T14:02:00Z",
+                  "value": 0.35
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T14:05:00Z",
+                  "value": 0.4
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-002",
+              "decision": {
+                "tool": "get_deployments",
+                "arguments": {
+                  "service": "checkout-service"
+                },
+                "reason": "To identify recent deployments that might have caused the error rate increase, as deployments are a common source of incidents in production services."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "version": "1.7.4",
+                  "timestamp": "2026-09-28T13:57:00Z",
+                  "commit_hash": "a1b2c3d4e5f6g7h8i9j0",
+                  "rollback_target_version": "1.7.3"
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-003",
+              "decision": {
+                "tool": "get_commit",
+                "arguments": {
+                  "commit_hash": "a1b2c3d4e5f6g7h8i9j0"
+                },
+                "reason": "To determine if the recent deployment commit introduced a specific change that could cause the error rate increase, as the deployment to version 1.7.4 with this commit hash occurred just before the error rate spiked."
+              },
+              "result": {
+                "hash": "a1b2c3d4e5f6g7h8i9j0",
+                "message": "Refactor customer lookup",
+                "diff": "- customer_id = request.customer_id\n+ customer_id = request.user.customer_id"
+              }
+            },
+            {
+              "evidence_id": "evidence-004",
+              "decision": {
+                "tool": "search_logs",
+                "arguments": {
+                  "service": "checkout-service",
+                  "level": "ERROR"
+                },
+                "reason": "To identify specific error messages occurring during the error rate spike (after the deployment at 13:57 UTC), which would reveal whether the customer lookup refactor introduced a bug causing checkout failures."
+              },
+              "result": [
+                {
+                  "timestamp": "2026-09-28T14:02:13Z",
+                  "service": "checkout-service",
+                  "level": "ERROR",
+                  "message": "AttributeError: 'NoneType' object has no attribute 'customer_id'"
+                }
+              ]
+            }
+          ]
+        },
+        "diagnosis": {
+          "status": "supported",
+          "root_cause": {
+            "statement": "A code change in the checkout-service deployment introduced an AttributeError due to accessing a missing 'user' object in the request.",
+            "evidence_ids": [
+              "evidence-002",
+              "evidence-004",
+              "evidence-003"
+            ]
+          },
+          "supporting_claims": [
+            {
+              "statement": "The checkout-service error rate spiked after the 1.7.4 deployment.",
+              "evidence_ids": [
+                "evidence-001",
+                "evidence-002",
+                "evidence-004"
+              ]
+            },
+            {
+              "statement": "The deployment introduced a code change that accesses 'request.user.customer_id', which could be None.",
+              "evidence_ids": [
+                "evidence-003"
+              ]
+            },
+            {
+              "statement": "The observed error message confirms an AttributeError from accessing 'customer_id' on a None object.",
+              "evidence_ids": [
+                "evidence-004"
+              ]
+            }
+          ],
+          "limitations": [
+            "The exact cause of the 'user' object being None is not explicitly documented in the observations."
+          ],
+          "reference_notes": [
+            {
+              "statement": "Attribute errors involving None may indicate code assuming an object exists when it does not (reference:runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:2).",
+              "reference_ids": [
+                "reference:runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:2"
+              ]
+            },
+            {
+              "statement": "Timing alone does not prove causation, but the error occurred after the deployment (reference:runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:3).",
+              "reference_ids": [
+                "reference:runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:3"
+              ]
+            }
+          ]
+        },
+        "usage": {
+          "calls": [
+            {
+              "stage": "diagnosis",
+              "model": "qwen3:8b",
+              "input_tokens": 3356,
+              "output_tokens": 1175
+            }
+          ],
+          "totals": {
+            "attempts": 1,
+            "input_counted_calls": 1,
+            "known_input_tokens": 3356,
+            "input_tokens": 3356,
+            "output_counted_calls": 1,
+            "known_output_tokens": 1175,
+            "output_tokens": 1175
+          }
+        }
+      }
+    },
+    {
+      "source_path": "out/comparisons/40359ea0-b6fa-47a6-aa13-f3b4cb71084a/matched-baseline-sparse/9b561120-2c43-4dae-8149-d59d2a9b95ba.json",
+      "sha256": "c494306115ab6e4c0bbe3836679c5c79514203bb0b4d92bd6be3d5e223ac5be4",
+      "report": {
+        "report_version": 2,
+        "evaluation_mode": "diagnosis_replay",
+        "diagnosis_model": "qwen3:8b",
+        "diagnosis_settings": {
+          "num_ctx": 8192,
+          "num_predict": 2048,
+          "temperature": 0.6,
+          "top_p": 0.95,
+          "top_k": 20,
+          "seed": 42,
+          "think": true
+        },
+        "reference_context": [],
+        "retrieval": null,
+        "run_id": "9b561120-2c43-4dae-8149-d59d2a9b95ba",
+        "started_at": "2026-10-23T04:29:58.261731+00:00",
+        "case_id": "sparse_evidence",
+        "incident": "Errors in checkout-service have increased significantly. Investigate.",
+        "source": {
+          "report_file": "9cff3260-9b7c-4ec1-8c4b-df481c08a876.json",
+          "run_id": "9cff3260-9b7c-4ec1-8c4b-df481c08a876",
+          "sha256": "be947cfa897694b935f6f275eeefe1686bff7dd2ee7ac653ad93602646ffe9f4"
+        },
+        "status": "completed",
+        "error": null,
+        "timing": {
+          "investigation_seconds": null,
+          "scoring_seconds": null,
+          "diagnosis_seconds": 15.228953399928287,
+          "total_seconds": 15.22953160002362,
+          "retrieval_seconds": null
+        },
+        "metrics": null,
+        "diagnosis_assessment": {
+          "status": "not_scored",
+          "reference_root_cause": "The error rate increased, but the available observations do not establish a specific failure mechanism. No matching logs or deployment records were returned. These empty results do not prove that errors or deployments did not occur. The appropriate diagnosis is insufficient_evidence, requesting error details or other evidence that distinguishes possible causes. Do not invent a code regression, provider outage, or commit hash."
+        },
+        "investigation": {
+          "status": "finished",
+          "reason": "Evidence gathered shows the error rate has increased significantly (0.01 → 0.3 → 0.4), no recent deployments (evidence-002), and no ERROR logs (evidence-003). However, no commit hash is available in the incident or previous tool results to investigate potential code changes. Without a commit hash, the get_commit tool cannot be used to check recent code changes, and no other tools can provide further evidence. The missing evidence prevents determining the root cause.",
+          "steps": [
+            {
+              "evidence_id": "evidence-001",
+              "decision": {
+                "tool": "query_metrics",
+                "arguments": {
+                  "service": "checkout-service",
+                  "metric_name": "error_rate"
+                },
+                "reason": "To quantify the current error rate and understand the magnitude of the increase before proceeding to investigate potential causes like deployments or commits."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:50:00Z",
+                  "value": 0.01
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:54:00Z",
+                  "value": 0.3
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T14:02:00Z",
+                  "value": 0.4
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-002",
+              "decision": {
+                "tool": "get_deployments",
+                "arguments": {
+                  "service": "checkout-service"
+                },
+                "reason": "To identify recent deployments of the checkout-service that might have introduced the error rate increase, as deployments are a common cause of service issues."
+              },
+              "result": []
+            },
+            {
+              "evidence_id": "evidence-003",
+              "decision": {
+                "tool": "search_logs",
+                "arguments": {
+                  "service": "checkout-service",
+                  "level": "ERROR"
+                },
+                "reason": "After determining there are no recent deployments (evidence-002), the next step is to search for error logs in the checkout-service to identify the specific errors causing the increased error rate, as deployments are ruled out and logs provide direct evidence of the issue."
+              },
+              "result": []
+            }
+          ]
+        },
+        "diagnosis": {
+          "status": "insufficient_evidence",
+          "reason": "The observations establish a rise in error_rate metric values but do not provide evidence of the underlying failure mechanism. The error_rate metric alone is a symptom, not a root cause. No ERROR logs (evidence-003) or deployments (evidence-002) are available to correlate with the error rate increase.",
+          "missing_evidence": [
+            "ERROR logs from checkout-service that describe the nature of failures",
+            "Deployment records for checkout-service that could be temporally aligned with the error rate increase"
+          ],
+          "reference_notes": []
+        },
+        "usage": {
+          "calls": [
+            {
+              "stage": "diagnosis",
+              "model": "qwen3:8b",
+              "input_tokens": 1383,
+              "output_tokens": 564
+            }
+          ],
+          "totals": {
+            "attempts": 1,
+            "input_counted_calls": 1,
+            "known_input_tokens": 1383,
+            "input_tokens": 1383,
+            "output_counted_calls": 1,
+            "known_output_tokens": 564,
+            "output_tokens": 564
+          }
+        }
+      }
+    },
+    {
+      "source_path": "out/comparisons/40359ea0-b6fa-47a6-aa13-f3b4cb71084a/reference-notes-sparse/02fb677c-b99d-4df3-9cb9-159422b974c8.json",
+      "sha256": "34fe98043accb89ca20a4b469072d3570e7833e8021f2f107693d8bafe68787b",
+      "report": {
+        "report_version": 2,
+        "evaluation_mode": "diagnosis_replay",
+        "diagnosis_model": "qwen3:8b",
+        "diagnosis_settings": {
+          "num_ctx": 8192,
+          "num_predict": 2048,
+          "temperature": 0.6,
+          "top_p": 0.95,
+          "top_k": 20,
+          "seed": 42,
+          "think": true
+        },
+        "reference_context": [
+          {
+            "reference_id": "reference:incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:2",
+            "chunk_id": "incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:2",
+            "document_id": "incident-inventory-timeout",
+            "document_type": "historical_incident",
+            "title": "Inventory reservation timeouts",
+            "section": "Historical observations",
+            "source_path": "incidents/inventory-timeout.md",
+            "synthetic": true,
+            "source_sha256": "07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec",
+            "content": "Checkout requests experienced inventory reservation timeouts. The incident\nrecord described elevated inventory latency and saturation of the inventory\nservice's database connection pool.\n\nTimeouts affected callers running two application versions. The investigation\ndid not find evidence connecting the latest caller deployment to the onset."
+          },
+          {
+            "reference_id": "reference:runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:3",
+            "chunk_id": "runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:3",
+            "document_id": "runbook-dependency-errors",
+            "document_type": "runbook",
+            "title": "Investigating dependency errors",
+            "section": "Investigation",
+            "source_path": "runbooks/dependency-errors.md",
+            "synthetic": true,
+            "source_sha256": "d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe",
+            "content": "Identify the dependency and operation named in the failing requests.\nCompare dependency failures with the calling service's error metrics.\n\nEstablish the earliest observed failure and compare it with deployment\ntimestamps. Failures observed before a deployment weaken the hypothesis\nthat this deployment initiated the incident. They do not rule out a\nlater deployment worsening it.\n\nCheck whether failures affect multiple application versions or callers.\nSeek dependency health information when available. A 503 response alone\ndoes not establish the underlying cause inside the dependency."
+          },
+          {
+            "reference_id": "reference:runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:5",
+            "chunk_id": "runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:5",
+            "document_id": "runbook-application-exceptions",
+            "document_type": "runbook",
+            "title": "Investigating application exceptions",
+            "section": "Verification",
+            "source_path": "runbooks/application-exceptions.md",
+            "synthetic": true,
+            "source_sha256": "5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11",
+            "content": "Check post-action exception frequency and service error metrics. Confirm\nwhether the affected request path was exercised during the observation window."
+          }
+        ],
+        "retrieval": {
+          "backend": "postgres",
+          "query": "Errors in checkout-service have increased significantly. Investigate.",
+          "query_version": 2,
+          "query_strategy": "errors_only_with_incident_fallback",
+          "top_k": 3,
+          "index_id": "001659867233cd610c9b1efea24272c117a545cd8b756b4612fdf9db3d90c695",
+          "embedding_identity": {
+            "model": "embeddinggemma:300m",
+            "digest": "85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1",
+            "dimensions": 768,
+            "format_version": 1
+          },
+          "results": [
+            {
+              "chunk_id": "incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:2",
+              "score": 0.5257953562079871
+            },
+            {
+              "chunk_id": "runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:3",
+              "score": 0.3863369436370995
+            },
+            {
+              "chunk_id": "runbook-application-exceptions:5b0689d5a8da3dc372ffb8e43de0016c6b7b958def57ab2174cea20a2703db11:5",
+              "score": 0.36138122949153273
+            }
+          ]
+        },
+        "run_id": "02fb677c-b99d-4df3-9cb9-159422b974c8",
+        "started_at": "2026-10-23T04:18:22.650786+00:00",
+        "case_id": "sparse_evidence",
+        "incident": "Errors in checkout-service have increased significantly. Investigate.",
+        "source": {
+          "report_file": "9cff3260-9b7c-4ec1-8c4b-df481c08a876.json",
+          "run_id": "9cff3260-9b7c-4ec1-8c4b-df481c08a876",
+          "sha256": "be947cfa897694b935f6f275eeefe1686bff7dd2ee7ac653ad93602646ffe9f4"
+        },
+        "status": "completed",
+        "error": null,
+        "timing": {
+          "investigation_seconds": null,
+          "scoring_seconds": null,
+          "diagnosis_seconds": 38.48446260008495,
+          "total_seconds": 43.05008130008355,
+          "retrieval_seconds": 4.5526991001097485
+        },
+        "metrics": null,
+        "diagnosis_assessment": {
+          "status": "not_scored",
+          "reference_root_cause": "The error rate increased, but the available observations do not establish a specific failure mechanism. No matching logs or deployment records were returned. These empty results do not prove that errors or deployments did not occur. The appropriate diagnosis is insufficient_evidence, requesting error details or other evidence that distinguishes possible causes. Do not invent a code regression, provider outage, or commit hash."
+        },
+        "investigation": {
+          "status": "finished",
+          "reason": "Evidence gathered shows the error rate has increased significantly (0.01 → 0.3 → 0.4), no recent deployments (evidence-002), and no ERROR logs (evidence-003). However, no commit hash is available in the incident or previous tool results to investigate potential code changes. Without a commit hash, the get_commit tool cannot be used to check recent code changes, and no other tools can provide further evidence. The missing evidence prevents determining the root cause.",
+          "steps": [
+            {
+              "evidence_id": "evidence-001",
+              "decision": {
+                "tool": "query_metrics",
+                "arguments": {
+                  "service": "checkout-service",
+                  "metric_name": "error_rate"
+                },
+                "reason": "To quantify the current error rate and understand the magnitude of the increase before proceeding to investigate potential causes like deployments or commits."
+              },
+              "result": [
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:50:00Z",
+                  "value": 0.01
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T13:54:00Z",
+                  "value": 0.3
+                },
+                {
+                  "service": "checkout-service",
+                  "metric": "error_rate",
+                  "timestamp": "2026-09-28T14:02:00Z",
+                  "value": 0.4
+                }
+              ]
+            },
+            {
+              "evidence_id": "evidence-002",
+              "decision": {
+                "tool": "get_deployments",
+                "arguments": {
+                  "service": "checkout-service"
+                },
+                "reason": "To identify recent deployments of the checkout-service that might have introduced the error rate increase, as deployments are a common cause of service issues."
+              },
+              "result": []
+            },
+            {
+              "evidence_id": "evidence-003",
+              "decision": {
+                "tool": "search_logs",
+                "arguments": {
+                  "service": "checkout-service",
+                  "level": "ERROR"
+                },
+                "reason": "After determining there are no recent deployments (evidence-002), the next step is to search for error logs in the checkout-service to identify the specific errors causing the increased error rate, as deployments are ruled out and logs provide direct evidence of the issue."
+              },
+              "result": []
+            }
+          ]
+        },
+        "diagnosis": {
+          "status": "insufficient_evidence",
+          "reason": "The observations show a significant increase in error_rate for checkout-service between 2026-09-28T13:50:00Z and 2026-09-28T14:02:00Z, but no corresponding ERROR logs (evidence-003) or deployment records (evidence-002) are available to explain the mechanism. The error_rate metric alone is a symptom, not a failure mechanism. The reference to historical inventory timeouts (reference:incident-inventory-timeout) suggests dependency issues as a possible cause, but no evidence connects checkout-service errors to dependency failures. Without logs or deployment timing data, the root cause remains unex",
+          "missing_evidence": [
+            "checkout-service ERROR logs",
+            "deployment records around error onset"
+          ],
+          "reference_notes": [
+            {
+              "statement": "Consider dependency health and timeout scenarios as potential causes (reference:incident-inventory-timeout).",
+              "reference_ids": [
+                "reference:incident-inventory-timeout:07fb207e03d59de2dc5240082696749f5f530969fcd726b6d708f72da0c915ec:2"
+              ]
+            },
+            {
+              "statement": "Verify if the error_rate metric correlates with specific operations or dependencies (reference:runbook-dependency-errors).",
+              "reference_ids": [
+                "reference:runbook-dependency-errors:d01800465094a752c05246ac6c689efdaf1b3095a16d759c9c8439e23467fbbe:3"
+              ]
+            }
+          ]
+        },
+        "usage": {
+          "calls": [
+            {
+              "stage": "diagnosis",
+              "model": "qwen3:8b",
+              "input_tokens": 2731,
+              "output_tokens": 1062
+            }
+          ],
+          "totals": {
+            "attempts": 1,
+            "input_counted_calls": 1,
+            "known_input_tokens": 2731,
+            "input_tokens": 2731,
+            "output_counted_calls": 1,
+            "known_output_tokens": 1062,
+            "output_tokens": 1062
+          }
+        }
+      }
+    }
+  ]
+}

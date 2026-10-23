@@ -1054,20 +1054,23 @@ not production readiness or achievement of a diagnosis-accuracy target.
    and known failures. Existing evidence was reused without a new model sweep.
    Selective improvement examples remain separate from aggregate review results.
 
-Milestone 9 is underway: the reference collection, loader, passage splitter,
+Milestone 9's bounded RAG implementation is complete: the reference collection, loader, passage splitter,
 local embeddings, cosine-similarity ranking, and a development retrieval
 evaluation are implemented, along with local index provenance and persistence.
 Saved-index retrieval checks query-time model identity. PostgreSQL import and
 SQL ranking are implemented and tested. Both JSON-backed and PostgreSQL-backed
 retrieval entry points are available. Diagnosis accepts optional retrieved
-references, and replay can retrieve them from PostgreSQL on request. Controlled
-diagnosis comparisons remain pending.
+references, and replay can retrieve them from PostgreSQL on request. A matched
+three-case development comparison did not establish an overall diagnosis benefit;
+references remain opt-in. See the [Milestone 9 review](docs/milestone-9-review.md)
+and [portable six-report snapshot](docs/milestone-9-comparison.json) for results,
+verification scope and limitations.
 Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
 
-Milestone 9 will retrieve runbooks and historical incidents, then evaluate
-whether that background guidance helps. MCP follows
+Milestone 9 added retrieval and evaluated whether background guidance helps.
+MCP follows
 direct integration experience; LangGraph follows demonstrated workflow
 complexity. UI and deployment come after a deployable service exists. RAG is
 not assumed to fix timestamp or citation errors by itself.
@@ -1174,7 +1177,7 @@ vectors and a query vector with 768 dimensions. This establishes that the
 formatted embedding path works; it does not establish retrieval relevance.
 
 Local JSON index persistence and pgvector storage are implemented below.
-Diagnosis augmentation is not yet implemented. Index manifests identify the embedding
+Optional diagnosis augmentation is implemented in replay. Index manifests identify the embedding
 model digest, format version, and source contents.
 The development retrieval evaluation below precedes agent integration.
 
@@ -1500,8 +1503,22 @@ checks establish citation membership and separation, not whether a cited source
 actually supports the statement.
 
 The reference-note integration checkpoint passed **548 tests, 22 skipped** in
-the user-reported full suite. Live verification of the new output structure
-and its effect on citation quality remains pending.
+the user-reported full suite. Live provider-outage replay
+`8dc79d7b-f131-4fdd-843c-853446eed920` (under the comparison directory's
+`reference-notes/` folder) used identical investigation data, reference context,
+and model settings to bounded replay `830a0606-6fe9-4585-9110-e34b56d081b0`.
+It returned three operational supporting claims and two separate reference notes.
+The notes cited the dependency runbook's Symptoms and Investigation passages;
+the prior misuse of the logging diff to cite runbook guidance was absent.
+It retained correct metric values, failure-before-deployment ordering, and an
+explicit unknown provider cause, without importing the inventory incident's cause.
+
+This is a single-case citation-separation improvement after changing both schema
+and prompt, not an aggregate accuracy result or proof of RAG's benefit over a
+matched no-reference baseline. The Symptoms note paraphrased the source more
+strongly than its conditional wording, and the note text redundantly included
+long citation IDs. The run reported 1,207 output tokens and 47.98 seconds for
+diagnosis, below the configured 2,048-token generation cap.
 
 The reported checkpoint passed 34 focused diagnosis tests and the full suite
 with **475 passed, 22 skipped**. The skipped checks require the opt-in database
