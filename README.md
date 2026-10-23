@@ -1197,8 +1197,9 @@ Direct Python tools remain the default. With MCP, each investigation node opens
 its own subprocess connection for the selected scenario and closes it before
 diagnosis. MCP requires one of the three standard scenario fixture directories;
 unknown scenarios and custom directories are rejected. The graph remains separate
-from the evaluation runner. It has no persistent checkpointer, approval pause,
-or resume support.
+from the evaluation runner. It accepts an optional checkpointer; in-memory
+failure recovery is tested, but restart-safe storage and approval pauses are
+not yet implemented.
 The intended next capability is a workflow that can pause for approval and
 resume later while preserving the existing remediation guards.
 
@@ -1217,8 +1218,22 @@ rejection of unsupported backends and fixture directories. These are transport
 and orchestration checks, not live model accuracy evaluations.
 
 ```powershell
-python -m pytest tests/test_workflow.py -q
+python -m pytest tests/test_workflow_checkpoint.py tests/test_workflow.py -q
 ```
+
+The checkpointing foundation passed **12 focused tests** and **618 passed,
+22 skipped** in the reported full suite. With `InMemorySaver`, a failed diagnosis
+can be resumed using `graph.ainvoke(None, config=...)` with the same checkpointer
+and thread ID. The diagnosis node runs again from its beginning; the completed
+investigation and its usage snapshot are retained without repeating its calls.
+Checkpoint boundaries are between graph nodes, not individual investigation
+tool calls.
+
+An interleaved two-thread test verifies that completing one thread and resuming
+the other preserves their separate evidence, diagnosis, usage, and pending work.
+These tests mock agent calls and do not test simultaneous execution, recovery
+after a process restart, or failed-attempt usage accounting. In-memory
+checkpoints are lost when the process exits.
 
 ### Offline simulation control report
 

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import NotRequired, TypedDict
 
 from langgraph.graph import END, START, StateGraph
+from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from app.agent import agent
 from app.agent.settings import DiagnosisSettings
@@ -19,7 +20,7 @@ class InvestigationState(TypedDict):
     usage: NotRequired[dict]
 
 
-def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_steps: int = 6, diagnosis_model: str = agent.DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct"):
+def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_steps: int = 6, diagnosis_model: str = agent.DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct", checkpointer: BaseCheckpointSaver | None = None):
     if max_steps < 1:
         raise ValueError("max_steps must be at least 1")
 
@@ -95,4 +96,4 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
     builder.add_edge("investigate", "diagnose")
     builder.add_edge("diagnose", END)
 
-    return builder.compile()
+    return builder.compile(checkpointer=checkpointer)
