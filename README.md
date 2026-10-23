@@ -1069,11 +1069,13 @@ Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
 
-Milestone 10 has started with a local MCP server exposing all four existing
+Milestone 10's bounded local implementation is complete, with an MCP server exposing all four existing
 fixture-backed investigation tools over stdio. Subprocess client tests verify
 tool discovery, input schemas, and response parity with the direct Python
 functions. The async investigation loop accepts the MCP executor; existing
 synchronous callers continue to use direct Python tools by default.
+See the [Milestone 10 review](docs/milestone-10-review.md) for verification,
+remaining limits, and the next milestone's scope decision.
 
 MCP builds on direct integration experience; LangGraph follows demonstrated workflow
 complexity. UI and deployment come after a deployable service exists. RAG is
