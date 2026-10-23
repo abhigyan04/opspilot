@@ -9,7 +9,7 @@ and approve a rollback candidate for in-memory simulation.
 
 ## Run locally
 
-From the repository root, using Python 3.10 or newer:
+From the repository root, using Python 3.11 or newer:
 
 ```powershell
 python -m venv .venv
@@ -1069,11 +1069,36 @@ Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
 
-Milestone 9 added retrieval and evaluated whether background guidance helps.
-MCP follows
-direct integration experience; LangGraph follows demonstrated workflow
+Milestone 10 has started with a local MCP server exposing the existing
+fixture-backed `search_logs` tool over stdio. A subprocess client test verifies
+tool discovery, the input schema, and response parity with the direct Python
+function. The investigation agent still uses direct Python tools.
+
+MCP builds on direct integration experience; LangGraph follows demonstrated workflow
 complexity. UI and deployment come after a deployable service exists. RAG is
 not assumed to fix timestamp or citation errors by itself.
+
+### Milestone 10: first MCP tool
+
+`app.mcp_server.server` uses the MCP Python SDK v2 to expose `search_logs(service,
+level)`. It reads the synthetic checkout-regression log fixture; callers cannot
+select a filesystem path. The list response is returned as structured content
+under `result`.
+
+The client launches the server with `python -m app.mcp_server.server` and
+exchanges MCP messages over stdin/stdout. No listening port, Ollama instance,
+or PostgreSQL connection is needed for this checkpoint.
+
+Run the protocol test:
+
+```powershell
+python -m pytest tests/test_mcp_server.py -q
+```
+
+The reported checkpoint passed **1 subprocess MCP test** and **549 tests,
+22 skipped** in the full suite. The skipped database checks remain opt-in.
+This verifies one successful tool call through MCP; invalid arguments, empty
+results, additional tools, and agent integration remain subsequent checkpoints.
 
 ### Offline simulation control report
 
