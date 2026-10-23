@@ -1072,7 +1072,8 @@ tuning remain follow-up work rather than blockers for this bounded framework.
 Milestone 10 has started with a local MCP server exposing all four existing
 fixture-backed investigation tools over stdio. Subprocess client tests verify
 tool discovery, input schemas, and response parity with the direct Python
-functions. The investigation agent still uses direct Python tools.
+functions. The async investigation loop accepts the MCP executor; existing
+synchronous callers continue to use direct Python tools by default.
 
 MCP builds on direct integration experience; LangGraph follows demonstrated workflow
 complexity. UI and deployment come after a deployable service exists. RAG is
@@ -1096,10 +1097,10 @@ The client launches the server with `python -m app.mcp_server.server` and
 exchanges MCP messages over stdin/stdout. No listening port, Ollama instance,
 or PostgreSQL connection is needed for this checkpoint.
 
-Run the server and client checks:
+Run the investigation, server, and client checks:
 
 ```powershell
-python -m pytest tests/test_mcp_client.py tests/test_mcp_server.py -q
+python -m pytest tests/test_investigation_executor.py tests/test_mcp_client.py tests/test_mcp_server.py -q
 ```
 
 `app.mcp_server.client.connect_local_tools()` manages one subprocess connection
@@ -1110,12 +1111,25 @@ tool errors, missing result envelopes, and invalid outer result shapes, and
 propagates transport failures. It does not validate individual record fields
 or automatically retry failed calls.
 
-The reported checkpoint passed **29 focused MCP tests** and **577 tests,
+`investigate_async(..., tool_executor=executor.execute)` can run inside
+`async with connect_local_tools() as executor`, using one MCP connection for
+the investigation. Tool results retain the existing evidence IDs, observation
+messages, and step-record format. Synchronous model selection runs in a worker
+thread so it does not block MCP communication. Executor failures propagate.
+The synchronous `investigate()` wrapper uses `asyncio.run`; callers already
+inside an event loop should await `investigate_async()` instead. `data_dir`
+applies only to direct tool execution; the local MCP server currently uses the
+checkout-regression fixtures.
+
+The reported checkpoint passed **32 focused tests** and **580 tests,
 22 skipped** in the full suite. The skipped database checks remain opt-in.
 Subprocess tests cover successful and unmatched lookups for all four tools,
 malformed log-search arguments followed by a valid call, and a deployment-to-
 commit sequence through the adapter on one connection. Stub-client tests cover
-adapter failure handling. Agent integration remains a subsequent checkpoint.
+adapter failure handling. A scripted-decision investigation test uses the real
+MCP subprocess, feeds deployment evidence into the next commit lookup, and
+verifies the final investigation record. This checkpoint does not exercise
+live model selection over MCP or provide a CLI backend switch.
 
 ### Offline simulation control report
 

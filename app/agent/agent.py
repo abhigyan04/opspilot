@@ -1,6 +1,8 @@
 from ollama import chat
 from pathlib import Path
 import json
+import asyncio
+from collections.abc import Awaitable, Callable
 
 from app.agent.schemas import ToolCall, AgentDecision, agent_decision_adapter, Diagnosis, diagnosis_adapter
 from app.tools.logs import search_logs
@@ -383,7 +385,7 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
     return diagnosis
 
 
-def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_SCENARIO_DIR, usage: UsageCollector | None = None) -> dict:
+async def investigate_async(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_SCENARIO_DIR, usage: UsageCollector | None = None, tool_executor: Callable[[ToolCall], Awaitable[object]] | None = None) -> dict:
     if max_steps < 1:
         raise ValueError("max_steps must be at least 1")
 
@@ -394,7 +396,11 @@ def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_S
     steps = []
 
     for _ in range(max_steps):
-        decision = choose_next_tool(messages, usage=usage)
+        decision = await asyncio.to_thread(
+            choose_next_tool,
+            messages,
+            usage=usage
+        )
 
         messages.append({
             "role": "assistant",
@@ -408,7 +414,10 @@ def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_S
                 "steps": steps,
             }
 
-        result = execute_tool(decision, data_dir=data_dir)
+        if tool_executor is None:
+            result = execute_tool(decision, data_dir=data_dir)
+        else:
+            result = await tool_executor(decision)
 
         evidence_id = f"evidence-{len(steps) + 1:03d}"
 
@@ -438,6 +447,17 @@ def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_S
         "reason": "Maximum investigation steps reached.",
         "steps": steps,
     }
+
+
+def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_SCENARIO_DIR, usage: UsageCollector | None = None) -> dict:
+    return asyncio.run(
+        investigate_async(
+            incident,
+            max_steps,
+            data_dir=data_dir,
+            usage=usage,
+        )
+    )
 
 
 if __name__ == "__main__":
