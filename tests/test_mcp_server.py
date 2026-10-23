@@ -9,6 +9,8 @@ from app.tools.logs import search_logs
 from app.tools.deployments import get_deployments
 from app.tools.metrics import query_metrics
 from app.tools.git import get_commit
+from app.mcp_server.server import create_server
+from app.tools.data import SCENARIOS_ROOT
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -219,3 +221,84 @@ def test_get_commit_over_stdio(existing):
             assert result.structured_content == {"result": expected}
 
     asyncio.run(check())
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "checkout_regression",
+        "payment_provider_outage",
+        "sparse_evidence",
+    ],
+)
+def test_server_uses_selected_scenario(scenario):
+    async def check():
+        data_dir = SCENARIOS_ROOT / scenario
+        parameters = StdioServerParameters(
+            command=sys.executable,
+            args=[
+                "-m",
+                "app.mcp_server.server",
+                "--scenario",
+                scenario,
+            ],
+            cwd=str(PROJECT_ROOT),
+        )
+
+        deployments = get_deployments(
+            service="checkout-service",
+            data_dir=data_dir,
+        )
+        commit_hash = (
+            deployments[0]["commit_hash"]
+            if deployments
+            else "nonexistent-commit"
+        )
+
+        checks = [
+            (
+                "search_logs",
+                {"service": "checkout-service", "level": "ERROR"},
+                search_logs,
+            ),
+            (
+                "get_deployments",
+                {"service": "checkout-service"},
+                get_deployments,
+            ),
+            (
+                "query_metrics",
+                {"service": "checkout-service", "metric_name": "error_rate"},
+                query_metrics,
+            ),
+            (
+                "get_commit",
+                {"commit_hash": commit_hash},
+                get_commit,
+            ),
+        ]
+
+        async with Client(parameters) as client:
+            listed = await client.list_tools()
+            tools = {tool.name: tool for tool in listed.tools}
+            assert set(tools) == {name for name, _, _ in checks}
+
+            for name, arguments, direct_function in checks:
+                # Scenario selection is not a model-supplied tool argument.
+                assert set(tools[name].input_schema["properties"]) == set(
+                    arguments
+                )
+
+                expected = direct_function(**arguments, data_dir=data_dir)
+                result = await client.call_tool(name, arguments)
+
+                assert result.is_error is False
+                assert result.structured_content == {"result": expected}, name
+
+    asyncio.run(check())
+
+
+@pytest.mark.parametrize("scenario", ["unknown", "../checkout_regression"])
+def test_server_rejects_unsupported_scenario(scenario):
+    with pytest.raises(ValueError, match="Unsupported MCP scenario"):
+        create_server(scenario)

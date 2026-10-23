@@ -9,7 +9,8 @@ import asyncio
 
 from app.agent.agent import investigate_async
 from app.mcp_server.client import connect_local_tools
-from app.tools.data import DEFAULT_SCENARIO_DIR
+from app.tools.data import SCENARIOS_ROOT
+from app.mcp_server.server import SUPPORTED_SCENARIOS
 from app.agent.agent import (
     DEFAULT_DIAGNOSIS_MODEL, 
     generate_diagnosis, 
@@ -22,8 +23,8 @@ from evals.evaluator import evaluate_investigation
 from evals.summary import summarize_reports
 
 
-async def investigate_over_mcp(incident: str, *, usage: UsageCollector):
-    async with connect_local_tools() as executor:
+async def investigate_over_mcp(incident: str, *, scenario: str, usage: UsageCollector):
+    async with connect_local_tools(scenario=scenario) as executor:
         return await investigate_async(
             incident,
             usage=usage,
@@ -35,14 +36,15 @@ def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_M
     if tool_backend not in {"direct", "mcp"}:
         raise ValueError("tool_backend must be 'direct' or 'mcp'")
 
-    if tool_backend == "mcp" and (
-        case.case_id != "checkout_regression"
-        or case.scenario_dir.resolve() != DEFAULT_SCENARIO_DIR.resolve()
-    ):
-        raise ValueError(
-            "The MCP backend currently supports only the default "
-            "checkout_regression fixtures."
-        )
+    if tool_backend == "mcp":
+        if case.case_id not in SUPPORTED_SCENARIOS:
+            raise ValueError(f"Unsupported MCP scenario: {case.case_id}")
+
+        expected_dir = SCENARIOS_ROOT / case.case_id
+        if case.scenario_dir.resolve() != expected_dir.resolve():
+            raise ValueError(
+                "MCP requires the standard fixture directory for the selected case."
+            )
 
     if not isinstance(diagnosis_model, str) or not diagnosis_model.strip():
         raise ValueError("A nonblank diagnosis model is required.")
@@ -94,7 +96,7 @@ def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_M
             )
         else:
             report["investigation"] = asyncio.run(
-                investigate_over_mcp(case.incident, usage=usage)
+                investigate_over_mcp(case.incident, scenario=case.case_id, usage=usage)
             )
         report["timing"]["investigation_seconds"] = (
             perf_counter() - stage_started
@@ -238,8 +240,8 @@ def parse_arguments(argv: list[str] | None = None):
     if not args.model.strip():
         parser.error("--model must not be blank")
 
-    if args.tool_backend == "mcp" and args.case != "checkout_regression":
-        parser.error("--tool-backend mcp currently supports only checkout_regression")
+    if args.tool_backend == "mcp" and args.case not in SUPPORTED_SCENARIOS:
+        parser.error(f"Unsupported MCP scenario: {args.case}")
 
     try:
         args.diagnosis_settings = DiagnosisSettings(

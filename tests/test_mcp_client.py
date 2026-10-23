@@ -11,6 +11,7 @@ from app.agent.schemas import (
 from app.mcp_server.client import connect_local_tools, MCPToolError, MCPToolExecutor
 from app.tools.deployments import get_deployments
 from app.tools.git import get_commit
+from app.tools.data import SCENARIOS_ROOT
 
 
 def test_executor_chains_deployment_and_commit_calls():
@@ -172,3 +173,23 @@ def test_executor_rejects_unknown_tool_before_calling_client():
         asyncio.run(MCPToolExecutor(client).execute(decision))
 
     assert client.calls == []
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["checkout_regression", "payment_provider_outage", "sparse_evidence"],
+)
+def test_client_selects_scenario(scenario):
+    async def check():
+        decision = make_deployment_call()
+        expected = get_deployments(
+            service="checkout-service",
+            data_dir=SCENARIOS_ROOT / scenario,
+        )
+
+        async with connect_local_tools(scenario=scenario) as executor:
+            actual = await executor.execute(decision)
+
+        assert actual == expected
+
+    asyncio.run(check())

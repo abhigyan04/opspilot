@@ -5,6 +5,7 @@ from pathlib import Path
 from mcp import Client, StdioServerParameters
 
 from app.agent.schemas import ToolCall
+from app.mcp_server.server import SUPPORTED_SCENARIOS
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -62,10 +63,18 @@ class MCPToolExecutor:
 
 
 @asynccontextmanager
-async def connect_local_tools():
+async def connect_local_tools(scenario: str = "checkout_regression"):
+    if scenario not in SUPPORTED_SCENARIOS:
+        raise ValueError(f"Unsupported MCP scenario: {scenario}")
+
     parameters = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "app.mcp_server.server"],
+        args=[
+            "-m",
+            "app.mcp_server.server",
+            "--scenario",
+            scenario,
+        ],
         cwd=str(PROJECT_ROOT),
     )
 
