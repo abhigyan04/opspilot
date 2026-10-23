@@ -1096,17 +1096,26 @@ The client launches the server with `python -m app.mcp_server.server` and
 exchanges MCP messages over stdin/stdout. No listening port, Ollama instance,
 or PostgreSQL connection is needed for this checkpoint.
 
-Run the protocol test:
+Run the server and client checks:
 
 ```powershell
-python -m pytest tests/test_mcp_server.py -q
+python -m pytest tests/test_mcp_client.py tests/test_mcp_server.py -q
 ```
 
-The reported checkpoint passed **12 subprocess MCP tests** and **560 tests,
+`app.mcp_server.client.connect_local_tools()` manages one subprocess connection
+for multiple calls. Its `MCPToolExecutor.execute()` accepts an existing tool
+decision and unwraps the structured response into the direct tool's result
+shape. It preserves empty lists and missing commits, rejects unsupported tools,
+tool errors, missing result envelopes, and invalid outer result shapes, and
+propagates transport failures. It does not validate individual record fields
+or automatically retry failed calls.
+
+The reported checkpoint passed **29 focused MCP tests** and **577 tests,
 22 skipped** in the full suite. The skipped database checks remain opt-in.
-The tests cover successful and unmatched lookups for all four tools. Log-search
-tests additionally verify rejected malformed arguments and a subsequent valid
-call on the same connection. Agent integration remains a subsequent checkpoint.
+Subprocess tests cover successful and unmatched lookups for all four tools,
+malformed log-search arguments followed by a valid call, and a deployment-to-
+commit sequence through the adapter on one connection. Stub-client tests cover
+adapter failure handling. Agent integration remains a subsequent checkpoint.
 
 ### Offline simulation control report
 
