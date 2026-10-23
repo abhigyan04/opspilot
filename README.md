@@ -1069,21 +1069,28 @@ Prompt/schema fingerprints,
 automatic semantic claim verification, broader scenario coverage, and model
 tuning remain follow-up work rather than blockers for this bounded framework.
 
-Milestone 10 has started with a local MCP server exposing the existing
-fixture-backed `search_logs` tool over stdio. A subprocess client test verifies
-tool discovery, the input schema, and response parity with the direct Python
-function. The investigation agent still uses direct Python tools.
+Milestone 10 has started with a local MCP server exposing all four existing
+fixture-backed investigation tools over stdio. Subprocess client tests verify
+tool discovery, input schemas, and response parity with the direct Python
+functions. The investigation agent still uses direct Python tools.
 
 MCP builds on direct integration experience; LangGraph follows demonstrated workflow
 complexity. UI and deployment come after a deployable service exists. RAG is
 not assumed to fix timestamp or citation errors by itself.
 
-### Milestone 10: first MCP tool
+### Milestone 10: read-only MCP investigation tools
 
-`app.mcp_server.server` uses the MCP Python SDK v2 to expose `search_logs(service,
-level)`. It reads the synthetic checkout-regression log fixture; callers cannot
-select a filesystem path. The list response is returned as structured content
-under `result`.
+`app.mcp_server.server` uses the MCP Python SDK v2 to expose:
+
+- `search_logs(service, level)`
+- `get_deployments(service)`
+- `query_metrics(service, metric_name)`
+- `get_commit(commit_hash)`
+
+These tools read synthetic checkout-regression fixtures; callers cannot select
+a filesystem path. Responses are returned as structured content under `result`.
+Unmatched log, deployment, and metric searches return an empty list; an unknown
+commit returns null. No remediation actions are exposed.
 
 The client launches the server with `python -m app.mcp_server.server` and
 exchanges MCP messages over stdin/stdout. No listening port, Ollama instance,
@@ -1095,10 +1102,11 @@ Run the protocol test:
 python -m pytest tests/test_mcp_server.py -q
 ```
 
-The reported checkpoint passed **1 subprocess MCP test** and **549 tests,
+The reported checkpoint passed **12 subprocess MCP tests** and **560 tests,
 22 skipped** in the full suite. The skipped database checks remain opt-in.
-This verifies one successful tool call through MCP; invalid arguments, empty
-results, additional tools, and agent integration remain subsequent checkpoints.
+The tests cover successful and unmatched lookups for all four tools. Log-search
+tests additionally verify rejected malformed arguments and a subsequent valid
+call on the same connection. Agent integration remains a subsequent checkpoint.
 
 ### Offline simulation control report
 
