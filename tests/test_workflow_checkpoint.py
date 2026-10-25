@@ -7,6 +7,8 @@ from langgraph.checkpoint.memory import InMemorySaver
 from app.agent import agent
 from app.agent.schemas import diagnosis_adapter
 from app.agent.workflow import build_investigation_graph
+from app.agent.settings import DiagnosisSettings
+from app.tools.data import SCENARIOS_ROOT
 
 
 def test_resume_retries_diagnosis_without_repeating_investigation(monkeypatch):
@@ -220,5 +222,76 @@ def test_checkpoint_threads_keep_state_and_resume_isolated(monkeypatch):
 
         completed_a = await graph.aget_state(config_a)
         assert completed_a.next == ()
+
+    asyncio.run(check())
+
+
+@pytest.mark.parametrize(
+    "changed",
+    [
+        {"diagnosis_model": "qwen3:8b"},
+        {"diagnosis_settings": DiagnosisSettings(seed=43)},
+        {"max_steps": 3},
+        {"tool_backend": "mcp"},
+        {"data_dir": SCENARIOS_ROOT / "payment_provider_outage"},
+    ],
+)
+def test_resume_rejects_changed_configuration(monkeypatch, changed):
+    calls = {"investigation": 0, "diagnosis": 0}
+
+    async def fake_investigate(*args, **kwargs):
+        calls["investigation"] += 1
+        return {
+            "status": "finished",
+            "reason": "Test investigation.",
+            "steps": [],
+        }
+
+    def failing_diagnosis(*args, **kwargs):
+        calls["diagnosis"] += 1
+        raise ConnectionError("Planned diagnosis failure.")
+
+    monkeypatch.setattr(agent, "investigate_async", fake_investigate)
+    monkeypatch.setattr(agent, "generate_diagnosis", failing_diagnosis)
+
+    saver = InMemorySaver()
+    config = {"configurable": {"thread_id": "configuration-test"}}
+    original_options = {
+        "data_dir": SCENARIOS_ROOT / "checkout_regression",
+        "tool_backend": "direct",
+        "max_steps": 6,
+        "diagnosis_model": "qwen3:4b",
+        "diagnosis_settings": DiagnosisSettings(seed=42),
+    }
+
+    async def check():
+        original = build_investigation_graph(
+            checkpointer=saver,
+            **original_options,
+        )
+
+        with pytest.raises(ConnectionError, match="Planned diagnosis failure"):
+            await original.ainvoke(
+                {"incident": "Investigate checkout-service."},
+                config=config,
+            )
+
+        saved = await original.aget_state(config)
+        assert saved.next == ("diagnose",)
+
+        rebuilt = build_investigation_graph(
+            checkpointer=saver,
+            **{**original_options, **changed},
+        )
+
+        with pytest.raises(ValueError, match="configuration does not match"):
+            await rebuilt.ainvoke(None, config=config)
+
+        # Rejection happens before any further agent call.
+        assert calls == {"investigation": 1, "diagnosis": 1}
+
+        after = await rebuilt.aget_state(config)
+        assert after.values == saved.values
+        assert after.next == ("diagnose",)
 
     asyncio.run(check())

@@ -75,6 +75,14 @@ def test_graph_passes_investigation_to_diagnosis(monkeypatch, tmp_path, status):
         "usage": {
             "investigation": UsageCollector().snapshot(),
             "diagnosis": UsageCollector().snapshot(),
+        },
+        "workflow_config": {
+            "version": 1,
+            "data_dir": str(tmp_path.resolve()),
+            "tool_backend": "direct",
+            "max_steps": 3,
+            "diagnosis_model": "qwen3:8b",
+            "diagnosis_settings": settings.model_dump(mode="json"),
         }
     }
 

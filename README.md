@@ -1182,7 +1182,7 @@ execution over MCP has so far been verified only for checkout regression.
 ### Milestone 11: LangGraph foundation
 
 `app.agent.workflow.build_investigation_graph()` builds an async
-`START -> investigate -> diagnose -> END` graph around the existing agent
+`START -> prepare -> investigate -> diagnose -> END` graph around the existing agent
 functions. It accepts a fixture directory, investigation step limit, diagnosis
 model, diagnosis settings, and `tool_backend="direct"` or `"mcp"`.
 Both finished and step-limited investigations
@@ -1240,8 +1240,20 @@ SQLite persistence uses `AsyncSqliteSaver` from
 `pip check` reporting no broken requirements). Callers keep its async context
 open while using a graph compiled with that saver. Resume uses the same database
 file and thread ID, with `None` as graph input and unchanged graph configuration.
-The graph's factory configuration is not currently saved or checked for changes
-on resume.
+The prepare node saves a versioned configuration containing the resolved fixture
+directory, backend, step limit, diagnosis model, and diagnosis settings. Both
+work nodes check it before executing, including when resuming skips preparation.
+Changed configuration or pending legacy state without configuration is rejected
+before those nodes perform work. Use the original configuration to resume, or a
+new thread for a different configuration. This guard does not fingerprint fixture
+contents, model weights, or code, and is not protection against deliberate state
+modification. Reading an already completed checkpoint does not execute a guard.
+
+The configuration-guard checkpoint passed **19 focused tests** and **625 passed,
+22 skipped** in the reported full suite. Tests reject changed model tags,
+diagnosis settings, step limits, backends, and fixture directories before a
+pending diagnosis executes. Existing SQLite tests still resume successfully
+with unchanged configuration.
 
 The SQLite checkpoint passed **14 focused workflow tests** and **620 passed,
 22 skipped** in the reported full suite. One test closes and reopens storage
