@@ -3,6 +3,9 @@ from copy import deepcopy
 
 import pytest
 
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
+
 from app.agent import agent
 from app.agent.schemas import diagnosis_adapter
 from app.agent.workflow import build_investigation_graph
@@ -11,14 +14,26 @@ from app.tools.git import get_commit
 
 
 @pytest.mark.parametrize(
-    "supported, service, expected_status",
+    "supported, service, expected_status, review_action",
     [
-        (True, "checkout-service", "review_required"),
-        (False, "checkout-service", "no_proposal"),
-        (True, "other-service", "no_proposal"),
-    ],
+        (True, "checkout-service", "review_required", "approve"),
+        (True, "checkout-service", "review_required", "decline"),
+        (False, "checkout-service", "no_proposal", None),
+        (True, "other-service", "no_proposal", None),
+        (True, "checkout-service", "review_required", True),
+        (True, "checkout-service", "review_required", ""),
+        (True, "checkout-service", "review_required", "approve"),
+        (True, "checkout-service", "review_required", "approve wrong-id"),
+        (True, "checkout-service", "review_required", "decline wrong-id"),
+        (
+            True,
+            "checkout-service",
+            "review_required",
+            {"approved": True},
+        )
+    ]
 )
-def test_graph_applies_existing_proposal_policy(monkeypatch, supported, service, expected_status):
+def test_graph_applies_existing_proposal_policy(monkeypatch, supported, service, expected_status, review_action):
     deployments = get_deployments(service="checkout-service")
     assert len(deployments) == 1
     deployment = deployments[0]
@@ -65,7 +80,10 @@ def test_graph_applies_existing_proposal_policy(monkeypatch, supported, service,
             "missing_evidence": ["Evidence identifying the failure mechanism"],
         })
 
+    calls = []
+
     async def fake_investigate(*args, **kwargs):
+        calls.append("investigate")
         return {
             "status": "finished",
             "reason": "Scripted investigation.",
@@ -73,14 +91,22 @@ def test_graph_applies_existing_proposal_policy(monkeypatch, supported, service,
         }
 
     def fake_diagnose(*args, **kwargs):
+        calls.append("diagnose")
         return diagnosis
 
     monkeypatch.setattr(agent, "investigate_async", fake_investigate)
     monkeypatch.setattr(agent, "generate_diagnosis", fake_diagnose)
 
-    graph = build_investigation_graph(service=service)
+    config = {"configurable": {"thread_id": "proposal-review-test"}}
+    graph = build_investigation_graph(
+        service=service,
+        checkpointer=InMemorySaver(),
+    )
     result = asyncio.run(
-        graph.ainvoke({"incident": "Investigate checkout-service."})
+        graph.ainvoke(
+            {"incident": "Investigate checkout-service."},
+            config=config,
+        )
     )
 
     assert result["proposal_status"] == expected_status
@@ -98,5 +124,68 @@ def test_graph_applies_existing_proposal_policy(monkeypatch, supported, service,
             "evidence-001",
             "evidence-002",
         }
+        proposal_id = result["proposal_id"]
+        assert isinstance(proposal_id, str)
+        assert proposal_id
+
+        interruptions = result["__interrupt__"]
+        assert len(interruptions) == 1
+        payload = interruptions[0].value
+        assert payload["proposal_id"] == proposal_id
+        assert payload["proposal"] == proposal
+        assert payload["diagnosis"] == diagnosis.model_dump(mode="json")
+
+        pending = asyncio.run(graph.aget_state(config))
+        assert pending.next == ("review",)
+        assert pending.values["proposal_status"] == "review_required"
+
+        if review_action not in ("approve", "decline"):
+            with pytest.raises(
+                ValueError,
+                match="explicitly approve or decline",
+            ):
+                asyncio.run(
+                    graph.ainvoke(
+                        Command(resume=review_action),
+                        config=config,
+                    )
+                )
+
+            rejected = asyncio.run(graph.aget_state(config))
+
+            # No approval or decline was committed.
+            assert rejected.values == pending.values
+            assert rejected.values["proposal_status"] == "review_required"
+            assert rejected.values["proposal_id"] == proposal_id
+            assert rejected.values["proposal"] == proposal
+            assert rejected.next == ("review",)
+
+            # Earlier work and evidence remain unchanged.
+            assert calls == ["investigate", "diagnose"]
+            assert steps == original_steps
+            return
+
+        resumed = asyncio.run(
+            graph.ainvoke(
+                Command(resume=f"{review_action} {proposal_id}"),
+                config=config,
+            )
+        )
+
+        assert resumed["proposal_status"] == (
+            "approved" if review_action == "approve" else "declined"
+        )
+        assert resumed["proposal_id"] == proposal_id
+        assert resumed["proposal"] == proposal
+        assert calls == ["investigate", "diagnose"]
+        assert resumed["investigation"]["steps"] == original_steps
+        assert steps == original_steps
+
+        completed = asyncio.run(graph.aget_state(config))
+        assert completed.next == ()
     else:
         assert result["proposal"] is None
+        assert result["proposal_id"] is None
+        assert not result.get("__interrupt__")
+        completed = asyncio.run(graph.aget_state(config))
+        assert completed.next == ()

@@ -77,7 +77,7 @@ def test_graph_passes_investigation_to_diagnosis(monkeypatch, tmp_path, status):
             "diagnosis": UsageCollector().snapshot(),
         },
         "workflow_config": {
-            "version": 2,
+            "version": 3,
             "data_dir": str(tmp_path.resolve()),
             "tool_backend": "direct",
             "max_steps": 3,
@@ -86,7 +86,8 @@ def test_graph_passes_investigation_to_diagnosis(monkeypatch, tmp_path, status):
             "service": "checkout-service",
         },
         "proposal": None,
-        "proposal_status": "no_proposal"
+        "proposal_status": "no_proposal",
+        "proposal_id": None
     }
 
 

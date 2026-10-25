@@ -2,7 +2,9 @@ import asyncio
 from pathlib import Path
 from typing import NotRequired, TypedDict
 from copy import deepcopy
+from uuid import uuid4
 
+from langgraph.types import interrupt
 from langgraph.graph import END, START, StateGraph
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
@@ -24,6 +26,7 @@ class InvestigationState(TypedDict):
     workflow_config: NotRequired[dict]
     proposal: NotRequired[dict | None]
     proposal_status: NotRequired[str]
+    proposal_id: NotRequired[str | None]
 
 
 def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_steps: int = 6,
@@ -59,7 +62,7 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
     )
     
     workflow_config = {
-        "version": 2,
+        "version": 3,
         "data_dir": str(data_dir.resolve()),
         "tool_backend": tool_backend,
         "max_steps": max_steps,
@@ -150,18 +153,62 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
             "proposal_status": (
                 "review_required" if proposal is not None else "no_proposal"
             ),
+            "proposal_id": str(uuid4()) if proposal is not None else None
         }
+
+    def route_proposal(state: InvestigationState) -> str:
+        return "review" if state["proposal"] is not None else "done"
+
+    def review_node(state: InvestigationState) -> dict:
+        require_matching_config(state)
+
+        if checkpointer is None:
+            raise ValueError("Proposal review requires a checkpointer.")
+
+        proposal_id = state["proposal_id"]
+        if not isinstance(proposal_id, str) or not proposal_id:
+            raise ValueError("Proposal review requires a saved proposal ID.")
+
+        response = interrupt({
+            "kind": "rollback_review",
+            "proposal_id": proposal_id,
+            "proposal": deepcopy(state["proposal"]),
+            "diagnosis": deepcopy(state["diagnosis"]),
+            "instructions": (
+                f"Reply with 'approve {proposal_id}' or "
+                f"'decline {proposal_id}'. "
+                "This records review only; it does not execute a rollback."
+            ),
+        })
+
+        if response == f"approve {proposal_id}":
+            status = "approved"
+        elif response == f"decline {proposal_id}":
+            status = "declined"
+        else:
+            raise ValueError(
+                "Review response must explicitly approve or decline "
+                "the saved proposal ID."
+            )
+
+        return {"proposal_status": status}
 
     builder = StateGraph(InvestigationState)
     builder.add_node("investigate", investigate_node)
     builder.add_node("diagnose", diagnose_node)
     builder.add_node("prepare", prepare_node)
     builder.add_node("propose", propose_node)
+    builder.add_node("review", review_node)
 
     builder.add_edge(START, "prepare")
     builder.add_edge("prepare", "investigate")
     builder.add_edge("investigate", "diagnose")
     builder.add_edge("diagnose", "propose")
-    builder.add_edge("propose", END)
+    builder.add_conditional_edges(
+        "propose",
+        route_proposal,
+        {"review": "review", "done": END},
+    )
+    builder.add_edge("review", END)
 
     return builder.compile(checkpointer=checkpointer)

@@ -1182,8 +1182,9 @@ execution over MCP has so far been verified only for checkout regression.
 ### Milestone 11: LangGraph foundation
 
 `app.agent.workflow.build_investigation_graph()` builds an async
-`START -> prepare -> investigate -> diagnose -> propose -> END` graph around the existing agent
-functions. It accepts a fixture directory, investigation step limit, diagnosis
+`START -> prepare -> investigate -> diagnose -> propose` graph around the existing
+agent functions. No-proposal cases end directly; eligible proposals enter a
+review node that interrupts for input. It accepts a fixture directory, investigation step limit, diagnosis
 model, diagnosis settings, a target service (default `checkout-service`), and
 `tool_backend="direct"` or `"mcp"`.
 Both finished and step-limited investigations
@@ -1200,9 +1201,8 @@ diagnosis. MCP requires one of the three standard scenario fixture directories;
 unknown scenarios and custom directories are rejected. The graph remains separate
 from the evaluation runner. It accepts an optional checkpointer; in-memory
 failure recovery and SQLite recovery across separate processes are tested.
-Approval pauses and a user-facing persistence CLI are not yet implemented.
-The intended next capability is a workflow that can pause for approval and
-resume later while preserving the existing remediation guards.
+Approval pauses are tested with an in-memory checkpointer. A user-facing
+persistence CLI and graph-based remediation execution are not yet implemented.
 
 The user verified LangGraph **1.2.16**, successful imports, and `pip check` with
 no broken requirements. The foundation checkpoint passed **4 workflow tests**
@@ -1277,14 +1277,30 @@ The proposal checkpoint passed **23 focused workflow tests** and **629 passed,
 diagnosis and reuses `build_rollback_proposal` with the target service and
 collected steps. It returns either a serialized proposal with
 `proposal_status="review_required"`, or null with `proposal_status="no_proposal"`.
-Both paths currently end the graph. `review_required` is a result label, not an
-approval interrupt, authorization, or execution.
+The initial proposal checkpoint ended both paths; the subsequent review
+checkpoint adds the approval interrupt described below.
 
 Tests exercise the existing policy with a scripted supported diagnosis, an
 insufficient-evidence diagnosis, and a different target service. They verify
 proposal fields and that evidence remains unchanged. Configuration version 2
 includes the service and rejects incompatible pending version-1 checkpoints;
 service changes are also covered by the resume-guard tests.
+
+Configuration version 3 adds the review stage. The proposal node creates and
+saves a proposal ID before review. The review node requires a checkpointer and
+interrupts with that ID, the proposal, diagnosis, and review instructions.
+Resuming with `Command(resume="approve <proposal_id>")` or
+`Command(resume="decline <proposal_id>")` on the same thread records `approved`
+or `declined`, then ends the graph. Approval records a decision only; there is
+no rollback execution node. Earlier pending workflow versions are incompatible.
+
+The approval-boundary checkpoint passed **10 proposal tests** and **636 passed,
+22 skipped** in the reported full suite. Valid review decisions preserve the
+proposal ID and do not repeat investigation or diagnosis. Boolean, blank,
+missing-ID, wrong-ID approval/decline, and object responses raise an error
+without changing the saved proposal or recording a decision. The review node
+remains pending. Recovery using a corrected response after rejection, durable
+approval resume across processes, and execution after approval remain unverified.
 
 ### Offline simulation control report
 
