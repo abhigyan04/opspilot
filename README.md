@@ -1198,8 +1198,8 @@ its own subprocess connection for the selected scenario and closes it before
 diagnosis. MCP requires one of the three standard scenario fixture directories;
 unknown scenarios and custom directories are rejected. The graph remains separate
 from the evaluation runner. It accepts an optional checkpointer; in-memory
-failure recovery is tested, but restart-safe storage and approval pauses are
-not yet implemented.
+failure recovery and SQLite recovery across separate processes are tested.
+Approval pauses and a user-facing persistence CLI are not yet implemented.
 The intended next capability is a workflow that can pause for approval and
 resume later while preserving the existing remediation guards.
 
@@ -1234,6 +1234,29 @@ the other preserves their separate evidence, diagnosis, usage, and pending work.
 These tests mock agent calls and do not test simultaneous execution, recovery
 after a process restart, or failed-attempt usage accounting. In-memory
 checkpoints are lost when the process exits.
+
+SQLite persistence uses `AsyncSqliteSaver` from
+`langgraph-checkpoint-sqlite` (verified installed version **3.1.2**, with
+`pip check` reporting no broken requirements). Callers keep its async context
+open while using a graph compiled with that saver. Resume uses the same database
+file and thread ID, with `None` as graph input and unchanged graph configuration.
+The graph's factory configuration is not currently saved or checked for changes
+on resume.
+
+The SQLite checkpoint passed **14 focused workflow tests** and **620 passed,
+22 skipped** in the reported full suite. One test closes and reopens storage
+with rebuilt graphs and verifies the completed diagnosis survives another reopen.
+A separate-process test saves a failed diagnosis checkpoint, exits, and starts
+a new Python process against the same file. Diagnosis completes without repeating
+investigation, and the investigation usage snapshot is retained.
+
+These tests use temporary SQLite files and scripted agent calls. They verify a
+clean process exit after a handled failure, not an abrupt kill during a write,
+concurrent writers, failed-attempt usage accounting, or live model recovery.
+
+```powershell
+python -m pytest tests/test_workflow_process_restart.py tests/test_workflow_sqlite.py tests/test_workflow_checkpoint.py tests/test_workflow.py -q
+```
 
 ### Offline simulation control report
 
