@@ -1304,8 +1304,18 @@ recording a decision. Tests correct each of these six invalid responses with
 explicit approval on the same thread, preserving the proposal ID and evidence
 without repeating investigation or diagnosis. Raising after an invalid resume
 value previously left that value replaying on retry; the review loop now reaches
-a new interrupt for corrected input. Durable approval resume across processes
-and execution after approval remain unverified.
+a new interrupt for corrected input.
+
+The SQLite review restart checkpoint passed **2 focused tests** and
+**638 passed, 22 skipped** in the reported full suite. Each test pauses for
+review, closes the first process, and opens the same database and thread in a
+second process. Explicit approval and decline preserve the proposal ID,
+proposal, investigation, diagnosis, usage, and configuration; only the review
+status changes. Investigation, diagnosis, and proposal generation each run
+once in the first process and are not repeated after restart. These tests use
+scripted investigation and diagnosis with the real proposal builder. They
+verify a clean process restart, not a crash during a database write. Execution
+after approval is not implemented.
 
 ### Offline simulation control report
 
