@@ -77,7 +77,7 @@ def test_graph_passes_investigation_to_diagnosis(monkeypatch, tmp_path, status):
             "diagnosis": UsageCollector().snapshot(),
         },
         "workflow_config": {
-            "version": 3,
+            "version": 4,
             "data_dir": str(tmp_path.resolve()),
             "tool_backend": "direct",
             "max_steps": 3,

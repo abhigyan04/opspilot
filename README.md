@@ -1286,7 +1286,8 @@ proposal fields and that evidence remains unchanged. Configuration version 2
 includes the service and rejects incompatible pending version-1 checkpoints;
 service changes are also covered by the resume-guard tests.
 
-Configuration version 3 adds the review stage. The proposal node creates and
+Configuration version 4 includes the review stage and correctable review input.
+The proposal node creates and
 saves a proposal ID before review. The review node requires a checkpointer and
 interrupts with that ID, the proposal, diagnosis, and review instructions.
 Resuming with `Command(resume="approve <proposal_id>")` or
@@ -1294,13 +1295,17 @@ Resuming with `Command(resume="approve <proposal_id>")` or
 or `declined`, then ends the graph. Approval records a decision only; there is
 no rollback execution node. Earlier pending workflow versions are incompatible.
 
-The approval-boundary checkpoint passed **10 proposal tests** and **636 passed,
-22 skipped** in the reported full suite. Valid review decisions preserve the
+The corrected-review checkpoint passed **20 focused proposal/workflow tests**
+and **636 passed, 22 skipped** in the reported full suite. Valid review decisions preserve the
 proposal ID and do not repeat investigation or diagnosis. Boolean, blank,
-missing-ID, wrong-ID approval/decline, and object responses raise an error
-without changing the saved proposal or recording a decision. The review node
-remains pending. Recovery using a corrected response after rejection, durable
-approval resume across processes, and execution after approval remain unverified.
+missing-ID, wrong-ID approval/decline, and object responses produce another
+interrupt with an error message, without changing the saved proposal or
+recording a decision. Tests correct each of these six invalid responses with
+explicit approval on the same thread, preserving the proposal ID and evidence
+without repeating investigation or diagnosis. Raising after an invalid resume
+value previously left that value replaying on retry; the review loop now reaches
+a new interrupt for corrected input. Durable approval resume across processes
+and execution after approval remain unverified.
 
 ### Offline simulation control report
 

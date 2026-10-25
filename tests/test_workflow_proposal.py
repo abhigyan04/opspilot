@@ -140,49 +140,45 @@ def test_graph_applies_existing_proposal_policy(monkeypatch, supported, service,
         assert pending.values["proposal_status"] == "review_required"
 
         if review_action not in ("approve", "decline"):
-            with pytest.raises(
-                ValueError,
-                match="explicitly approve or decline",
-            ):
-                asyncio.run(
-                    graph.ainvoke(
-                        Command(resume=review_action),
-                        config=config,
-                    )
+            rejected_result = asyncio.run(
+                graph.ainvoke(
+                    Command(resume=review_action),
+                    config=config,
                 )
+            )
+
+            # Invalid input produces another review interrupt.
+            interruptions = rejected_result["__interrupt__"]
+            assert len(interruptions) == 1
+            retry_payload = interruptions[0].value
+            assert "explicitly approve or decline" in retry_payload["error"]
+            assert retry_payload["proposal_id"] == proposal_id
+            assert retry_payload["proposal"] == proposal
 
             rejected = asyncio.run(graph.aget_state(config))
-
-            # No approval or decline was committed.
             assert rejected.values == pending.values
             assert rejected.values["proposal_status"] == "review_required"
-            assert rejected.values["proposal_id"] == proposal_id
-            assert rejected.values["proposal"] == proposal
             assert rejected.next == ("review",)
+            assert calls == ["investigate", "diagnose"]
 
-            # Earlier work and evidence remain unchanged.
+            # Correct the response on the same thread and proposal.
+            corrected = asyncio.run(
+                graph.ainvoke(
+                    Command(resume=f"approve {proposal_id}"),
+                    config=config,
+                )
+            )
+
+            assert corrected["proposal_status"] == "approved"
+            assert corrected["proposal_id"] == proposal_id
+            assert corrected["proposal"] == proposal
+            assert corrected["investigation"]["steps"] == original_steps
             assert calls == ["investigate", "diagnose"]
             assert steps == original_steps
+
+            completed = asyncio.run(graph.aget_state(config))
+            assert completed.next == ()
             return
-
-        resumed = asyncio.run(
-            graph.ainvoke(
-                Command(resume=f"{review_action} {proposal_id}"),
-                config=config,
-            )
-        )
-
-        assert resumed["proposal_status"] == (
-            "approved" if review_action == "approve" else "declined"
-        )
-        assert resumed["proposal_id"] == proposal_id
-        assert resumed["proposal"] == proposal
-        assert calls == ["investigate", "diagnose"]
-        assert resumed["investigation"]["steps"] == original_steps
-        assert steps == original_steps
-
-        completed = asyncio.run(graph.aget_state(config))
-        assert completed.next == ()
     else:
         assert result["proposal"] is None
         assert result["proposal_id"] is None

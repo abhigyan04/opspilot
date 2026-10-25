@@ -62,7 +62,7 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
     )
     
     workflow_config = {
-        "version": 3,
+        "version": 4,
         "data_dir": str(data_dir.resolve()),
         "tool_backend": tool_backend,
         "max_steps": max_steps,
@@ -169,7 +169,7 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
         if not isinstance(proposal_id, str) or not proposal_id:
             raise ValueError("Proposal review requires a saved proposal ID.")
 
-        response = interrupt({
+        payload = {
             "kind": "rollback_review",
             "proposal_id": proposal_id,
             "proposal": deepcopy(state["proposal"]),
@@ -179,19 +179,24 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
                 f"'decline {proposal_id}'. "
                 "This records review only; it does not execute a rollback."
             ),
-        })
+        }
 
-        if response == f"approve {proposal_id}":
-            status = "approved"
-        elif response == f"decline {proposal_id}":
-            status = "declined"
-        else:
-            raise ValueError(
-                "Review response must explicitly approve or decline "
-                "the saved proposal ID."
-            )
+        while True:
+            response = interrupt(payload)
 
-        return {"proposal_status": status}
+            if response == f"approve {proposal_id}":
+                return {"proposal_status": "approved"}
+
+            if response == f"decline {proposal_id}":
+                return {"proposal_status": "declined"}
+
+            payload = {
+                **payload,
+                "error": (
+                    "Review response must explicitly approve or decline "
+                    "the saved proposal ID."
+                ),
+            }
 
     builder = StateGraph(InvestigationState)
     builder.add_node("investigate", investigate_node)
