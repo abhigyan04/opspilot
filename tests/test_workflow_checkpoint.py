@@ -234,7 +234,8 @@ def test_checkpoint_threads_keep_state_and_resume_isolated(monkeypatch):
         {"max_steps": 3},
         {"tool_backend": "mcp"},
         {"data_dir": SCENARIOS_ROOT / "payment_provider_outage"},
-    ],
+        {"service": "other-service"}
+    ]
 )
 def test_resume_rejects_changed_configuration(monkeypatch, changed):
     calls = {"investigation": 0, "diagnosis": 0}

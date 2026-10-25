@@ -1182,9 +1182,10 @@ execution over MCP has so far been verified only for checkout regression.
 ### Milestone 11: LangGraph foundation
 
 `app.agent.workflow.build_investigation_graph()` builds an async
-`START -> prepare -> investigate -> diagnose -> END` graph around the existing agent
+`START -> prepare -> investigate -> diagnose -> propose -> END` graph around the existing agent
 functions. It accepts a fixture directory, investigation step limit, diagnosis
-model, diagnosis settings, and `tool_backend="direct"` or `"mcp"`.
+model, diagnosis settings, a target service (default `checkout-service`), and
+`tool_backend="direct"` or `"mcp"`.
 Both finished and step-limited investigations
 proceed to diagnosis; investigation exceptions stop execution.
 
@@ -1241,8 +1242,9 @@ SQLite persistence uses `AsyncSqliteSaver` from
 open while using a graph compiled with that saver. Resume uses the same database
 file and thread ID, with `None` as graph input and unchanged graph configuration.
 The prepare node saves a versioned configuration containing the resolved fixture
-directory, backend, step limit, diagnosis model, and diagnosis settings. Both
-work nodes check it before executing, including when resuming skips preparation.
+directory, backend, step limit, diagnosis model, diagnosis settings, and target
+service. Investigation, diagnosis, and proposal nodes check it before executing,
+including when resuming skips preparation.
 Changed configuration or pending legacy state without configuration is rejected
 before those nodes perform work. Use the original configuration to resume, or a
 new thread for a different configuration. This guard does not fingerprint fixture
@@ -1269,6 +1271,20 @@ concurrent writers, failed-attempt usage accounting, or live model recovery.
 ```powershell
 python -m pytest tests/test_workflow_process_restart.py tests/test_workflow_sqlite.py tests/test_workflow_checkpoint.py tests/test_workflow.py -q
 ```
+
+The proposal checkpoint passed **23 focused workflow tests** and **629 passed,
+22 skipped** in the reported full suite. The proposal node validates the saved
+diagnosis and reuses `build_rollback_proposal` with the target service and
+collected steps. It returns either a serialized proposal with
+`proposal_status="review_required"`, or null with `proposal_status="no_proposal"`.
+Both paths currently end the graph. `review_required` is a result label, not an
+approval interrupt, authorization, or execution.
+
+Tests exercise the existing policy with a scripted supported diagnosis, an
+insufficient-evidence diagnosis, and a different target service. They verify
+proposal fields and that evidence remains unchanged. Configuration version 2
+includes the service and rejects incompatible pending version-1 checkpoints;
+service changes are also covered by the resume-guard tests.
 
 ### Offline simulation control report
 

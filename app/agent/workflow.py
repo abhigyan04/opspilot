@@ -12,6 +12,8 @@ from app.agent.usage import UsageCollector
 from app.tools.data import DEFAULT_SCENARIO_DIR, SCENARIOS_ROOT
 from app.mcp_server.client import connect_local_tools
 from app.mcp_server.server import SUPPORTED_SCENARIOS
+from app.agent.schemas import diagnosis_adapter
+from app.agent.remediation import build_rollback_proposal
 
 
 class InvestigationState(TypedDict):
@@ -20,9 +22,14 @@ class InvestigationState(TypedDict):
     diagnosis: NotRequired[dict]
     usage: NotRequired[dict]
     workflow_config: NotRequired[dict]
+    proposal: NotRequired[dict | None]
+    proposal_status: NotRequired[str]
 
 
-def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_steps: int = 6, diagnosis_model: str = agent.DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct", checkpointer: BaseCheckpointSaver | None = None):
+def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_steps: int = 6,
+                              diagnosis_model: str = agent.DEFAULT_DIAGNOSIS_MODEL,
+                              diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct",
+                              checkpointer: BaseCheckpointSaver | None = None, service: str = "checkout-service"):
     if max_steps < 1:
         raise ValueError("max_steps must be at least 1")
 
@@ -31,6 +38,9 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
 
     if tool_backend not in {"direct", "mcp"}:
         raise ValueError("tool_backend must be 'direct' or 'mcp'")
+
+    if not isinstance(service, str) or not service.strip():
+        raise ValueError("A nonblank service is required.")
 
     scenario = data_dir.name
     if tool_backend == "mcp":
@@ -49,12 +59,13 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
     )
     
     workflow_config = {
-        "version": 1,
+        "version": 2,
         "data_dir": str(data_dir.resolve()),
         "tool_backend": tool_backend,
         "max_steps": max_steps,
         "diagnosis_model": diagnosis_model,
         "diagnosis_settings": settings.model_dump(mode="json"),
+        "service": service
     }
 
     def require_matching_config(state: InvestigationState) -> None:
@@ -119,15 +130,38 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
                 "diagnosis": usage.snapshot(),
             },
         }
+    
+    def propose_node(state: InvestigationState) -> dict:
+        require_matching_config(state)
+
+        diagnosis = diagnosis_adapter.validate_python(state["diagnosis"])
+        proposal = build_rollback_proposal(
+            diagnosis,
+            service,
+            state["investigation"]["steps"],
+        )
+
+        return {
+            "proposal": (
+                proposal.model_dump(mode="json")
+                if proposal is not None
+                else None
+            ),
+            "proposal_status": (
+                "review_required" if proposal is not None else "no_proposal"
+            ),
+        }
 
     builder = StateGraph(InvestigationState)
     builder.add_node("investigate", investigate_node)
     builder.add_node("diagnose", diagnose_node)
     builder.add_node("prepare", prepare_node)
+    builder.add_node("propose", propose_node)
 
     builder.add_edge(START, "prepare")
     builder.add_edge("prepare", "investigate")
     builder.add_edge("investigate", "diagnose")
-    builder.add_edge("diagnose", END)
+    builder.add_edge("diagnose", "propose")
+    builder.add_edge("propose", END)
 
     return builder.compile(checkpointer=checkpointer)
