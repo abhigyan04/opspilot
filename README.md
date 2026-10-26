@@ -1540,7 +1540,7 @@ and resume; they verify decision forwarding, sequential repeat rejection,
 conflict rejection without resume, lookup errors, and request validation.
 An application-local lock serializes HTTP review
 handling within one app instance; it does not coordinate CLI processes or
-multiple server workers, and concurrent-request behavior is not yet tested.
+multiple server workers.
 
 The subsequent review persistence checkpoint passed **11 combined
 persistence/review tests** and **707 passed, 22 skipped** in the reported full
@@ -1549,8 +1549,16 @@ with scripted investigation and diagnosis. Approval and decline persist across
 new app instances; only the proposal status changes in saved state. Stale IDs,
 no-proposal workflows, duplicate decisions, and attempts to reverse a completed
 decision are rejected without changing the checkpoint. Earlier workflow work
-must not repeat. These are sequential requests in one process; concurrent
-submissions have not yet been verified.
+must not repeat. These persistence checks use sequential requests in one process.
+
+The subsequent concurrency checkpoint passed **10 focused review tests** and
+**709 passed, 22 skipped** in the reported full suite. Controlled overlapping
+HTTP requests exercise both approve-then-decline and decline-then-approve. The
+first request succeeds; the second reads the updated state and returns 409
+without calling resume. These tests exercise the actual routes and app-local
+lock with stubbed inspection and resume, not concurrent SQLite transactions.
+Coordination across app instances, server workers, or CLI processes remains
+outside this guarantee.
 
 On 26 October 2026, after restarting Uvicorn, live HTTP review of thread
 `workflow-33e51b50-5761-4ced-bff8-5f8194f3dcea` returned HTTP 200 and recorded
