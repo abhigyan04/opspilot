@@ -1449,8 +1449,29 @@ documentation is available at `http://127.0.0.1:8000/docs`.
 On 26 October 2026, the user verified successful server startup, HTTP 200 from
 `/health`, and the expected response. `pip check` reported no broken
 requirements; the reported suite remained **651 passed, 22 skipped**. This is
-a manual health smoke check, not automated API coverage. Workflow endpoints,
-the UI, and deployment are not implemented yet.
+a manual health smoke check.
+
+`GET /workflows/{thread_id}` now returns saved state, pending nodes, and review
+interrupts without advancing the workflow. The server selects the database
+(by default `out/workflows/checkpoints.sqlite` under the project root); callers
+cannot select a database through request parameters. Unknown threads return
+404, a missing database returns 503, and blank thread IDs return 422.
+
+The inspection checkpoint passed **17 combined API/CLI tests** and
+**655 passed, 22 skipped** in the reported full suite. Automated tests cover
+health without a database, missing databases, unknown and blank thread IDs,
+and repeated inspection of completed and review-pending workflows. Model and
+proposal calls are stubbed during setup and fail if called during inspection;
+persisted state is checked afterward.
+
+On 26 October 2026, a live HTTP inspection of the saved checkout thread returned
+`approved` with the original proposal ID and empty pending nodes and interrupts.
+Comparison with the earlier CLI transcript confirmed matching proposal,
+diagnosis, configuration, usage, and tool-result evidence. Two investigation
+decision-reason strings differed only in spacing between words in the pasted
+transcripts, so exact whole-response equality was not established. The API
+omits the CLI's top-level database path. Workflow mutation endpoints, the UI,
+and deployment are not implemented yet.
 
 ### Offline simulation control report
 

@@ -12,6 +12,10 @@ from app.mcp_server.server import SUPPORTED_SCENARIOS
 from app.tools.data import SCENARIOS_ROOT
 
 
+class WorkflowNotFoundError(ValueError):
+    pass
+
+
 async def start_workflow(*, database: Path, thread_id: str, incident: str, scenario: str, model: str, tool_backend: str) -> dict:
     if not thread_id.strip():
         raise ValueError("A nonblank thread ID is required.")
@@ -74,7 +78,7 @@ async def inspect_workflow(*, database: Path, thread_id: str) -> dict:
 
     async with AsyncSqliteSaver.from_conn_string(str(database)) as saver:
         if await saver.aget_tuple(config) is None:
-            raise ValueError(f"Thread {thread_id!r} does not exist.")
+            raise WorkflowNotFoundError(f"Thread {thread_id!r} does not exist.")
 
         # Compile the graph only to interpret its saved state.
         # Do not invoke it or apply new configuration to the checkpoint.
