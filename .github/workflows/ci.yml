@@ -31,3 +31,83 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+  docker-smoke:
+    name: Docker smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Build application image
+        run: docker build -t opspilot:ci .
+
+      - name: Start application
+        run: docker run -d --name opspilot-ci opspilot:ci
+
+      - name: Verify application container
+        run: |
+          docker exec -i opspilot-ci python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+
+          from app.main import DEFAULT_WORKFLOW_DATABASE
+          from app.tools.logs import search_logs
+
+          deadline = time.monotonic() + 45
+          while True:
+              try:
+                  with urllib.request.urlopen(
+                      "http://127.0.0.1:8000/health", timeout=3
+                  ) as response:
+                      assert response.status == 200
+                      assert json.load(response) == {"status": "ok"}
+                  break
+              except (urllib.error.URLError, TimeoutError):
+                  if time.monotonic() >= deadline:
+                      raise
+                  time.sleep(1)
+
+          with urllib.request.urlopen(
+              "http://127.0.0.1:8000/", timeout=3
+          ) as response:
+              assert response.status == 200
+              assert response.headers.get_content_type() == "text/html"
+              html = response.read().decode("utf-8")
+
+          assert 'id="start-workflow"' in html
+          assert 'id="lookup"' in html
+          assert 'id="review-controls"' in html
+          assert os.getuid() != 0
+          assert search_logs("checkout-service", "ERROR")
+
+          probe = DEFAULT_WORKFLOW_DATABASE.parent / "ci-write-check.tmp"
+          try:
+              probe.write_text("ok", encoding="utf-8")
+              assert probe.read_text(encoding="utf-8") == "ok"
+          finally:
+              probe.unlink(missing_ok=True)
+
+          print("Container HTTP, UI delivery, fixtures, and storage checks passed.")
+          PY
+
+      - name: Show container logs
+        if: always()
+        run: |
+          if docker container inspect opspilot-ci >/dev/null 2>&1; then
+            docker logs opspilot-ci
+          fi
+
+      - name: Remove test container
+        if: always()
+        run: |
+          if docker container inspect opspilot-ci >/dev/null 2>&1; then
+            docker rm -f opspilot-ci
+          fi
