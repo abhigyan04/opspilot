@@ -61,6 +61,34 @@ async def start_workflow(*, database: Path, thread_id: str, incident: str, scena
         }
 
 
+async def inspect_workflow(*, database: Path, thread_id: str) -> dict:
+    if not thread_id.strip():
+        raise ValueError("A nonblank thread ID is required.")
+
+    database = database.resolve()
+    if not database.is_file():
+        raise FileNotFoundError(f"Checkpoint database does not exist: {database}")
+
+    config = {"configurable": {"thread_id": thread_id}}
+
+    async with AsyncSqliteSaver.from_conn_string(str(database)) as saver:
+        if await saver.aget_tuple(config) is None:
+            raise ValueError(f"Thread {thread_id!r} does not exist.")
+
+        # Compile the graph only to interpret its saved state.
+        # Do not invoke it or apply new configuration to the checkpoint.
+        graph = build_investigation_graph(checkpointer=saver)
+        saved = await graph.aget_state(config)
+
+        return {
+            "database": str(database),
+            "thread_id": thread_id,
+            "next": list(saved.next),
+            "state": saved.values,
+            "interrupts": [item.value for item in saved.interrupts],
+        }
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="Start a persistent OpsPilot investigation."
@@ -82,18 +110,31 @@ def main(argv: list[str] | None = None) -> None:
         choices=("direct", "mcp"),
         default="direct",
     )
+    inspect = commands.add_parser("inspect")
+    inspect.add_argument("--database", type=Path, required=True)
+    inspect.add_argument("--thread-id", required=True)
 
     args = parser.parse_args(argv)
-    result = asyncio.run(
-        start_workflow(
-            database=args.database,
-            thread_id=args.thread_id,
-            incident=args.incident,
-            scenario=args.scenario,
-            model=args.model,
-            tool_backend=args.tool_backend,
+
+    if args.command == "inspect":
+        result = asyncio.run(
+            inspect_workflow(
+                database=args.database,
+                thread_id=args.thread_id,
+            )
         )
-    )
+    else:
+        result = asyncio.run(
+            start_workflow(
+                database=args.database,
+                thread_id=args.thread_id,
+                incident=args.incident,
+                scenario=args.scenario,
+                model=args.model,
+                tool_backend=args.tool_backend,
+            )
+        )
+
     print(json.dumps(result, indent=2))
 
 

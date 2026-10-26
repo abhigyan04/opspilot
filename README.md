@@ -1330,9 +1330,24 @@ in the reported full suite. Tests use scripted model calls with SQLite and
 verify that a sequential start with an existing thread ID is rejected without
 repeating work. Invalid start arguments are rejected before creating the
 database directory. The duplicate-thread check is not a lock against concurrent
-starts. Inspection and resume CLI commands are not implemented yet; the graph
-API supports resume as tested above. A live CLI investigation has not yet been
-verified.
+starts. A live CLI investigation has not yet been verified.
+
+Inspect an existing workflow with:
+
+```powershell
+python -m app.agent.workflow_cli inspect --database out/workflows/checkpoints.sqlite --thread-id YOUR_THREAD_ID
+```
+
+Inspection prints the saved state, pending nodes, and outstanding review
+interrupts without invoking workflow nodes or making model calls. The
+inspection checkpoint passed **10 focused CLI tests** and **648 passed,
+22 skipped** in the reported full suite. Tests cover repeated inspection of
+completed workflows and pending reviews, preservation of their state and
+interrupt payloads, and rejection of missing databases, unknown threads, and
+blank thread IDs. Missing database paths are not created. The SQLite saver
+may perform normal database setup; this is not a filesystem read-only
+connection. The resume CLI command is not implemented yet; the graph API
+supports resume as tested above.
 
 ### Offline simulation control report
 
