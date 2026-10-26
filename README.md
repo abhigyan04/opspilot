@@ -1317,6 +1317,23 @@ scripted investigation and diagnosis with the real proposal builder. They
 verify a clean process restart, not a crash during a database write. Execution
 after approval is not implemented.
 
+The workflow CLI now supports `python -m app.agent.workflow_cli start` with
+required `--database`, `--thread-id`, and `--incident` arguments. Optional
+`--scenario`, `--model`, and `--tool-backend` arguments default to
+`checkout_regression`, `qwen3:8b`, and `direct`. Diagnosis uses an 8,192-token
+context and a 2,048-token generation limit; investigation retains its existing
+model configuration. The command prints the saved state, pending nodes, and
+review interrupt payloads as JSON.
+
+This checkpoint passed **6 focused CLI tests** and **644 passed, 22 skipped**
+in the reported full suite. Tests use scripted model calls with SQLite and
+verify that a sequential start with an existing thread ID is rejected without
+repeating work. Invalid start arguments are rejected before creating the
+database directory. The duplicate-thread check is not a lock against concurrent
+starts. Inspection and resume CLI commands are not implemented yet; the graph
+API supports resume as tested above. A live CLI investigation has not yet been
+verified.
+
 ### Offline simulation control report
 
 Run the deterministic control evaluation without Ollama or infrastructure access:
