@@ -28,6 +28,9 @@ where = ["."]
 include = ["app", "app.*"]
 namespaces = false
 
+[tool.setuptools.package-data]
+app = ["web/*.html"]
+
 [tool.pytest.ini_options]
 markers = [
 	"integration: requires an explicitly configured local database"

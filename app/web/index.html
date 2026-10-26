@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpsPilot</title>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      color: #172b3a;
+      background: #f3f6f8;
+    }
+    body { margin: 0; }
+    main { max-width: 960px; margin: auto; padding: 40px 20px; }
+    header { margin-bottom: 28px; }
+    h1 { margin-bottom: 6px; }
+    h2 { font-size: 1.15rem; margin-top: 0; }
+    p { line-height: 1.6; }
+    .muted { color: #526674; }
+    section, form {
+      background: white;
+      border: 1px solid #dce4e9;
+      border-radius: 12px;
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+    label { display: block; font-weight: 600; margin-bottom: 10px; }
+    .controls { display: flex; gap: 10px; }
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid #aabac5;
+      border-radius: 6px;
+      font: inherit;
+    }
+    button {
+      background: #155e75;
+      color: white;
+      border: 0;
+      border-radius: 6px;
+      padding: 12px 18px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    :focus-visible { outline: 3px solid #20a4c7; outline-offset: 3px; }
+    #message { min-height: 24px; }
+    #message.error { color: #a12622; }
+    #status {
+      display: inline-block;
+      background: #e7f0f5;
+      border-radius: 6px;
+      padding: 6px 10px;
+    }
+    li { margin-bottom: 8px; line-height: 1.5; }
+    details { border-top: 1px solid #dce4e9; padding: 14px 0; }
+    summary { cursor: pointer; font-weight: 600; }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #f3f6f8;
+      padding: 12px;
+      border-radius: 6px;
+    }
+    @media (max-width: 600px) {
+      .controls { flex-direction: column; }
+      main { padding-top: 20px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>OpsPilot</h1>
+    <p class="muted">Investigate incidents. Inspect evidence. Review proposed actions.</p>
+  </header>
+
+  <form id="lookup">
+    <label for="thread">Saved workflow ID</label>
+    <div class="controls">
+      <input id="thread" name="thread" required maxlength="128"
+             placeholder="workflow-…" autocomplete="off">
+      <button id="load" type="submit">Load workflow</button>
+    </div>
+  </form>
+
+  <p id="message" role="status" aria-live="polite">
+    Enter a workflow ID to inspect its saved result.
+  </p>
+
+  <div id="result" hidden>
+    <section>
+      <h2>Incident</h2>
+      <span id="status"></span>
+      <p id="incident"></p>
+    </section>
+
+    <section>
+      <h2>Diagnosis</h2>
+      <p id="diagnosis"></p>
+      <ul id="claims"></ul>
+      <h3 id="limitations-title">Limitations</h3>
+      <ul id="limitations"></ul>
+    </section>
+
+    <section>
+      <h2>Proposed action</h2>
+      <p id="proposal"></p>
+      <p class="muted">
+        Approval records a review decision only. It does not execute a rollback.
+      </p>
+    </section>
+
+    <section>
+      <h2>Collected evidence</h2>
+      <div id="evidence"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+  const byId = (id) => document.getElementById(id);
+
+  function renderList(id, items) {
+    const list = byId(id);
+    list.replaceChildren();
+    for (const text of items) {
+      const item = document.createElement("li");
+      item.textContent = text;
+      list.append(item);
+    }
+  }
+
+  function renderWorkflow(workflow) {
+    const state = workflow.state;
+    const diagnosis = state.diagnosis;
+    const labels = {
+      review_required: "Awaiting review",
+      approved: "Approved · not executed",
+      declined: "Declined",
+      no_proposal: "No action proposed"
+    };
+
+    byId("incident").textContent = state.incident;
+    byId("status").textContent =
+      labels[state.proposal_status] ||
+      (workflow.next.length ? "Workflow incomplete" : "Workflow ended");
+
+    byId("diagnosis").textContent = diagnosis
+      ? diagnosis.status === "supported"
+        ? diagnosis.root_cause.statement +
+          " [" + diagnosis.root_cause.evidence_ids.join(", ") + "]"
+        : diagnosis.reason
+      : "No diagnosis has been saved.";
+
+    renderList("claims", (diagnosis?.supporting_claims || []).map(
+      claim => claim.statement + " [" + claim.evidence_ids.join(", ") + "]"
+    ));
+
+    const insufficient = diagnosis?.status === "insufficient_evidence";
+    byId("limitations-title").textContent =
+      insufficient ? "Missing evidence" : "Limitations";
+    renderList(
+      "limitations",
+      insufficient
+        ? diagnosis.missing_evidence
+        : diagnosis?.limitations || []
+    );
+
+    const proposal = state.proposal;
+    byId("proposal").textContent = proposal
+      ? `${proposal.service}: rollback ${proposal.current_version} → ` +
+        `${proposal.target_version}. ${proposal.reason}`
+      : state.proposal_status === "no_proposal"
+        ? "The workflow did not propose an action."
+        : "No proposal has been saved.";
+
+    byId("evidence").replaceChildren();
+    const steps = state.investigation?.steps || [];
+    for (const step of steps) {
+      const details = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = `${step.evidence_id} · ${step.decision.tool}`;
+
+      const content = document.createElement("pre");
+      content.textContent = JSON.stringify({
+        arguments: step.decision.arguments,
+        result: step.result
+      }, null, 2);
+
+      details.append(summary, content);
+      byId("evidence").append(details);
+    }
+    if (!steps.length) {
+      byId("evidence").textContent = "No investigation evidence has been saved.";
+    }
+    byId("result").hidden = false;
+  }
+
+  byId("lookup").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const thread = byId("thread").value.trim();
+    if (!thread) {
+      byId("message").textContent = "Enter a workflow ID.";
+      return;
+    }
+
+    byId("load").disabled = true;
+    byId("thread").disabled = true;
+    byId("result").hidden = true;
+    byId("message").className = "";
+    byId("message").textContent = "Loading workflow…";
+
+    try {
+      const response = await fetch(
+        `/workflows/${encodeURIComponent(thread)}`,
+        { cache: "no-store" }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          typeof data.detail === "string"
+            ? data.detail
+            : `Request failed (${response.status}).`
+        );
+      }
+
+      renderWorkflow(data);
+      byId("message").textContent = `Loaded ${data.thread_id}`;
+    } catch (error) {
+      byId("message").className = "error";
+      byId("message").textContent = error.message || "Unable to load workflow.";
+    } finally {
+      byId("load").disabled = false;
+      byId("thread").disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ from uuid import uuid4
 import asyncio
 
 from fastapi import Response
+from fastapi.responses import FileResponse
 
 from app.api.schemas import StartWorkflowRequest, ReviewWorkflowRequest
 from fastapi import FastAPI, HTTPException
@@ -35,6 +36,13 @@ def create_app(*, database: Path = DEFAULT_WORKFLOW_DATABASE) -> FastAPI:
         version="0.1.0",
         description="Local incident investigation and review.",
     )
+
+    @application.get("/", include_in_schema=False)
+    async def index() -> FileResponse:
+        return FileResponse(
+            Path(__file__).resolve().parent / "web" / "index.html",
+            media_type="text/html",
+        )
 
     @application.get("/health")
     async def health() -> dict[str, str]:

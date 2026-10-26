@@ -1470,8 +1470,8 @@ Comparison with the earlier CLI transcript confirmed matching proposal,
 diagnosis, configuration, usage, and tool-result evidence. Two investigation
 decision-reason strings differed only in spacing between words in the pasted
 transcripts, so exact whole-response equality was not established. The API
-omits the CLI's top-level database path. An HTTP retry endpoint, the
-UI, and deployment are not implemented yet.
+omits the CLI's top-level database path. An HTTP retry endpoint and deployment
+are not implemented yet.
 
 The start-request schema is defined in `app/api/schemas.py`. It accepts an
 incident string of 1–4,000 characters containing non-whitespace text, one of
@@ -1569,6 +1569,21 @@ review and GET; comparison with the earlier pending state found only
 and usage remained unchanged, with empty pending nodes and interrupts. No
 rollback was executed. This completes one live HTTP start, inspect, review,
 and inspect sequence; it is not a concurrency or diagnosis-accuracy benchmark.
+
+The initial browser viewer is served at `http://127.0.0.1:8000/` from
+`app/web/index.html`. It loads an existing workflow by thread ID and displays
+its incident, diagnosis and citations, limitations or missing evidence,
+proposal, review status, and expandable tool-result evidence. It is read-only;
+browser controls for starting investigations and submitting reviews are not
+implemented yet. Dynamic content is rendered with `textContent`.
+
+After adding the viewer, the reported suite remained **709 passed, 22 skipped**.
+This suite result does not verify browser behavior. Separately, user-reported
+browser output on 26 October 2026 confirmed the saved approval label, diagnosis
+and citations, and visible expanded evidence. Loading `unknown-workflow`
+displayed `Workflow not found.` with the previous incident, diagnosis, proposal,
+and evidence no longer displayed. These are manual checks, not automated browser
+coverage.
 
 ### Offline simulation control report
 
