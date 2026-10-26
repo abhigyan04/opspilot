@@ -194,6 +194,19 @@ def test_inspect_and_resume_saved_workflow(tmp_path, monkeypatch, capsys, with_p
             main([*resume_arguments, "approve anything"])
         return
 
+    with pytest.raises(ValueError, match="waiting for review"):
+        main([
+            "resume",
+            "--database", str(database),
+            "--thread-id", "inspect-test",
+            "--retry",
+        ])
+
+    still_pending = asyncio.run(
+        inspect_workflow(database=database, thread_id="inspect-test")
+    )
+    assert still_pending == original
+
     # A wrong proposal ID must leave the review pending.
     main([*resume_arguments, "approve wrong-id"])
     rejected = json.loads(capsys.readouterr().out)
@@ -252,3 +265,110 @@ def test_inspect_rejects_blank_thread_id(tmp_path):
         )
 
     assert not database.exists()
+
+
+@pytest.mark.parametrize("failed_stage", ["investigate", "diagnose"])
+def test_cli_retries_failed_stage(tmp_path, monkeypatch, capsys, failed_stage):
+    calls = {"investigate": 0, "diagnose": 0}
+    investigation = {
+        "status": "finished",
+        "reason": "Scripted investigation.",
+        "steps": [],
+    }
+
+    async def fake_investigate(*args, **kwargs):
+        calls["investigate"] += 1
+        if failed_stage == "investigate" and calls["investigate"] == 1:
+            raise ConnectionError("Planned investigation failure.")
+        return investigation
+
+    def fake_diagnose(incident, steps, *, model, settings, usage):
+        calls["diagnose"] += 1
+        assert steps == investigation["steps"]
+        assert model == "saved-test-model"
+        assert settings.num_ctx == 8192
+        assert settings.num_predict == 2048
+
+        if failed_stage == "diagnose" and calls["diagnose"] == 1:
+            raise ConnectionError("Planned diagnosis failure.")
+
+        return diagnosis_adapter.validate_python({
+            "status": "insufficient_evidence",
+            "reason": "Scripted diagnosis after retry.",
+            "missing_evidence": ["Operational observations"],
+        })
+
+    monkeypatch.setattr(agent, "investigate_async", fake_investigate)
+    monkeypatch.setattr(agent, "generate_diagnosis", fake_diagnose)
+
+    database = tmp_path / "retry.sqlite"
+    with pytest.raises(ConnectionError, match="Planned"):
+        main([
+            "start",
+            "--database", str(database),
+            "--thread-id", "retry-test",
+            "--incident", "Investigate checkout-service.",
+            "--model", "saved-test-model",
+        ])
+
+    before = asyncio.run(
+        inspect_workflow(database=database, thread_id="retry-test")
+    )
+    assert before["next"] == [failed_stage]
+
+    # A failed stage cannot be resumed with an approval response.
+    with pytest.raises(ValueError, match="not waiting for a review"):
+        main([
+            "resume",
+            "--database", str(database),
+            "--thread-id", "retry-test",
+            "--response", "approve anything",
+        ])
+
+    main([
+        "resume",
+        "--database", str(database),
+        "--thread-id", "retry-test",
+        "--retry",
+    ])
+    result = json.loads(capsys.readouterr().out)
+
+    assert result["next"] == []
+    assert result["interrupts"] == []
+    assert result["state"]["proposal_status"] == "no_proposal"
+    assert result["state"]["investigation"] == investigation
+    assert (
+        result["state"]["workflow_config"]
+        == before["state"]["workflow_config"]
+    )
+
+    expected_calls = {
+        "investigate": {"investigate": 2, "diagnose": 1},
+        "diagnose": {"investigate": 1, "diagnose": 2},
+    }[failed_stage]
+    assert calls == expected_calls
+
+    if failed_stage == "diagnose":
+        assert (
+            result["state"]["investigation"]
+            == before["state"]["investigation"]
+        )
+        assert (
+            result["state"]["usage"]["investigation"]
+            == before["state"]["usage"]["investigation"]
+        )
+
+    persisted = asyncio.run(
+        inspect_workflow(database=database, thread_id="retry-test")
+    )
+    assert persisted == result
+
+    with pytest.raises(ValueError, match="already complete"):
+        main([
+            "resume",
+            "--database", str(database),
+            "--thread-id", "retry-test",
+            "--retry",
+        ])
+
+    assert calls == expected_calls

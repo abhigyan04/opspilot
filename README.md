@@ -1358,8 +1358,6 @@ Use `decline YOUR_PROPOSAL_ID` to decline instead. The command reconstructs the
 graph from its saved version-4 configuration, including model settings, backend,
 service, and scenario path. Approval records a decision only; it does not execute
 a rollback. Completed workflows and workflows not waiting for review are rejected.
-Retrying failed investigation or diagnosis stages through the CLI is not yet
-implemented.
 
 The review-resume checkpoint passed **11 focused CLI tests** and **649 passed,
 22 skipped** in the reported full suite. Tests cover wrong-ID responses remaining
@@ -1368,6 +1366,21 @@ when inspected again, and rejection of repeated submission after completion.
 Investigation, diagnosis, and proposal generation are patched to fail if repeated
 during inspection or review. These tests use scripted model calls and proposals;
 they do not establish live diagnosis accuracy or concurrent-review behavior.
+
+Retry a recorded investigation or diagnosis failure with:
+
+```powershell
+python -m app.agent.workflow_cli resume --database out/workflows/checkpoints.sqlite --thread-id YOUR_THREAD_ID --retry
+```
+
+The retry checkpoint passed **13 focused CLI tests** and **651 passed,
+22 skipped** in the reported full suite. Scripted failures verify that retry
+uses the saved configuration, repeats the failed node, and persists the completed
+result. A diagnosis retry preserves the completed investigation and its recorded
+usage. An investigation retry restarts that entire node, so tool calls performed
+before failure may repeat. Retry rejects completed workflows and pending reviews;
+review still requires an explicit response. The CLI requires a recorded node
+error for retry and does not handle abrupt termination without such an error.
 
 ### Offline simulation control report
 

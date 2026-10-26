@@ -90,10 +90,14 @@ async def inspect_workflow(*, database: Path, thread_id: str) -> dict:
         }
 
 
-async def resume_workflow(*, database: Path, thread_id: str, response: str) -> dict:
+async def resume_workflow(*, database: Path, thread_id: str, response: str | None = None, retry: bool = False) -> dict:
     if not thread_id.strip():
         raise ValueError("A nonblank thread ID is required.")
-    if not isinstance(response, str) or not response.strip():
+
+    if retry:
+        if response is not None:
+            raise ValueError("Choose either retry or a review response.")
+    elif not isinstance(response, str) or not response.strip():
         raise ValueError("An explicit review response is required.")
 
     database = database.resolve()
@@ -145,13 +149,38 @@ async def resume_workflow(*, database: Path, thread_id: str, response: str) -> d
 
         if not pending.next:
             raise ValueError("Workflow is already complete.")
-        if pending.next != ("review",) or not pending.interrupts:
-            raise ValueError("Workflow is not waiting for a review response.")
 
-        await graph.ainvoke(
-            Command(resume=response),
-            config=config,
-        )
+        if retry:
+            if pending.interrupts:
+                raise ValueError(
+                    "Workflow is waiting for review; provide a review response."
+                )
+
+            retryable = pending.next in {
+                ("investigate",),
+                ("diagnose",),
+            }
+            has_recorded_failure = any(
+                task.name in pending.next and task.error is not None
+                for task in pending.tasks
+            )
+            if not retryable or not has_recorded_failure:
+                raise ValueError(
+                    "Workflow has no recorded investigation or diagnosis "
+                    "failure to retry."
+                )
+
+            await graph.ainvoke(None, config=config)
+        else:
+            if pending.next != ("review",) or not pending.interrupts:
+                raise ValueError(
+                    "Workflow is not waiting for a review response."
+                )
+
+            await graph.ainvoke(
+                Command(resume=response),
+                config=config,
+            )
         saved = await graph.aget_state(config)
 
         return {
@@ -191,7 +220,9 @@ def main(argv: list[str] | None = None) -> None:
     resume = commands.add_parser("resume")
     resume.add_argument("--database", type=Path, required=True)
     resume.add_argument("--thread-id", required=True)
-    resume.add_argument("--response", required=True)
+    resume_action = resume.add_mutually_exclusive_group(required=True)
+    resume_action.add_argument("--response")
+    resume_action.add_argument("--retry", action="store_true")
 
     args = parser.parse_args(argv)
 
@@ -208,6 +239,7 @@ def main(argv: list[str] | None = None) -> None:
                 database=args.database,
                 thread_id=args.thread_id,
                 response=args.response,
+                retry=args.retry
             )
         )
     else:
