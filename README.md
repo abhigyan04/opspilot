@@ -1470,7 +1470,7 @@ Comparison with the earlier CLI transcript confirmed matching proposal,
 diagnosis, configuration, usage, and tool-result evidence. Two investigation
 decision-reason strings differed only in spacing between words in the pasted
 transcripts, so exact whole-response equality was not established. The API
-omits the CLI's top-level database path. HTTP review and retry endpoints, the
+omits the CLI's top-level database path. An HTTP retry endpoint, the
 UI, and deployment are not implemented yet.
 
 The start-request schema is defined in `app/api/schemas.py`. It accepts an
@@ -1522,10 +1522,26 @@ The review-request schema requires `proposal_id` and an explicit `approve` or
 at most 128 characters without whitespace. Extra fields are rejected, so a
 review request cannot modify the proposed target version. This validates the
 request shape only; matching the ID to the pending proposal is the endpoint's
-responsibility. The review endpoint is not implemented yet.
+responsibility.
 
 The review-schema checkpoint passed **33 focused schema tests** and
 **698 passed, 22 skipped** in the reported full suite.
+
+`POST /workflows/{thread_id}/review` now checks that the workflow is paused for
+review and the submitted proposal ID matches before forwarding the explicit
+decision to the existing resume function. Approval records a decision only;
+it does not execute rollback. Unknown threads return 404, missing databases
+return 503, and stale IDs or completed/non-review workflows return 409.
+Invalid request bodies return 422 before lookup.
+
+The review contract checkpoint passed **20 combined review/API tests** and
+**706 passed, 22 skipped** in the reported full suite. These tests stub lookup
+and resume; they verify decision forwarding, sequential repeat rejection,
+conflict rejection without resume, lookup errors, and request validation.
+Review persistence through the real HTTP-to-graph path and live HTTP review
+have not yet been verified. An application-local lock serializes HTTP review
+handling within one app instance; it does not coordinate CLI processes or
+multiple server workers, and concurrent-request behavior is not yet tested.
 
 ### Offline simulation control report
 

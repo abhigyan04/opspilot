@@ -1,16 +1,18 @@
 from pathlib import Path
 import logging
 from uuid import uuid4
+import asyncio
 
 from fastapi import Response
 
-from app.api.schemas import StartWorkflowRequest
+from app.api.schemas import StartWorkflowRequest, ReviewWorkflowRequest
 from fastapi import FastAPI, HTTPException
 
 from app.agent.workflow_cli import (
     WorkflowNotFoundError,
     inspect_workflow,
-    start_workflow
+    start_workflow,
+    resume_workflow
 )
 
 
@@ -26,6 +28,7 @@ DEFAULT_WORKFLOW_DATABASE = (
 
 def create_app(*, database: Path = DEFAULT_WORKFLOW_DATABASE) -> FastAPI:
     database = database.resolve()
+    review_lock = asyncio.Lock()
 
     application = FastAPI(
         title="OpsPilot",
@@ -107,6 +110,79 @@ def create_app(*, database: Path = DEFAULT_WORKFLOW_DATABASE) -> FastAPI:
             "state": result["state"],
             "interrupts": result["interrupts"],
         }
+
+    @application.post("/workflows/{thread_id}/review")
+    async def review_workflow(thread_id: str, request: ReviewWorkflowRequest) -> dict:
+        if not thread_id.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="A nonblank thread ID is required.",
+            )
+
+        async with review_lock:
+            try:
+                pending = await inspect_workflow(
+                    database=database,
+                    thread_id=thread_id,
+                )
+            except WorkflowNotFoundError:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Workflow not found.",
+                ) from None
+            except FileNotFoundError:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Workflow database is unavailable.",
+                ) from None
+
+            state = pending["state"]
+            if (
+                pending["next"] != ["review"]
+                or not pending["interrupts"]
+                or state.get("proposal_status") != "review_required"
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Workflow is not waiting for review.",
+                )
+
+            if state.get("proposal_id") != request.proposal_id:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Proposal ID does not match the pending proposal.",
+                )
+
+            try:
+                result = await resume_workflow(
+                    database=database,
+                    thread_id=thread_id,
+                    response=f"{request.decision} {request.proposal_id}",
+                )
+            except ValueError:
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Saved workflow cannot accept this review. "
+                        "Inspect its current state."
+                    ),
+                ) from None
+            except Exception:
+                logger.exception("Workflow review failed: %s", thread_id)
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        "Workflow review failed. "
+                        "Inspect its current state before retrying."
+                    ),
+                ) from None
+
+            return {
+                "thread_id": result["thread_id"],
+                "next": result["next"],
+                "state": result["state"],
+                "interrupts": result["interrupts"],
+            }
 
     return application
 
