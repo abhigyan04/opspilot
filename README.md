@@ -1470,8 +1470,8 @@ Comparison with the earlier CLI transcript confirmed matching proposal,
 diagnosis, configuration, usage, and tool-result evidence. Two investigation
 decision-reason strings differed only in spacing between words in the pasted
 transcripts, so exact whole-response equality was not established. The API
-omits the CLI's top-level database path. Workflow mutation endpoints, the UI,
-and deployment are not implemented yet.
+omits the CLI's top-level database path. HTTP review and retry endpoints, the
+UI, and deployment are not implemented yet.
 
 The start-request schema is defined in `app/api/schemas.py`. It accepts an
 incident string of 1–4,000 characters containing non-whitespace text, one of
@@ -1482,8 +1482,23 @@ and review responses are not client-selectable fields in this request.
 The character limit is not a model token-budget guarantee.
 
 This schema checkpoint passed **19 focused tests** and **674 passed,
-22 skipped** in the reported full suite. The schema is not yet connected to
-`POST /workflows`, so this checkpoint does not start workflows over HTTP.
+22 skipped** in the reported full suite.
+
+`POST /workflows` now accepts that schema and calls the existing workflow start
+function with a server-generated UUID thread ID and `qwen3:8b` diagnosis model.
+The request waits for completion or a review pause, then returns HTTP 201 with
+saved state and a `Location` header pointing to the inspection endpoint. This
+is not background execution; repeating a POST creates a new workflow.
+Invalid requests return 422 before work starts. Execution exceptions are logged
+and return 500 with a generic message and the generated thread ID, without raw
+exception details. Failure before checkpoint creation may leave no saved thread
+to inspect.
+
+The POST contract checkpoint passed **31 combined API/schema tests** and
+**682 passed, 22 skipped** in the reported full suite. New tests verify request
+forwarding, distinct generated IDs, inspection links, validation before work,
+and error responses. They stub the start function; persistence through POST
+and a live HTTP start have not yet been verified.
 
 ### Offline simulation control report
 

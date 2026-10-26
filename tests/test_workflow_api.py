@@ -2,7 +2,9 @@ import asyncio
 
 import pytest
 from fastapi.testclient import TestClient
+from uuid import UUID
 
+import app.main as api
 from app.agent import agent, workflow
 from app.agent.schemas import RollbackProposal, diagnosis_adapter
 from app.agent.workflow_cli import inspect_workflow, start_workflow
@@ -112,3 +114,116 @@ def test_get_workflow_preserves_saved_state(tmp_path, monkeypatch, with_proposal
         inspect_workflow(database=database, thread_id="api-test")
     )
     assert persisted == original
+
+
+def test_post_workflow_forwards_request_and_generates_ids(tmp_path, monkeypatch):
+    database = tmp_path / "workflow.sqlite"
+    calls = []
+
+    async def fake_start(**kwargs):
+        calls.append(kwargs)
+        return {
+            "database": str(kwargs["database"]),
+            "thread_id": kwargs["thread_id"],
+            "next": [],
+            "state": {"proposal_status": "no_proposal"},
+            "interrupts": [],
+        }
+
+    monkeypatch.setattr(api, "start_workflow", fake_start)
+
+    payload = {
+        "incident": "Investigate checkout-service.",
+        "scenario": "payment_provider_outage",
+        "tool_backend": "mcp",
+    }
+
+    with TestClient(create_app(database=database)) as client:
+        first = client.post("/workflows", json=payload)
+        second = client.post("/workflows", json=payload)
+
+    assert len(calls) == 2
+    generated_ids = []
+
+    for response, call in zip((first, second), calls):
+        assert response.status_code == 201
+        body = response.json()
+        thread_id = body["thread_id"]
+        generated_ids.append(thread_id)
+
+        assert thread_id.startswith("workflow-")
+        assert UUID(thread_id.removeprefix("workflow-")).version == 4
+        assert response.headers["Location"] == f"/workflows/{thread_id}"
+        assert body == {
+            "thread_id": thread_id,
+            "next": [],
+            "state": {"proposal_status": "no_proposal"},
+            "interrupts": [],
+        }
+        assert call == {
+            "database": database.resolve(),
+            "thread_id": thread_id,
+            "incident": payload["incident"],
+            "scenario": "payment_provider_outage",
+            "model": "qwen3:8b",
+            "tool_backend": "mcp",
+        }
+
+    assert generated_ids[0] != generated_ids[1]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {},
+        {"incident": " "},
+        {"incident": "Investigate.", "scenario": "unknown"},
+        {"incident": "Investigate.", "tool_backend": "remote"},
+        {"incident": "Investigate.", "database": "other.sqlite"},
+        {"incident": "Investigate.", "thread_id": "existing"},
+    ],
+)
+def test_invalid_post_does_not_start_workflow(tmp_path, monkeypatch, payload):
+    database = tmp_path / "missing" / "workflow.sqlite"
+
+    async def unexpected_start(**kwargs):
+        raise AssertionError("Invalid requests must not start work.")
+
+    monkeypatch.setattr(api, "start_workflow", unexpected_start)
+
+    with TestClient(create_app(database=database)) as client:
+        response = client.post("/workflows", json=payload)
+
+    assert response.status_code == 422
+    assert not database.parent.exists()
+
+
+def test_post_failure_returns_thread_id_without_raw_error(tmp_path, monkeypatch):
+    calls = []
+
+    async def failing_start(**kwargs):
+        calls.append(kwargs)
+        raise ConnectionError("Internal connection details")
+
+    monkeypatch.setattr(api, "start_workflow", failing_start)
+
+    with TestClient(
+        create_app(database=tmp_path / "workflow.sqlite")
+    ) as client:
+        response = client.post(
+            "/workflows",
+            json={"incident": "Investigate checkout-service."},
+        )
+
+    assert response.status_code == 500
+    assert len(calls) == 1
+    assert response.json() == {
+        "detail": {
+            "message": (
+                "Workflow execution failed. "
+                "Inspect this thread for any saved checkpoint."
+            ),
+            "thread_id": calls[0]["thread_id"],
+        }
+    }
+    assert "Internal connection details" not in response.text
