@@ -1360,6 +1360,17 @@ framed the error increase as following deployment; this live orchestration check
 does not establish that all intermediate reasoning is accurate. No rollback
 was proposed or executed.
 
+A live direct-backend `sparse_evidence` run on 26 October 2026, thread
+`sparse-df16f62f-d624-490e-9277-a5e1e8ac719e`, returned
+`insufficient_evidence`, requested error details and deployment records, and
+ended with `no_proposal` and no pending nodes or interrupts. The reported start
+and separate inspection JSON matched exactly. The final diagnosis did not
+invent a specific failure mechanism. However, the investigation narrative
+incorrectly treated an empty deployment result as indicating no recent
+deployments and speculated about logging problems from empty log results.
+Those intermediate reasoning weaknesses remain unresolved; the successful
+abstention and persistence check is not a claim of uniformly accurate reasoning.
+
 Inspect an existing workflow with:
 
 ```powershell
