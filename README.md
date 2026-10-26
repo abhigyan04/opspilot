@@ -1330,7 +1330,24 @@ in the reported full suite. Tests use scripted model calls with SQLite and
 verify that a sequential start with an existing thread ID is rejected without
 repeating work. Invalid start arguments are rejected before creating the
 database directory. The duplicate-thread check is not a lock against concurrent
-starts. A live CLI investigation has not yet been verified.
+starts.
+
+On 26 October 2026, a live direct-backend CLI run for `checkout_regression`
+reached the review interrupt, and a separate `inspect` invocation displayed the
+saved proposal, configuration, evidence, and usage. Thread
+`checkout-b33beb17-2564-4cba-9471-41726dbd2bad` collected metrics, deployment,
+commit, and log evidence using five `qwen3:4b` investigation calls and one
+`qwen3:8b` diagnosis call. It proposed rollback from `1.7.4` to `1.7.3` and
+initially paused as `review_required`. A subsequent live CLI approval and a
+separate inspection both showed `approved`, empty pending nodes, and no
+outstanding interrupts. Comparing the reported JSON confirmed that only
+`proposal_status` changed in the saved state: the proposal ID, evidence,
+diagnosis, configuration, and usage remained unchanged. No rollback was
+executed. This is an orchestration smoke test,
+not an accuracy benchmark: the diagnosis incorrectly described the 0.4 metric
+sample as within seven minutes of deployment (13:57 to 14:05 is eight minutes),
+and that timing claim cited only metrics rather than also citing deployment
+evidence.
 
 Inspect an existing workflow with:
 
