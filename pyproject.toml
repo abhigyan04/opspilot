@@ -8,7 +8,9 @@ dependencies = [
 	"psycopg[binary]>=3.2,<4",
 	"mcp>=2,<3",
 	"langgraph",
-	"langgraph-checkpoint-sqlite"
+	"langgraph-checkpoint-sqlite",
+	"fastapi",
+	"uvicorn"
 ]
 
 [project.optional-dependencies]

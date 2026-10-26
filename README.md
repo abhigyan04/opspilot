@@ -1427,6 +1427,31 @@ before failure may repeat. Retry rejects completed workflows and pending reviews
 review still requires an explicit response. The CLI requires a recorded node
 error for retry and does not handle abrupt termination without such an error.
 
+### Milestone 12: local API foundation
+
+Install the project dependencies, then start the FastAPI application locally:
+
+```powershell
+python -m pip install -e ".[dev]"
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+In a second terminal, check the endpoint:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/health
+```
+
+`GET /health` returns `{"status": "ok"}`. It confirms the API responds, not
+that Ollama, PostgreSQL, or workflow execution is ready. Interactive endpoint
+documentation is available at `http://127.0.0.1:8000/docs`.
+
+On 26 October 2026, the user verified successful server startup, HTTP 200 from
+`/health`, and the expected response. `pip check` reported no broken
+requirements; the reported suite remained **651 passed, 22 skipped**. This is
+a manual health smoke check, not automated API coverage. Workflow endpoints,
+the UI, and deployment are not implemented yet.
+
 ### Offline simulation control report
 
 Run the deterministic control evaluation without Ollama or infrastructure access:
