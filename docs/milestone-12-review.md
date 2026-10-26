@@ -65,8 +65,12 @@ The user reported both remote CI jobs passing. The Docker job builds and starts
 the image, asserts health JSON and HTML delivery, exercises a fixture tool,
 and checks user identity and filesystem writes. It does not run browser
 JavaScript, model inference, or named-volume persistence checks. No remote run
-URL or commit SHA was supplied, so this review records the reported result
-without attributing it to an independently verified revision.
+URL or commit SHA was supplied at the initial review. Subsequent closeout
+verification through GitHub's public API confirmed that
+[run 40343931610](https://github.com/abhigyan04/opspilot/actions/runs/40343931610)
+and both jobs succeeded for `0cf4afda767b73f4328af42792e81b62f921f8a6`.
+The [demo procedure](milestone-12-demo.md) records this baseline; earlier manual
+workflow runs are not retroactively attributed to that commit.
 
 Workflow databases and pasted transcripts are not bundled with this document.
 The browser and container outcomes above are based on supplied output and user

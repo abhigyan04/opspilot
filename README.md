@@ -1433,6 +1433,10 @@ The bounded local UI and Docker deployment checkpoint is reviewed in
 [Milestone 12 review](docs/milestone-12-review.md), including verification
 evidence, known limitations, and deferred production scope.
 
+Follow the [milestone 12 demo procedure](docs/milestone-12-demo.md) to replay
+the local deployment and review flow. Its baseline commit is linked to a
+verified passing CI run.
+
 Install the project dependencies, then start the FastAPI application locally:
 
 ```powershell
@@ -1677,7 +1681,9 @@ It builds the image, starts its normal server command, checks the health JSON
 and HTML delivery, exercises the log fixture tool, and checks non-root execution
 and writable checkpoint storage. It requires neither Ollama nor PostgreSQL.
 The user reported that both `Python tests` and `Docker smoke test` passed in
-the remote Actions run. The run URL and commit SHA were not supplied here.
+the remote Actions run. Subsequent verification through GitHub's public API
+confirmed [run 40343931610](https://github.com/abhigyan04/opspilot/actions/runs/40343931610)
+and both jobs succeeded for commit `0cf4afda767b73f4328af42792e81b62f921f8a6`.
 This automated smoke test does not execute browser JavaScript, run model
 inference, or verify named-volume persistence; those remain separate checks.
 
