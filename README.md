@@ -1538,10 +1538,29 @@ The review contract checkpoint passed **20 combined review/API tests** and
 **706 passed, 22 skipped** in the reported full suite. These tests stub lookup
 and resume; they verify decision forwarding, sequential repeat rejection,
 conflict rejection without resume, lookup errors, and request validation.
-Review persistence through the real HTTP-to-graph path and live HTTP review
-have not yet been verified. An application-local lock serializes HTTP review
+An application-local lock serializes HTTP review
 handling within one app instance; it does not coordinate CLI processes or
 multiple server workers, and concurrent-request behavior is not yet tested.
+
+The subsequent review persistence checkpoint passed **11 combined
+persistence/review tests** and **707 passed, 22 skipped** in the reported full
+suite. It uses the real graph, proposal policy, resume function, and SQLite
+with scripted investigation and diagnosis. Approval and decline persist across
+new app instances; only the proposal status changes in saved state. Stale IDs,
+no-proposal workflows, duplicate decisions, and attempts to reverse a completed
+decision are rejected without changing the checkpoint. Earlier workflow work
+must not repeat. These are sequential requests in one process; concurrent
+submissions have not yet been verified.
+
+On 26 October 2026, after restarting Uvicorn, live HTTP review of thread
+`workflow-33e51b50-5761-4ced-bff8-5f8194f3dcea` returned HTTP 200 and recorded
+`approved` for proposal `e44d2bcb-d640-4c54-ba6b-2291bb6560b9`. A subsequent
+GET also returned HTTP 200. The supplied response JSON matched exactly between
+review and GET; comparison with the earlier pending state found only
+`proposal_status` changed. Proposal identity, evidence, diagnosis, configuration,
+and usage remained unchanged, with empty pending nodes and interrupts. No
+rollback was executed. This completes one live HTTP start, inspect, review,
+and inspect sequence; it is not a concurrency or diagnosis-accuracy benchmark.
 
 ### Offline simulation control report
 

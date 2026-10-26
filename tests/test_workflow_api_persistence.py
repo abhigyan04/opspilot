@@ -10,8 +10,15 @@ from app.tools.deployments import get_deployments
 from app.tools.git import get_commit
 
 
-@pytest.mark.parametrize("supported", [False, True])
-def test_post_persists_workflow_for_new_app(tmp_path, monkeypatch, supported):
+@pytest.mark.parametrize(
+    "supported, decision",
+    [
+        (False, None),
+        (True, "approve"),
+        (True, "decline"),
+    ],
+)
+def test_post_persists_workflow_for_new_app(tmp_path, monkeypatch, supported, decision):
     deployments = get_deployments(service="checkout-service")
     assert len(deployments) == 1
     deployment = deployments[0]
@@ -140,7 +147,7 @@ def test_post_persists_workflow_for_new_app(tmp_path, monkeypatch, supported):
         assert created["interrupts"] == []
 
     def unexpected_work(*args, **kwargs):
-        raise AssertionError("GET must not repeat workflow work.")
+        raise AssertionError("Inspection or review repeated workflow work.")
 
     monkeypatch.setattr(agent, "investigate_async", unexpected_work)
     monkeypatch.setattr(agent, "generate_diagnosis", unexpected_work)
@@ -157,5 +164,90 @@ def test_post_persists_workflow_for_new_app(tmp_path, monkeypatch, supported):
     assert repeated.status_code == 200
     assert retrieved.json() == created
     assert repeated.json() == created
+    assert steps == original_steps
+    assert calls == {"investigate": 1, "diagnose": 1, "propose": 1}
+
+    review_url = f"{location}/review"
+
+    if not supported:
+        with TestClient(create_app(database=database)) as client:
+            rejected = client.post(
+                review_url,
+                json={
+                    "proposal_id": "nonexistent-proposal",
+                    "decision": "approve",
+                },
+            )
+            unchanged = client.get(location)
+
+        assert rejected.status_code == 409
+        assert unchanged.status_code == 200
+        assert unchanged.json() == created
+        return
+
+    # A stale proposal ID must not change the saved state.
+    with TestClient(create_app(database=database)) as client:
+        rejected = client.post(
+            review_url,
+            json={
+                "proposal_id": "wrong-proposal-id",
+                "decision": decision,
+            },
+        )
+        still_pending = client.get(location)
+
+    assert rejected.status_code == 409
+    assert still_pending.status_code == 200
+    assert still_pending.json() == created
+
+    payload = {
+        "proposal_id": created["state"]["proposal_id"],
+        "decision": decision,
+    }
+
+    # Review through a new app instance using the real resume function.
+    with TestClient(create_app(database=database)) as client:
+        reviewed_response = client.post(review_url, json=payload)
+
+    assert reviewed_response.status_code == 200
+    reviewed = reviewed_response.json()
+
+    expected_status = {
+        "approve": "approved",
+        "decline": "declined",
+    }[decision]
+    expected = {
+        **created,
+        "next": [],
+        "interrupts": [],
+        "state": {
+            **created["state"],
+            "proposal_status": expected_status,
+        },
+    }
+    assert reviewed == expected
+
+    # Reopen again: the decision must persist, and cannot be overwritten.
+    opposite_decision = "decline" if decision == "approve" else "approve"
+
+    with TestClient(create_app(database=database)) as client:
+        persisted = client.get(location)
+        duplicate = client.post(review_url, json=payload)
+        opposite = client.post(
+            review_url,
+            json={
+                "proposal_id": payload["proposal_id"],
+                "decision": opposite_decision,
+            },
+        )
+        final = client.get(location)
+
+    assert persisted.status_code == 200
+    assert persisted.json() == expected
+    assert duplicate.status_code == 409
+    assert opposite.status_code == 409
+    assert final.status_code == 200
+    assert final.json() == expected
+
     assert steps == original_steps
     assert calls == {"investigate": 1, "diagnose": 1, "propose": 1}
