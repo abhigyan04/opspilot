@@ -1429,6 +1429,10 @@ error for retry and does not handle abrupt termination without such an error.
 
 ### Milestone 12: local API foundation
 
+The bounded local UI and Docker deployment checkpoint is reviewed in
+[Milestone 12 review](docs/milestone-12-review.md), including verification
+evidence, known limitations, and deferred production scope.
+
 Install the project dependencies, then start the FastAPI application locally:
 
 ```powershell
@@ -1667,6 +1671,15 @@ crash-recovery tests, or diagnosis-accuracy improvements. No rollback was
 executed. Keep the
 named volume when recreating the service; `docker compose down -v` removes
 Compose-managed named volumes, including saved checkpoints and PostgreSQL data.
+
+The GitHub Actions workflow also includes a separate `Docker smoke test` job.
+It builds the image, starts its normal server command, checks the health JSON
+and HTML delivery, exercises the log fixture tool, and checks non-root execution
+and writable checkpoint storage. It requires neither Ollama nor PostgreSQL.
+The user reported that both `Python tests` and `Docker smoke test` passed in
+the remote Actions run. The run URL and commit SHA were not supplied here.
+This automated smoke test does not execute browser JavaScript, run model
+inference, or verify named-volume persistence; those remain separate checks.
 
 ### Offline simulation control report
 
