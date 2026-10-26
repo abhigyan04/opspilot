@@ -1473,6 +1473,18 @@ transcripts, so exact whole-response equality was not established. The API
 omits the CLI's top-level database path. Workflow mutation endpoints, the UI,
 and deployment are not implemented yet.
 
+The start-request schema is defined in `app/api/schemas.py`. It accepts an
+incident string of 1–4,000 characters containing non-whitespace text, one of
+the three supported scenarios, and a `direct` or `mcp` tool backend. Defaults
+are `checkout_regression` and `direct`. Incident formatting is preserved;
+unknown fields and invalid types are rejected. Database, thread ID, model,
+and review responses are not client-selectable fields in this request.
+The character limit is not a model token-budget guarantee.
+
+This schema checkpoint passed **19 focused tests** and **674 passed,
+22 skipped** in the reported full suite. The schema is not yet connected to
+`POST /workflows`, so this checkpoint does not start workflows over HTTP.
+
 ### Offline simulation control report
 
 Run the deterministic control evaluation without Ollama or infrastructure access:
