@@ -91,10 +91,15 @@ def test_invalid_start_does_not_create_database(tmp_path, overrides):
     assert not database.parent.exists()
 
 
-@pytest.mark.parametrize("with_proposal", [False, True])
-def test_inspect_preserves_saved_workflow(
-    tmp_path, monkeypatch, capsys, with_proposal
-):
+@pytest.mark.parametrize(
+    "with_proposal, review_action",
+    [
+        (False, None),
+        (True, "approve"),
+        (True, "decline"),
+    ],
+)
+def test_inspect_and_resume_saved_workflow(tmp_path, monkeypatch, capsys, with_proposal, review_action):
     async def fake_investigate(*args, **kwargs):
         return {
             "status": "finished",
@@ -177,6 +182,54 @@ def test_inspect_preserves_saved_workflow(
         asyncio.run(
             inspect_workflow(database=database, thread_id="unknown")
         )
+    resume_arguments = [
+        "resume",
+        "--database", str(database),
+        "--thread-id", "inspect-test",
+        "--response",
+    ]
+
+    if not with_proposal:
+        with pytest.raises(ValueError, match="already complete"):
+            main([*resume_arguments, "approve anything"])
+        return
+
+    # A wrong proposal ID must leave the review pending.
+    main([*resume_arguments, "approve wrong-id"])
+    rejected = json.loads(capsys.readouterr().out)
+
+    assert rejected["next"] == ["review"]
+    assert rejected["state"] == original["state"]
+    assert len(rejected["interrupts"]) == 1
+    assert "explicitly approve or decline" in (
+        rejected["interrupts"][0]["error"]
+    )
+
+    # Correct the response using the original persisted proposal ID.
+    proposal_id = original["state"]["proposal_id"]
+    main([*resume_arguments, f"{review_action} {proposal_id}"])
+    reviewed = json.loads(capsys.readouterr().out)
+
+    expected_status = {
+        "approve": "approved",
+        "decline": "declined",
+    }[review_action]
+
+    assert reviewed["next"] == []
+    assert reviewed["interrupts"] == []
+    assert reviewed["state"] == {
+        **original["state"],
+        "proposal_status": expected_status,
+    }
+
+    # Reopening through inspect must show the persisted decision.
+    main(arguments)
+    persisted = json.loads(capsys.readouterr().out)
+    assert persisted == reviewed
+
+    # A completed review cannot be submitted again.
+    with pytest.raises(ValueError, match="already complete"):
+        main([*resume_arguments, f"{review_action} {proposal_id}"])
 
 
 def test_inspect_missing_database_does_not_create_it(tmp_path):

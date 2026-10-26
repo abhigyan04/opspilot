@@ -1346,8 +1346,28 @@ completed workflows and pending reviews, preservation of their state and
 interrupt payloads, and rejection of missing databases, unknown threads, and
 blank thread IDs. Missing database paths are not created. The SQLite saver
 may perform normal database setup; this is not a filesystem read-only
-connection. The resume CLI command is not implemented yet; the graph API
-supports resume as tested above.
+connection.
+
+Resume a pending review using the proposal ID shown by `inspect`:
+
+```powershell
+python -m app.agent.workflow_cli resume --database out/workflows/checkpoints.sqlite --thread-id YOUR_THREAD_ID --response "approve YOUR_PROPOSAL_ID"
+```
+
+Use `decline YOUR_PROPOSAL_ID` to decline instead. The command reconstructs the
+graph from its saved version-4 configuration, including model settings, backend,
+service, and scenario path. Approval records a decision only; it does not execute
+a rollback. Completed workflows and workflows not waiting for review are rejected.
+Retrying failed investigation or diagnosis stages through the CLI is not yet
+implemented.
+
+The review-resume checkpoint passed **11 focused CLI tests** and **649 passed,
+22 skipped** in the reported full suite. Tests cover wrong-ID responses remaining
+pending, correction with explicit approval or decline, persistence of the decision
+when inspected again, and rejection of repeated submission after completion.
+Investigation, diagnosis, and proposal generation are patched to fail if repeated
+during inspection or review. These tests use scripted model calls and proposals;
+they do not establish live diagnosis accuracy or concurrent-review behavior.
 
 ### Offline simulation control report
 

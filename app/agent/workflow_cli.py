@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from langgraph.types import Command
 
 from app.agent.settings import DiagnosisSettings
 from app.agent.workflow import build_investigation_graph
@@ -89,9 +90,82 @@ async def inspect_workflow(*, database: Path, thread_id: str) -> dict:
         }
 
 
+async def resume_workflow(*, database: Path, thread_id: str, response: str) -> dict:
+    if not thread_id.strip():
+        raise ValueError("A nonblank thread ID is required.")
+    if not isinstance(response, str) or not response.strip():
+        raise ValueError("An explicit review response is required.")
+
+    database = database.resolve()
+    if not database.is_file():
+        raise FileNotFoundError(
+            f"Checkpoint database does not exist: {database}"
+        )
+
+    config = {"configurable": {"thread_id": thread_id}}
+
+    async with AsyncSqliteSaver.from_conn_string(str(database)) as saver:
+        checkpoint = await saver.aget_tuple(config)
+        if checkpoint is None:
+            raise ValueError(f"Thread {thread_id!r} does not exist.")
+
+        saved_config = checkpoint.checkpoint["channel_values"].get(
+            "workflow_config"
+        )
+        expected_keys = {
+            "version",
+            "data_dir",
+            "tool_backend",
+            "max_steps",
+            "diagnosis_model",
+            "diagnosis_settings",
+            "service",
+        }
+        if (
+            not isinstance(saved_config, dict)
+            or set(saved_config) != expected_keys
+            or saved_config["version"] != 4
+        ):
+            raise ValueError(
+                "Unsupported or missing saved workflow configuration."
+            )
+
+        graph = build_investigation_graph(
+            data_dir=Path(saved_config["data_dir"]),
+            max_steps=saved_config["max_steps"],
+            diagnosis_model=saved_config["diagnosis_model"],
+            diagnosis_settings=DiagnosisSettings.model_validate(
+                saved_config["diagnosis_settings"]
+            ),
+            tool_backend=saved_config["tool_backend"],
+            service=saved_config["service"],
+            checkpointer=saver,
+        )
+        pending = await graph.aget_state(config)
+
+        if not pending.next:
+            raise ValueError("Workflow is already complete.")
+        if pending.next != ("review",) or not pending.interrupts:
+            raise ValueError("Workflow is not waiting for a review response.")
+
+        await graph.ainvoke(
+            Command(resume=response),
+            config=config,
+        )
+        saved = await graph.aget_state(config)
+
+        return {
+            "database": str(database),
+            "thread_id": thread_id,
+            "next": list(saved.next),
+            "state": saved.values,
+            "interrupts": [item.value for item in saved.interrupts],
+        }
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
-        description="Start a persistent OpsPilot investigation."
+        description="Start, inspect, and review persistent OpsPilot workflows."
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -114,6 +188,11 @@ def main(argv: list[str] | None = None) -> None:
     inspect.add_argument("--database", type=Path, required=True)
     inspect.add_argument("--thread-id", required=True)
 
+    resume = commands.add_parser("resume")
+    resume.add_argument("--database", type=Path, required=True)
+    resume.add_argument("--thread-id", required=True)
+    resume.add_argument("--response", required=True)
+
     args = parser.parse_args(argv)
 
     if args.command == "inspect":
@@ -121,6 +200,14 @@ def main(argv: list[str] | None = None) -> None:
             inspect_workflow(
                 database=args.database,
                 thread_id=args.thread_id,
+            )
+        )
+    elif args.command == "resume":
+        result = asyncio.run(
+            resume_workflow(
+                database=args.database,
+                thread_id=args.thread_id,
+                response=args.response,
             )
         )
     else:
