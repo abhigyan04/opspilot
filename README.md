@@ -1653,9 +1653,18 @@ buttons displayed.
 docker compose up -d --force-recreate --wait app
 ```
 
+The user subsequently reported a Local MCP payment-provider-outage run,
+`workflow-ccddc3bd-72d4-45f3-ac3d-117b213fccc2`, created through the container
+UI. Its displayed evidence listed `query_metrics`, `get_deployments`,
+`get_commit`, and `search_logs`. The diagnosis identified PayBridge HTTP 503
+responses, noted that the earliest observed error preceded the deployment,
+and left the provider's internal cause unresolved. No action was proposed.
+This is a user-reported MCP deployment smoke check; the pasted view did not
+include expanded tool payloads or saved backend configuration.
+
 These are manual local deployment checks, not automated container tests,
 crash-recovery tests, or diagnosis-accuracy improvements. No rollback was
-executed. Containerized MCP investigation remains to be verified. Keep the
+executed. Keep the
 named volume when recreating the service; `docker compose down -v` removes
 Compose-managed named volumes, including saved checkpoints and PostgreSQL data.
 
