@@ -4,6 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OpsPilot</title>
+  <script>
+  (() => {
+    let theme;
+    try {
+      theme = localStorage.getItem("opspilot-theme");
+    } catch {}
+
+    if (theme !== "light" && theme !== "dark") {
+      theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    }
+
+    document.documentElement.dataset.theme = theme;
+  })();
+  </script>
   <style>
     :root {
       font-family: system-ui, sans-serif;
@@ -80,13 +96,420 @@
     textarea { resize: vertical; margin-bottom: 18px; }
     .field { flex: 1; min-width: 0; }
     [hidden] { display: none !important; }
+    :root {
+    --ink: #172b3a;
+    --muted: #526674;
+    --accent: #155e75;
+    --line: #dce4e9;
+    background: #f5f7fa;
+    }
+  
+    * { box-sizing: border-box; }
+    
+    main {
+      max-width: 1120px;
+      padding: 28px 28px 64px;
+    }
+    
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 32px;
+    }
+    
+    .brand {
+      color: var(--ink);
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -.06em;
+      text-decoration: none;
+    }
+    
+    .brand span { color: var(--accent); }
+    
+    .environment {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: .8rem;
+      color: var(--muted);
+      background: white;
+    }
+    
+    .hero { margin-bottom: 32px; }
+    
+    .eyebrow {
+      color: var(--accent);
+      font-size: .75rem;
+      font-weight: 750;
+      letter-spacing: .14em;
+      margin-bottom: 12px;
+    }
+    
+    h1 {
+      font-size: clamp(2rem, 4.5vw, 3.4rem);
+      line-height: 1.12;
+      letter-spacing: -.045em;
+      margin: 0;
+      max-width: 850px;
+    }
+    
+    .hero-description {
+      max-width: 650px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin: 20px 0 24px;
+    }
+    
+    .workflow-overview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 28px;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    
+    .workflow-overview b {
+      color: var(--accent);
+      margin-right: 7px;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    form, section {
+      padding: 26px;
+      border-radius: 14px;
+      box-shadow: 0 3px 12px rgb(23 43 58 / 3%);
+    }
+    
+    h2 {
+      font-size: 1.2rem;
+      letter-spacing: -.025em;
+      margin-bottom: 20px;
+    }
+    
+    h3 {
+      font-size: .95rem;
+      margin-top: 24px;
+    }
+    
+    label { font-size: .9rem; }
+    
+    input, textarea, select {
+      background: #fbfcfd;
+      color: var(--ink);
+      border-color: #b8c6d0;
+      border-radius: 8px;
+    }
+    
+    button {
+      min-height: 44px;
+      font-weight: 650;
+      border: 1px solid transparent;
+      border-radius: 8px;
+    }
+    
+    button:hover:not(:disabled) { background: #104b5e; }
+    
+    #load, #decline {
+      background: white;
+      color: var(--ink);
+      border-color: #b8c6d0;
+    }
+    
+    #load:hover:not(:disabled),
+    #decline:hover:not(:disabled) {
+      background: #eef3f6;
+    }
+
+    #theme-toggle[aria-pressed="true"] {
+      background: var(--badge);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    #message {
+      padding: 12px 0;
+      overflow-wrap: anywhere;
+      font-size: .9rem;
+    }
+    
+    #result {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+    
+    #result > section {
+      min-width: 0;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    
+    #result > section:first-child,
+    #result > section:last-child {
+      grid-column: 1 / -1;
+    }
+    
+    #status {
+      font-size: .85rem;
+      font-weight: 650;
+    }
+    
+    #diagnosis { font-size: 1.05rem; }
+    
+    #claims, #limitations { padding-left: 20px; }
+    
+    #review-controls {
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+    
+    details {
+      padding: 18px 0;
+    }
+    
+    summary {
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+    
+    pre {
+      font-size: .85rem;
+      line-height: 1.65;
+      border: 1px solid var(--line);
+    }
+    
+    @media (max-width: 760px) {
+      main { padding: 20px 16px 40px; }
+    
+      .brand-row {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-bottom: 28px;
+      }
+    
+      form, section { padding: 20px; }
+    
+      #result { grid-template-columns: minmax(0, 1fr); }
+    
+      .controls { flex-direction: column; }
+    
+      .controls button { width: 100%; }
+    }
+    
+    [hidden] { display: none !important; }
+
+    :root {
+      color-scheme: light;
+      --page: #f5f7fa;
+      --surface: #ffffff;
+      --field-bg: #fbfcfd;
+      --ink: #172b3a;
+      --muted: #526674;
+      --accent: #155e75;
+      --line: #dce4e9;
+      --control-line: #aabac5;
+      --primary: #155e75;
+      --primary-hover: #104b5e;
+      --on-primary: #ffffff;
+      --subtle: #eef3f6;
+      --badge: #e7f0f5;
+      --error: #a12622;
+      --focus: #087d9f;
+
+      color: var(--ink);
+      background: var(--page);
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #0c1420;
+      --surface: #142131;
+      --field-bg: #101b29;
+      --ink: #e6edf5;
+      --muted: #a9bacb;
+      --accent: #7dd3e8;
+      --line: #33465b;
+      --control-line: #71869b;
+      --primary: #7dd3e8;
+      --primary-hover: #a3e3f0;
+      --on-primary: #10212e;
+      --subtle: #203247;
+      --badge: #243b50;
+      --error: #ffaaa5;
+      --focus: #7dd3e8;
+    }
+
+    body {
+      color: var(--ink);
+      background: var(--page);
+    }
+
+    form, section, .environment {
+      background: var(--surface);
+      border-color: var(--line);
+    }
+
+    .muted { color: var(--muted); }
+
+    input, textarea, select {
+      color: var(--ink);
+      background: var(--field-bg);
+      border-color: var(--control-line);
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--muted);
+      opacity: 1;
+    }
+
+    button {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    #load, #decline, #theme-toggle {
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--control-line);
+    }
+
+    #load:hover:not(:disabled),
+    #decline:hover:not(:disabled),
+    #theme-toggle:hover:not(:disabled) {
+      background: var(--subtle);
+    }
+
+    #status {
+      color: var(--ink);
+      background: var(--badge);
+    }
+
+    #message.error { color: var(--error); }
+
+    details { border-color: var(--line); }
+
+    pre {
+      color: var(--ink);
+      background: var(--field-bg);
+      border-color: var(--line);
+    }
+
+    :focus-visible {
+      outline-color: var(--focus);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    #theme-toggle {
+      font-size: .85rem;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 760px) {
+      .header-actions {
+        width: 100%;
+        align-items: flex-start;
+      }
+
+      .environment {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+    }
+
+    /* Compact introduction */
+    .brand-row { padding-bottom: 20px; }
+    .hero { margin-bottom: 24px; }
+      
+    .hero h1 {
+      font-size: clamp(1.9rem, 3.5vw, 2.7rem);
+    }
+    
+    .hero-description {
+      margin: 14px 0 18px;
+      font-size: 1rem;
+    }
+    
+    .eyebrow { margin: 0 0 10px; }
+    
+    /* Compact incident summary */
+    #result > .incident-card { padding: 20px 24px; }
+    
+    .incident-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .incident-heading h2 { margin: 0; }
+    #incident { margin: 12px 0 0; }
+    
+    /* Let each card fit its own content */
+    #result { align-items: start; }
+    
+    #proposal {
+      font-size: 1.1rem;
+      font-weight: 650;
+      line-height: 1.5;
+    }
+    
+    #proposal-rationale {
+      margin-top: 18px;
+      padding: 14px 0;
+    }
+    
+    #proposal-reason {
+      color: var(--muted);
+      font-size: .95rem;
+      margin-bottom: 0;
+    }
+    
+    @media (max-width: 760px) {
+      .brand-row { padding-bottom: 20px; }
+      #result > .incident-card { padding: 20px; }
+    }
   </style>
 </head>
 <body>
 <main>
-  <header>
-    <h1>OpsPilot</h1>
-    <p class="muted">Investigate incidents. Inspect evidence. Review proposed actions.</p>
+  <header class="hero">
+    <div class="brand-row">
+      <a class="brand" href="/" aria-label="OpsPilot home">OpsPilot<span>.</span></a>
+      <div class="header-actions">
+        <span class="environment">Local workspace · Synthetic scenarios</span>
+        <button id="theme-toggle" type="button" aria-pressed="false">
+        Dark mode
+      </button>
+    </div>
+  </div>
+
+    <p class="eyebrow">INCIDENT INVESTIGATION</p>
+    <h1>From service errors<br>to evidence-backed decisions.</h1>
+    <p class="hero-description">
+      Investigate an incident, inspect the evidence, and review a proposed
+      response. You stay in control of the decision.
+    </p>
+
+    <div class="workflow-overview" aria-label="Investigation process">
+      <span><b>01</b> Investigate</span>
+      <span><b>02</b> Inspect evidence</span>
+      <span><b>03</b> Review proposal</span>
+    </div>
   </header>
 
   <form id="start-workflow">
@@ -136,9 +559,11 @@
   </p>
 
   <div id="result" hidden>
-    <section>
-      <h2>Incident</h2>
-      <span id="status"></span>
+    <section class="incident-card">
+      <div class="incident-heading">
+        <h2>Incident</h2>
+        <span id="status"></span>
+      </div>
       <p id="incident"></p>
     </section>
 
@@ -153,6 +578,10 @@
     <section>
       <h2>Proposed action</h2>
       <p id="proposal"></p>
+      <details id="proposal-rationale" hidden>
+        <summary>Proposal rationale</summary>
+        <p id="proposal-reason"></p>
+      </details>
       <p class="muted">
         Approval records a review decision only. It does not execute a rollback.
       </p>
@@ -171,6 +600,31 @@
 
 <script>
   const byId = (id) => document.getElementById(id);
+
+  function updateThemeToggle() {
+  const dark = document.documentElement.dataset.theme === "dark";
+  const toggle = byId("theme-toggle");
+  toggle.setAttribute("aria-pressed", String(dark));
+  toggle.title = dark ? "Switch to light mode" : "Switch to dark mode";
+  }
+
+  updateThemeToggle();
+  
+  byId("theme-toggle").addEventListener("click", () => {
+    const theme = document.documentElement.dataset.theme === "dark"
+      ? "light"
+      : "dark";
+  
+    document.documentElement.dataset.theme = theme;
+  
+    try {
+      localStorage.setItem("opspilot-theme", theme);
+    } catch {
+      // Theme switching still works when browser storage is unavailable.
+    }
+  
+    updateThemeToggle();
+  });
 
   let busy = false;
 
@@ -240,12 +694,20 @@
     );
 
     const proposal = state.proposal;
+
     byId("proposal").textContent = proposal
       ? `${proposal.service}: rollback ${proposal.current_version} → ` +
-        `${proposal.target_version}. ${proposal.reason}`
+        `${proposal.target_version}`
       : state.proposal_status === "no_proposal"
         ? "The workflow did not propose an action."
         : "No proposal has been saved.";
+
+    const rationale = byId("proposal-rationale");
+    const reason = proposal?.reason || "";
+
+    byId("proposal-reason").textContent = reason;
+    rationale.hidden = !reason;
+    rationale.open = false;
 
     byId("evidence").replaceChildren();
     const steps = state.investigation?.steps || [];
