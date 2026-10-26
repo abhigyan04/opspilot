@@ -1573,9 +1573,12 @@ and inspect sequence; it is not a concurrency or diagnosis-accuracy benchmark.
 The initial browser viewer is served at `http://127.0.0.1:8000/` from
 `app/web/index.html`. It loads an existing workflow by thread ID and displays
 its incident, diagnosis and citations, limitations or missing evidence,
-proposal, review status, and expandable tool-result evidence. It is read-only;
-browser controls for starting investigations and submitting reviews are not
-implemented yet. Dynamic content is rendered with `textContent`.
+proposal, review status, and expandable tool-result evidence. The start form
+accepts an incident, synthetic scenario, and direct Python or local MCP backend.
+It waits for the POST response and displays the created workflow ID and result.
+Browser review controls allow approval or decline of a displayed pending
+proposal. Approval records a decision only; it does not execute a rollback.
+Dynamic content is rendered with `textContent`.
 
 After adding the viewer, the reported suite remained **709 passed, 22 skipped**.
 This suite result does not verify browser behavior. Separately, user-reported
@@ -1584,6 +1587,26 @@ and citations, and visible expanded evidence. Loading `unknown-workflow`
 displayed `Workflow not found.` with the previous incident, diagnosis, proposal,
 and evidence no longer displayed. These are manual checks, not automated browser
 coverage.
+
+After adding the start form, the reported suite remained **709 passed, 22 skipped**.
+User-reported browser output on 26 October 2026 showed creation of
+`workflow-cef6d6df-d686-4034-a32c-e96b3fecbfc2`, an insufficient-evidence diagnosis,
+missing logs and deployment history, and no proposed action. This confirms the
+displayed start result; it does not establish a diagnosis-accuracy improvement.
+The user also confirmed that both forms were disabled during the request and
+loading this new workflow by ID displayed the same result. These are manual
+browser checks, not automated browser coverage.
+
+After adding browser review controls, the reported suite remained **709 passed,
+22 skipped**. User-reported browser output showed
+`workflow-7cc24558-6d87-46fa-beee-7f91cdbe93bb` loaded with status `Declined` and
+no review buttons displayed, confirming the saved decline remained visible on
+reload. A subsequent browser approval for
+`workflow-fd79dbd5-9fd0-4fa2-8eb2-47ee82ce6daa` displayed the review-saved message,
+`Approved · not executed`, and no review buttons. The user then reloaded this
+workflow and confirmed the same approved status with no review buttons.
+These manual checks do not demonstrate
+rollback execution or improved diagnosis accuracy.
 
 ### Offline simulation control report
 

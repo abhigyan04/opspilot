@@ -67,6 +67,19 @@
       .controls { flex-direction: column; }
       main { padding-top: 20px; }
     }
+    textarea, select {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #aabac5;
+      border-radius: 6px;
+      font: inherit;
+      background: white;
+      color: inherit;
+    }
+    textarea { resize: vertical; margin-bottom: 18px; }
+    .field { flex: 1; min-width: 0; }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
@@ -75,6 +88,39 @@
     <h1>OpsPilot</h1>
     <p class="muted">Investigate incidents. Inspect evidence. Review proposed actions.</p>
   </header>
+
+  <form id="start-workflow">
+    <h2>Start investigation</h2>
+
+    <label for="incident-input">Incident</label>
+    <textarea id="incident-input" required maxlength="4000" rows="4"
+      placeholder="Describe the service and symptoms to investigate."></textarea>
+
+    <div class="controls">
+      <div class="field">
+        <label for="scenario">Scenario</label>
+        <select id="scenario">
+          <option value="checkout_regression">Checkout regression</option>
+          <option value="payment_provider_outage">Payment-provider outage</option>
+          <option value="sparse_evidence">Sparse evidence</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="backend">Tool backend</label>
+        <select id="backend">
+          <option value="direct">Direct Python</option>
+          <option value="mcp">Local MCP</option>
+        </select>
+      </div>
+    </div>
+
+    <p class="muted">
+      Uses local models and synthetic scenario data. Investigation may take
+      several minutes. Keep this page open until the result appears.
+    </p>
+    <button id="start-button" type="submit">Start investigation</button>
+  </form>
 
   <form id="lookup">
     <label for="thread">Saved workflow ID</label>
@@ -110,6 +156,10 @@
       <p class="muted">
         Approval records a review decision only. It does not execute a rollback.
       </p>
+      <div id="review-controls" class="controls" hidden>
+        <button id="approve" type="button">Approve proposal</button>
+        <button id="decline" type="button">Decline proposal</button>
+      </div>
     </section>
 
     <section>
@@ -122,6 +172,26 @@
 <script>
   const byId = (id) => document.getElementById(id);
 
+  let busy = false;
+
+  let reviewTarget = null;
+
+  function clearReview() {
+    reviewTarget = null;
+    byId("review-controls").hidden = true;
+  }
+
+  function setBusy(value) {
+    busy = value;
+    document.querySelectorAll(
+      "#lookup input, #lookup button, " +
+      "#start-workflow textarea, #start-workflow select, " +
+      "#start-workflow button, #review-controls button"
+    ).forEach(control => {
+      control.disabled = value;
+    });
+  }
+
   function renderList(id, items) {
     const list = byId(id);
     list.replaceChildren();
@@ -133,6 +203,7 @@
   }
 
   function renderWorkflow(workflow) {
+    clearReview();
     const state = workflow.state;
     const diagnosis = state.diagnosis;
     const labels = {
@@ -195,19 +266,36 @@
     if (!steps.length) {
       byId("evidence").textContent = "No investigation evidence has been saved.";
     }
+    if (
+      state.proposal_status === "review_required" &&
+      state.proposal &&
+      typeof state.proposal_id === "string" &&
+      state.proposal_id &&
+      workflow.next.length === 1 &&
+      workflow.next[0] === "review" &&
+      workflow.interrupts?.length &&
+      typeof workflow.thread_id === "string"
+    ) {
+      reviewTarget = {
+        threadId: workflow.thread_id,
+        proposalId: state.proposal_id
+      };
+      byId("review-controls").hidden = false;
+    }
     byId("result").hidden = false;
   }
 
   byId("lookup").addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (busy) return;
     const thread = byId("thread").value.trim();
     if (!thread) {
       byId("message").textContent = "Enter a workflow ID.";
       return;
     }
 
-    byId("load").disabled = true;
-    byId("thread").disabled = true;
+    setBusy(true);
+    clearReview();
     byId("result").hidden = true;
     byId("message").className = "";
     byId("message").textContent = "Loading workflow…";
@@ -232,10 +320,132 @@
       byId("message").className = "error";
       byId("message").textContent = error.message || "Unable to load workflow.";
     } finally {
-      byId("load").disabled = false;
-      byId("thread").disabled = false;
+      setBusy(false);
     }
   });
+
+  byId("start-workflow").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (busy) return;
+
+    const incident = byId("incident-input").value;
+    if (!incident.trim()) {
+      byId("message").className = "error";
+      byId("message").textContent = "Describe the incident before starting.";
+      return;
+    }
+
+    const payload = {
+      incident,
+      scenario: byId("scenario").value,
+      tool_backend: byId("backend").value
+    };
+
+    // Clear the previous ID so it cannot be mistaken for this new attempt.
+    byId("thread").value = "";
+    clearReview();
+    byId("result").hidden = true;
+    byId("message").className = "";
+    byId("message").textContent =
+      "Investigating… Waiting for the saved result.";
+    byId("start-button").textContent = "Investigating…";
+    setBusy(true);
+
+    try {
+      const response = await fetch("/workflows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        byId("message").className = "error";
+
+        if (data.detail?.thread_id) {
+          byId("thread").value = data.detail.thread_id;
+          byId("message").textContent =
+            `Investigation failed. Workflow ID: ${data.detail.thread_id}. ` +
+            "Use Load workflow to inspect any saved checkpoint before retrying.";
+        } else if (response.status === 422) {
+          byId("message").textContent =
+            "The request was rejected. Check the incident and selected options.";
+        } else {
+          byId("message").textContent =
+            `Request failed (${response.status}). ` +
+            "The outcome is unknown; check the server before submitting again.";
+        }
+        return;
+      }
+
+      // Preserve the ID even if displaying the result encounters a problem.
+      byId("thread").value = data.thread_id;
+      renderWorkflow(data);
+      byId("message").textContent = `Created ${data.thread_id}`;
+    } catch (error) {
+      byId("message").className = "error";
+      byId("message").textContent = byId("thread").value
+        ? "Unable to display the result. Use Load workflow with the returned ID."
+        : "The request could not be completed in this browser. " +
+          "The server may still be processing it. Check the server before " +
+          "submitting again.";
+    } finally {
+      setBusy(false);
+      byId("start-button").textContent = "Start investigation";
+    }
+  });
+
+  async function submitReview(decision) {
+  if (busy || !reviewTarget) return;
+
+  // Use the displayed proposal, not the editable lookup field.
+  const target = { ...reviewTarget };
+  clearReview();
+  setBusy(true);
+  byId("thread").value = target.threadId;
+  byId("message").className = "";
+  byId("message").textContent = "Saving review decision…";
+
+  try {
+    const response = await fetch(
+      `/workflows/${encodeURIComponent(target.threadId)}/review`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proposal_id: target.proposalId,
+          decision
+        })
+      }
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      const detail = typeof data.detail === "string"
+        ? data.detail
+        : `Review request failed (${response.status}).`;
+      throw new Error(detail);
+    }
+
+    renderWorkflow(data);
+    byId("message").textContent =
+      `Review saved for ${target.threadId}. No rollback was executed.`;
+  } catch (error) {
+    // The server may have saved the decision even if the response was lost.
+    // Require a fresh load before making another review attempt.
+    clearReview();
+    byId("result").hidden = true;
+    byId("message").className = "error";
+    byId("message").textContent =
+      (error.message || "Unable to confirm the review result.") +
+      " Load this workflow to check its saved state before reviewing again.";
+  } finally {
+    setBusy(false);
+  }
+  }
+
+  byId("approve").addEventListener("click", () => submitReview("approve"));
+  byId("decline").addEventListener("click", () => submitReview("decline"));
 </script>
 </body>
 </html>
