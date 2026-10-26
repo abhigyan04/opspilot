@@ -1608,6 +1608,57 @@ workflow and confirmed the same approved status with no review buttons.
 These manual checks do not demonstrate
 rollback execution or improved diagnosis accuracy.
 
+The user also confirmed a two-tab stale-review check for
+`workflow-1ff55f8a-f27c-4ad4-8c24-131c1810859c`: after declining in the first tab,
+an approval attempt from the stale second tab displayed the expected
+`Workflow is not waiting for review.` error and reload instruction. Loading
+the workflow again showed `Declined` with no review buttons. This manual
+check confirms the later stale submission did not overwrite the saved decision;
+it is not a simultaneous-request or multi-process concurrency test.
+
+### Local application container
+
+Build and start the single-worker application with Docker Compose:
+
+```powershell
+docker compose config --quiet
+docker compose up -d --build --wait app
+docker compose ps app
+Invoke-RestMethod http://127.0.0.1:8001/health
+```
+
+Open `http://127.0.0.1:8001/`. The application runs as a non-root user and
+connects to Windows-hosted Ollama through
+`OLLAMA_HOST=http://host.docker.internal:11434`. Investigation uses `qwen3:4b`
+and diagnosis uses `qwen3:8b`; both must be available in that Ollama instance.
+The health check tests API liveness only, not model connectivity.
+
+The `workflow_data` named volume stores SQLite checkpoints at
+`/opt/opspilot/out/workflows/checkpoints.sqlite`. This is separate from the
+Windows checkout's `out/workflows` directory. The image includes application
+code, the browser page, and synthetic scenario fixtures; its build-context
+allowlist excludes local environment files and saved reports. This deployment
+does not configure the RAG knowledge corpus or retrieval database connection.
+
+User-reported checks confirmed the image imports, non-root execution, log-tool
+fixture access, writable checkpoint storage, dependency consistency, healthy
+API, browser page, and container-to-Ollama model listing. A direct-backend
+checkout investigation created
+`workflow-d6525bf1-0a47-4cbc-9d9e-f4b3a8d60672`. Following the container-recreation
+procedure, the user reported loading its pending proposal, declining it, and
+loading the persisted `Declined` state after another recreation, with no review
+buttons displayed.
+
+```powershell
+docker compose up -d --force-recreate --wait app
+```
+
+These are manual local deployment checks, not automated container tests,
+crash-recovery tests, or diagnosis-accuracy improvements. No rollback was
+executed. Containerized MCP investigation remains to be verified. Keep the
+named volume when recreating the service; `docker compose down -v` removes
+Compose-managed named volumes, including saved checkpoints and PostgreSQL data.
+
 ### Offline simulation control report
 
 Run the deterministic control evaluation without Ollama or infrastructure access:

@@ -1,0 +1,19 @@
+# Exclude everything except application build inputs.
+**
+!Dockerfile
+!.dockerignore
+!pyproject.toml
+!app/
+!app/**
+!data/
+!data/scenarios/
+!data/scenarios/**
+
+# Exclude generated files and local configuration within allowed directories.
+**/__pycache__/
+**/*.py[cod]
+**/.env
+**/.env.*
+**/*.sqlite*
+**/*.db
+**/*.egg-info/
