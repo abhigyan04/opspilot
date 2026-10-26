@@ -1349,6 +1349,17 @@ sample as within seven minutes of deployment (13:57 to 14:05 is eight minutes),
 and that timing claim cited only metrics rather than also citing deployment
 evidence.
 
+A live MCP-backend run for `payment_provider_outage` on 26 October 2026,
+thread `provider-mcp-5b2a0e32-ce1f-4de7-811e-a756d7890038`, completed with
+`no_proposal`, null proposal and proposal ID, and no pending nodes or interrupts.
+The reported start and separate inspection JSON matched exactly. The final
+diagnosis cited PayBridge HTTP 503 observations, correctly placed the earliest
+observed failure before deployment, and acknowledged that PayBridge's internal
+failure cause was unknown. The investigation's earlier narrative incorrectly
+framed the error increase as following deployment; this live orchestration check
+does not establish that all intermediate reasoning is accurate. No rollback
+was proposed or executed.
+
 Inspect an existing workflow with:
 
 ```powershell
