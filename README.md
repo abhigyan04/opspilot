@@ -1181,6 +1181,12 @@ execution over MCP has so far been verified only for checkout regression.
 
 ### Milestone 11: LangGraph foundation
 
+The bounded persistent investigation-and-review checkpoint is complete locally.
+See the [Milestone 11 review](docs/milestone-11-review.md) for test evidence,
+three live scenario checks, remaining reasoning issues, and deferred execution
+and recovery work. This is a staged migration: the graph wraps the existing
+investigation loop, and approval records a decision without executing rollback.
+
 `app.agent.workflow.build_investigation_graph()` builds an async
 `START -> prepare -> investigate -> diagnose -> propose` graph around the existing
 agent functions. No-proposal cases end directly; eligible proposals enter a
