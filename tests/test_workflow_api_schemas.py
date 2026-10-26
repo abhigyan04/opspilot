@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.api.schemas import StartWorkflowRequest
+from app.api.schemas import StartWorkflowRequest, ReviewWorkflowRequest
 
 
 def test_start_request_defaults_and_preserves_incident():
@@ -75,3 +75,45 @@ def test_start_request_rejects_server_controlled_or_unrelated_fields(field, valu
         and item["loc"] == (field,)
         for item in error.value.errors()
     )
+
+
+PROPOSAL_ID = "e44d2bcb-d640-4c54-ba6b-2291bb6560b9"
+
+
+@pytest.mark.parametrize("decision", ["approve", "decline"])
+def test_review_request_requires_explicit_decision(decision):
+    request = ReviewWorkflowRequest(
+        proposal_id=PROPOSAL_ID,
+        decision=decision,
+    )
+
+    assert request.model_dump() == {
+        "proposal_id": PROPOSAL_ID,
+        "decision": decision,
+    }
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"proposal_id": PROPOSAL_ID},
+        {"decision": "approve"},
+        {"proposal_id": "", "decision": "approve"},
+        {"proposal_id": " ", "decision": "approve"},
+        {"proposal_id": f" {PROPOSAL_ID}", "decision": "approve"},
+        {"proposal_id": "two ids", "decision": "approve"},
+        {"proposal_id": 123, "decision": "approve"},
+        {"proposal_id": "x" * 129, "decision": "approve"},
+        {"proposal_id": PROPOSAL_ID, "decision": True},
+        {"proposal_id": PROPOSAL_ID, "decision": "yes"},
+        {"proposal_id": PROPOSAL_ID, "decision": "APPROVE"},
+        {
+            "proposal_id": PROPOSAL_ID,
+            "decision": "approve",
+            "target_version": "different-version",
+        },
+    ],
+)
+def test_review_request_rejects_invalid_or_extra_fields(payload):
+    with pytest.raises(ValidationError):
+        ReviewWorkflowRequest.model_validate(payload)

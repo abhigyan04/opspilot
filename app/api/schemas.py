@@ -20,3 +20,17 @@ class StartWorkflowRequest(BaseModel):
         if not value.strip():
             raise ValueError("Incident must contain non-whitespace text.")
         return value
+
+
+class ReviewWorkflowRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    proposal_id: str = Field(min_length=1, max_length=128)
+    decision: Literal["approve", "decline"]
+
+    @field_validator("proposal_id")
+    @classmethod
+    def reject_whitespace_in_proposal_id(cls, value: str) -> str:
+        if any(character.isspace() for character in value):
+            raise ValueError("Proposal ID must not contain whitespace.")
+        return value

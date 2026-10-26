@@ -1517,6 +1517,16 @@ completed rollback. The final diagnosis repeated the previously noted
 seven-versus-eight-minute timing error. These are known reasoning defects;
 the HTTP creation and persistence check does not establish diagnosis accuracy.
 
+The review-request schema requires `proposal_id` and an explicit `approve` or
+`decline` decision, with no default decision. IDs must be nonempty strings of
+at most 128 characters without whitespace. Extra fields are rejected, so a
+review request cannot modify the proposed target version. This validates the
+request shape only; matching the ID to the pending proposal is the endpoint's
+responsibility. The review endpoint is not implemented yet.
+
+The review-schema checkpoint passed **33 focused schema tests** and
+**698 passed, 22 skipped** in the reported full suite.
+
 ### Offline simulation control report
 
 Run the deterministic control evaluation without Ollama or infrastructure access:
