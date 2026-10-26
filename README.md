@@ -1497,8 +1497,25 @@ to inspect.
 The POST contract checkpoint passed **31 combined API/schema tests** and
 **682 passed, 22 skipped** in the reported full suite. New tests verify request
 forwarding, distinct generated IDs, inspection links, validation before work,
-and error responses. They stub the start function; persistence through POST
-and a live HTTP start have not yet been verified.
+and error responses. They stub the start function.
+
+The subsequent persistence checkpoint passed **14 combined persistence/API
+tests** and **684 passed, 22 skipped** in the reported full suite. Tests use
+the real workflow start function, graph, SQLite saver, and proposal policy with
+scripted investigation and diagnosis. Both a completed no-proposal workflow
+and a review-pending workflow are retrieved through their POST `Location`
+links by a new application instance. Repeated GET responses match the POST
+state without rerunning investigation, diagnosis, or proposal generation.
+This verifies reopening in the same process, not an HTTP server process restart.
+On 26 October 2026, a live HTTP POST for `checkout_regression` created thread
+`workflow-33e51b50-5761-4ced-bff8-5f8194f3dcea` and paused for review with proposal
+`e44d2bcb-d640-4c54-ba6b-2291bb6560b9` (`1.7.4` to `1.7.3`). The supplied POST
+and subsequent GET JSON matched exactly, including evidence and usage. The
+proposal remains pending; no rollback was executed. The investigation narrative
+incorrectly interpreted `rollback_target_version` as evidence of an already
+completed rollback. The final diagnosis repeated the previously noted
+seven-versus-eight-minute timing error. These are known reasoning defects;
+the HTTP creation and persistence check does not establish diagnosis accuracy.
 
 ### Offline simulation control report
 
