@@ -1,0 +1,158 @@
+{
+  "format_version": 1,
+  "scenario": "payment_provider_outage",
+  "mode": "recorded_demo",
+  "synthetic": true,
+  "provenance": {
+    "source_thread_id": "workflow-ccddc3bd-72d4-45f3-ac3d-117b213fccc2",
+    "source_response_sha256": "0d38af4b84a7c15882cab7c45ad80b3b93d1c531985de56f0556da3342b5dff1",
+    "exported_at": "2026-10-27T05:32:06.924494+00:00",
+    "tool_backend": "mcp",
+    "diagnosis_model": "qwen3:8b"
+  },
+  "workflow": {
+    "thread_id": "demo-payment_provider_outage",
+    "next": [],
+    "interrupts": [],
+    "state": {
+      "incident": "Errors in checkout-service have increased significantly. Investigate.",
+      "diagnosis": {
+        "status": "supported",
+        "root_cause": {
+          "statement": "checkout-service encountered HTTP 503 SERVICE_UNAVAILABLE errors from dependency PayBridge",
+          "evidence_ids": [
+            "evidence-004"
+          ]
+        },
+        "supporting_claims": [
+          {
+            "statement": "The error rate spiked from 0.01 to 0.3 within 4 minutes, then to 0.4 within 8 minutes",
+            "evidence_ids": [
+              "evidence-001"
+            ]
+          },
+          {
+            "statement": "The error messages explicitly show PayBridge returned HTTP 503 SERVICE_UNAVAILABLE",
+            "evidence_ids": [
+              "evidence-004"
+            ]
+          },
+          {
+            "statement": "The deployment of version 1.7.4 occurred after the earliest observed error (13:54) but before the second error (14:02)",
+            "evidence_ids": [
+              "evidence-002",
+              "evidence-004"
+            ]
+          }
+        ],
+        "limitations": [
+          "The exact cause of PayBridge's SERVICE_UNAVAILABLE status is not determined in the provided observations"
+        ],
+        "reference_notes": []
+      },
+      "proposal": null,
+      "proposal_status": "no_proposal",
+      "investigation": {
+        "steps": [
+          {
+            "evidence_id": "evidence-001",
+            "decision": {
+              "tool": "query_metrics",
+              "arguments": {
+                "service": "checkout-service",
+                "metric_name": "error_rate"
+              }
+            },
+            "result": [
+              {
+                "service": "checkout-service",
+                "metric": "error_rate",
+                "timestamp": "2026-09-28T13:50:00Z",
+                "value": 0.01
+              },
+              {
+                "service": "checkout-service",
+                "metric": "error_rate",
+                "timestamp": "2026-09-28T13:54:00Z",
+                "value": 0.3
+              },
+              {
+                "service": "checkout-service",
+                "metric": "error_rate",
+                "timestamp": "2026-09-28T14:02:00Z",
+                "value": 0.4
+              }
+            ]
+          },
+          {
+            "evidence_id": "evidence-002",
+            "decision": {
+              "tool": "get_deployments",
+              "arguments": {
+                "service": "checkout-service"
+              }
+            },
+            "result": [
+              {
+                "service": "checkout-service",
+                "version": "1.7.4",
+                "timestamp": "2026-09-28T13:57:00Z",
+                "commit_hash": "b72d9e1",
+                "rollback_target_version": "1.7.3"
+              }
+            ]
+          },
+          {
+            "evidence_id": "evidence-003",
+            "decision": {
+              "tool": "get_commit",
+              "arguments": {
+                "commit_hash": "b72d9e1"
+              }
+            },
+            "result": {
+              "hash": "b72d9e1",
+              "message": "Add checkout request logging",
+              "diff": " def checkout(request):\n+    logger.info(\"Checkout request received\")\n     return process_checkout(request)"
+            }
+          },
+          {
+            "evidence_id": "evidence-004",
+            "decision": {
+              "tool": "search_logs",
+              "arguments": {
+                "service": "checkout-service",
+                "level": "ERROR"
+              }
+            },
+            "result": [
+              {
+                "timestamp": "2026-09-28T13:54:00Z",
+                "service": "checkout-service",
+                "version": "1.7.3",
+                "level": "ERROR",
+                "message": "Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE"
+              },
+              {
+                "timestamp": "2026-09-28T14:02:00Z",
+                "service": "checkout-service",
+                "version": "1.7.4",
+                "level": "ERROR",
+                "message": "Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "presentation": {
+    "title": "Payment-provider outage",
+    "summary": "Inspect dependency failures that began before a nearby deployment.",
+    "review_notes": [
+      "Recorded output from a synthetic scenario; no live investigation runs when viewing this demo.",
+      "The logs show PayBridge returning HTTP 503 before and after deployment. They do not establish the provider's internal failure cause.",
+      "No remediation action was proposed or executed."
+    ]
+  }
+}

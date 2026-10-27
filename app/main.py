@@ -26,6 +26,12 @@ DEFAULT_WORKFLOW_DATABASE = (
     / "checkpoints.sqlite"
 )
 
+DEMO_FILES = {
+    "checkout_regression":
+        Path(__file__).resolve().parent / "web" / "demo-data" / "checkout_regression.json",
+    "payment_provider_outage":
+        Path(__file__).resolve().parent / "web" / "demo-data" / "payment_provider_outage.json",
+}
 
 def create_app(*, database: Path = DEFAULT_WORKFLOW_DATABASE) -> FastAPI:
     database = database.resolve()
@@ -43,6 +49,24 @@ def create_app(*, database: Path = DEFAULT_WORKFLOW_DATABASE) -> FastAPI:
             Path(__file__).resolve().parent / "web" / "index.html",
             media_type="text/html",
         )
+
+    @application.get("/demo.html", include_in_schema=False)
+    async def demo_page() -> FileResponse:
+        return FileResponse(
+            Path(__file__).resolve().parent / "web" / "demo.html",
+            media_type="text/html",
+        )
+
+    @application.get("/demo-data/{scenario}.json", include_in_schema=False)
+    async def get_demo_data(scenario: str) -> FileResponse:
+        path = DEMO_FILES.get(scenario)
+        if path is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Demo scenario not found.",
+            )
+
+        return FileResponse(path, media_type="application/json")
 
     @application.get("/health")
     async def health() -> dict[str, str]:

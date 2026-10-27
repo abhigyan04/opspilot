@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpsPilot · Recorded demo</title>
+  <script>
+  (() => {
+    let theme;
+    try {
+      theme = localStorage.getItem("opspilot-theme");
+    } catch {}
+
+    if (theme !== "light" && theme !== "dark") {
+      theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    }
+
+    document.documentElement.dataset.theme = theme;
+  })();
+  </script>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      color: #172b3a;
+      background: #f3f6f8;
+    }
+    body { margin: 0; }
+    main { max-width: 960px; margin: auto; padding: 40px 20px; }
+    header { margin-bottom: 28px; }
+    h1 { margin-bottom: 6px; }
+    h2 { font-size: 1.15rem; margin-top: 0; }
+    p { line-height: 1.6; }
+    .muted { color: #526674; }
+    section, form {
+      background: white;
+      border: 1px solid #dce4e9;
+      border-radius: 12px;
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+    label { display: block; font-weight: 600; margin-bottom: 10px; }
+    .controls { display: flex; gap: 10px; }
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid #aabac5;
+      border-radius: 6px;
+      font: inherit;
+    }
+    button {
+      background: #155e75;
+      color: white;
+      border: 0;
+      border-radius: 6px;
+      padding: 12px 18px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    :focus-visible { outline: 3px solid #20a4c7; outline-offset: 3px; }
+    #message { min-height: 24px; }
+    #message.error { color: #a12622; }
+    #status {
+      display: inline-block;
+      background: #e7f0f5;
+      border-radius: 6px;
+      padding: 6px 10px;
+    }
+    li { margin-bottom: 8px; line-height: 1.5; }
+    details { border-top: 1px solid #dce4e9; padding: 14px 0; }
+    summary { cursor: pointer; font-weight: 600; }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #f3f6f8;
+      padding: 12px;
+      border-radius: 6px;
+    }
+    @media (max-width: 600px) {
+      .controls { flex-direction: column; }
+      main { padding-top: 20px; }
+    }
+    textarea, select {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #aabac5;
+      border-radius: 6px;
+      font: inherit;
+      background: white;
+      color: inherit;
+    }
+    textarea { resize: vertical; margin-bottom: 18px; }
+    .field { flex: 1; min-width: 0; }
+    [hidden] { display: none !important; }
+    :root {
+    --ink: #172b3a;
+    --muted: #526674;
+    --accent: #155e75;
+    --line: #dce4e9;
+    background: #f5f7fa;
+    }
+  
+    * { box-sizing: border-box; }
+    
+    main {
+      max-width: 1120px;
+      padding: 28px 28px 64px;
+    }
+    
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 32px;
+    }
+    
+    .brand {
+      color: var(--ink);
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: -.06em;
+      text-decoration: none;
+    }
+    
+    .brand span { color: var(--accent); }
+    
+    .environment {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: .8rem;
+      color: var(--muted);
+      background: white;
+    }
+    
+    .hero { margin-bottom: 32px; }
+    
+    .eyebrow {
+      color: var(--accent);
+      font-size: .75rem;
+      font-weight: 750;
+      letter-spacing: .14em;
+      margin-bottom: 12px;
+    }
+    
+    h1 {
+      font-size: clamp(2rem, 4.5vw, 3.4rem);
+      line-height: 1.12;
+      letter-spacing: -.045em;
+      margin: 0;
+      max-width: 850px;
+    }
+    
+    .hero-description {
+      max-width: 650px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin: 20px 0 24px;
+    }
+    
+    .workflow-overview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 28px;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    
+    .workflow-overview b {
+      color: var(--accent);
+      margin-right: 7px;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    form, section {
+      padding: 26px;
+      border-radius: 14px;
+      box-shadow: 0 3px 12px rgb(23 43 58 / 3%);
+    }
+    
+    h2 {
+      font-size: 1.2rem;
+      letter-spacing: -.025em;
+      margin-bottom: 20px;
+    }
+    
+    h3 {
+      font-size: .95rem;
+      margin-top: 24px;
+    }
+    
+    label { font-size: .9rem; }
+    
+    input, textarea, select {
+      background: #fbfcfd;
+      color: var(--ink);
+      border-color: #b8c6d0;
+      border-radius: 8px;
+    }
+    
+    button {
+      min-height: 44px;
+      font-weight: 650;
+      border: 1px solid transparent;
+      border-radius: 8px;
+    }
+    
+    button:hover:not(:disabled) { background: #104b5e; }
+    
+    #load, #decline {
+      background: white;
+      color: var(--ink);
+      border-color: #b8c6d0;
+    }
+    
+    #load:hover:not(:disabled),
+    #decline:hover:not(:disabled) {
+      background: #eef3f6;
+    }
+
+    #theme-toggle[aria-pressed="true"] {
+      background: var(--badge);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    #message {
+      padding: 12px 0;
+      overflow-wrap: anywhere;
+      font-size: .9rem;
+    }
+    
+    #result {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+    
+    #result > section {
+      min-width: 0;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    
+    #result > section:first-child,
+    #result > section:last-child {
+      grid-column: 1 / -1;
+    }
+    
+    #status {
+      font-size: .85rem;
+      font-weight: 650;
+    }
+    
+    #diagnosis { font-size: 1.05rem; }
+    
+    #claims, #limitations { padding-left: 20px; }
+    
+    #review-controls {
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+    
+    details {
+      padding: 18px 0;
+    }
+    
+    summary {
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+    
+    pre {
+      font-size: .85rem;
+      line-height: 1.65;
+      border: 1px solid var(--line);
+    }
+    
+    @media (max-width: 760px) {
+      main { padding: 20px 16px 40px; }
+    
+      .brand-row {
+        align-items: flex-start;
+        flex-direction: column;
+        padding-bottom: 28px;
+      }
+    
+      form, section { padding: 20px; }
+    
+      #result { grid-template-columns: minmax(0, 1fr); }
+    
+      .controls { flex-direction: column; }
+    
+      .controls button { width: 100%; }
+    }
+    
+    [hidden] { display: none !important; }
+
+    :root {
+      color-scheme: light;
+      --page: #f5f7fa;
+      --surface: #ffffff;
+      --field-bg: #fbfcfd;
+      --ink: #172b3a;
+      --muted: #526674;
+      --accent: #155e75;
+      --line: #dce4e9;
+      --control-line: #aabac5;
+      --primary: #155e75;
+      --primary-hover: #104b5e;
+      --on-primary: #ffffff;
+      --subtle: #eef3f6;
+      --badge: #e7f0f5;
+      --error: #a12622;
+      --focus: #087d9f;
+
+      color: var(--ink);
+      background: var(--page);
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #0c1420;
+      --surface: #142131;
+      --field-bg: #101b29;
+      --ink: #e6edf5;
+      --muted: #a9bacb;
+      --accent: #7dd3e8;
+      --line: #33465b;
+      --control-line: #71869b;
+      --primary: #7dd3e8;
+      --primary-hover: #a3e3f0;
+      --on-primary: #10212e;
+      --subtle: #203247;
+      --badge: #243b50;
+      --error: #ffaaa5;
+      --focus: #7dd3e8;
+    }
+
+    body {
+      color: var(--ink);
+      background: var(--page);
+    }
+
+    form, section, .environment {
+      background: var(--surface);
+      border-color: var(--line);
+    }
+
+    .muted { color: var(--muted); }
+
+    input, textarea, select {
+      color: var(--ink);
+      background: var(--field-bg);
+      border-color: var(--control-line);
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--muted);
+      opacity: 1;
+    }
+
+    button {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    #load, #decline, #theme-toggle {
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--control-line);
+    }
+
+    #load:hover:not(:disabled),
+    #decline:hover:not(:disabled),
+    #theme-toggle:hover:not(:disabled) {
+      background: var(--subtle);
+    }
+
+    #status {
+      color: var(--ink);
+      background: var(--badge);
+    }
+
+    #message.error { color: var(--error); }
+
+    details { border-color: var(--line); }
+
+    pre {
+      color: var(--ink);
+      background: var(--field-bg);
+      border-color: var(--line);
+    }
+
+    :focus-visible {
+      outline-color: var(--focus);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    #theme-toggle {
+      font-size: .85rem;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 760px) {
+      .header-actions {
+        width: 100%;
+        align-items: flex-start;
+      }
+
+      .environment {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+    }
+
+    /* Compact introduction */
+    .brand-row { padding-bottom: 20px; }
+    .hero { margin-bottom: 24px; }
+      
+    .hero h1 {
+      font-size: clamp(1.9rem, 3.5vw, 2.7rem);
+    }
+    
+    .hero-description {
+      margin: 14px 0 18px;
+      font-size: 1rem;
+    }
+    
+    .eyebrow { margin: 0 0 10px; }
+    
+    /* Compact incident summary */
+    #result > .incident-card { padding: 20px 24px; }
+    
+    .incident-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .incident-heading h2 { margin: 0; }
+    #incident { margin: 12px 0 0; }
+    
+    /* Let each card fit its own content */
+    #result { align-items: start; }
+    
+    #proposal {
+      font-size: 1.1rem;
+      font-weight: 650;
+      line-height: 1.5;
+    }
+    
+    #proposal-rationale {
+      margin-top: 18px;
+      padding: 14px 0;
+    }
+    
+    #proposal-reason {
+      color: var(--muted);
+      font-size: .95rem;
+      margin-bottom: 0;
+    }
+    
+    @media (max-width: 760px) {
+      .brand-row { padding-bottom: 20px; }
+      #result > .incident-card { padding: 20px; }
+    }
+
+    button.citation {
+      display: inline-block;
+      min-height: 28px;
+      max-width: 100%;
+      margin: 3px 0;
+      padding: 3px 8px;
+      border: 1px solid var(--control-line);
+      border-radius: 6px;
+      background: var(--badge);
+      color: var(--accent);
+      font-size: .8rem;
+      font-weight: 650;
+      line-height: 1.4;
+      vertical-align: baseline;
+      overflow-wrap: anywhere;
+    }
+
+    button.citation:hover:not(:disabled) {
+      background: var(--subtle);
+      border-color: var(--accent);
+    }
+    
+    .evidence-item {
+      scroll-margin-top: 24px;
+    }
+    
+    .evidence-item > summary:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 5px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div class="brand-row">
+      <a class="brand" href="./demo.html" aria-label="OpsPilot home">OpsPilot<span>.</span></a>
+      <div class="header-actions">
+        <span class="environment">Recorded demo · Synthetic scenarios</span>
+        <button id="theme-toggle" type="button" aria-pressed="false">
+        Dark mode
+      </button>
+    </div>
+  </div>
+
+    <p class="eyebrow">INCIDENT INVESTIGATION</p>
+    <h1>From service errors<br>to evidence-backed decisions.</h1>
+    <p class="hero-description">
+      Explore recorded investigations from the working local application.
+      These synthetic examples show saved model output and human review outcomes.
+      No live investigation or remediation runs here.
+    </p>
+
+    <div class="workflow-overview" aria-label="Investigation process">
+      <span><b>01</b> Investigate</span>
+      <span><b>02</b> Inspect evidence</span>
+      <span><b>03</b> Review proposal</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="demo-heading">
+    <h2 id="demo-heading">Explore a recorded investigation</h2>
+    <label for="demo-scenario">Scenario</label>
+    <div class="controls">
+      <select id="demo-scenario">
+        <option value="checkout_regression">Checkout regression</option>
+        <option value="payment_provider_outage">Payment-provider outage</option>
+      </select>
+      <button id="load-demo" type="button">Load recorded scenario</button>
+    </div>
+  </section>
+
+  <p id="message" role="status" aria-live="polite">
+    Choose a scenario to explore its recorded evidence.
+  </p>
+
+  <section id="demo-notes" hidden aria-labelledby="demo-title">
+    <h2 id="demo-title"></h2>
+    <p id="demo-description"></p>
+    <p class="muted">
+      Demo review notes — these annotations are separate from the original
+      model output shown below.
+    </p>
+    <ul id="demo-review-notes"></ul>
+  </section>  
+
+  <div id="result" hidden>
+    <section class="incident-card">
+      <div class="incident-heading">
+        <h2>Incident</h2>
+        <span id="status"></span>
+      </div>
+      <p id="incident"></p>
+    </section>
+
+    <section>
+      <h2>Diagnosis</h2>
+      <p id="diagnosis"></p>
+      <ul id="claims"></ul>
+      <h3 id="limitations-title">Limitations</h3>
+      <ul id="limitations"></ul>
+    </section>
+
+    <section>
+      <h2>Proposed action</h2>
+      <p id="proposal"></p>
+      <details id="proposal-rationale" hidden>
+        <summary>Proposal rationale</summary>
+        <p id="proposal-reason"></p>
+      </details>
+      <p class="muted">
+        This is a recorded outcome. Review decisions cannot be changed in this demo.
+        No rollback is executed.
+      </p>
+    </section>
+
+    <section>
+      <h2>Collected evidence</h2>
+      <div id="evidence"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+  const byId = (id) => document.getElementById(id);
+
+  function updateThemeToggle() {
+    const dark = document.documentElement.dataset.theme === "dark";
+    const toggle = byId("theme-toggle");
+    toggle.setAttribute("aria-pressed", String(dark));
+    toggle.title = dark ? "Switch to light mode" : "Switch to dark mode";
+  }
+
+  updateThemeToggle();
+  
+  byId("theme-toggle").addEventListener("click", () => {
+    const theme = document.documentElement.dataset.theme === "dark"
+      ? "light"
+      : "dark";
+  
+    document.documentElement.dataset.theme = theme;
+  
+    try {
+      localStorage.setItem("opspilot-theme", theme);
+    } catch {
+      // Theme switching still works when browser storage is unavailable.
+    }
+  
+    updateThemeToggle();
+  });
+
+  function renderList(id, items) {
+    const list = byId(id);
+    list.replaceChildren();
+    for (const text of items) {
+      const item = document.createElement("li");
+      item.textContent = text;
+      list.append(item);
+    }
+  }
+
+  function renderCitedText(element, statement, evidenceIds, targets) {
+    element.replaceChildren(document.createTextNode(statement));
+
+    for (const evidenceId of evidenceIds) {
+      element.append(document.createTextNode(" "));
+
+      const target = targets.get(evidenceId);
+      if (!target) {
+        const missing = document.createElement("span");
+        missing.className = "muted";
+        missing.textContent = `[${evidenceId}: unavailable]`;
+        element.append(missing);
+        continue;
+      }
+
+      const citation = document.createElement("button");
+      citation.type = "button";
+      citation.className = "citation";
+      citation.textContent = evidenceId;
+      citation.setAttribute("aria-label", `Show evidence ${evidenceId}`);
+
+      citation.addEventListener("click", () => {
+        target.details.open = true;
+        target.summary.focus({ preventScroll: true });
+        target.details.scrollIntoView({
+          behavior: "auto",
+          block: "start"
+        });
+      });
+
+      element.append(citation);
+    }
+  }
+
+  function renderWorkflow(workflow) {
+    const state = workflow.state;
+    const diagnosis = state.diagnosis;
+
+    const evidenceTargets = new Map();
+    const steps = state.investigation?.steps || [];
+
+    byId("evidence").replaceChildren();
+
+    for (const step of steps) {
+      const details = document.createElement("details");
+      details.className = "evidence-item";
+
+      const summary = document.createElement("summary");
+      summary.textContent = `${step.evidence_id} · ${step.decision.tool}`;
+
+      const content = document.createElement("pre");
+      content.textContent = JSON.stringify({
+        arguments: step.decision.arguments,
+        result: step.result
+      }, null, 2);
+
+      details.append(summary, content);
+      byId("evidence").append(details);
+
+      evidenceTargets.set(step.evidence_id, { details, summary });
+    }
+
+    if (!steps.length) {
+      byId("evidence").textContent =
+        "No investigation evidence has been saved.";
+    }
+
+    const labels = {
+      review_required: "Recorded · awaiting review",
+      approved: "Recorded · approved, not executed",
+      declined: "Recorded · declined",
+      no_proposal: "Recorded · no action proposed"
+    };
+
+    byId("incident").textContent = state.incident;
+    byId("status").textContent =
+      labels[state.proposal_status] ||
+      (workflow.next.length ? "Workflow incomplete" : "Workflow ended");
+
+    if (diagnosis?.status === "supported") {
+      renderCitedText(
+        byId("diagnosis"),
+        diagnosis.root_cause.statement,
+        diagnosis.root_cause.evidence_ids,
+        evidenceTargets
+      );
+    } else {
+      byId("diagnosis").textContent =
+        diagnosis?.reason || "No diagnosis has been saved.";
+    }
+
+    byId("claims").replaceChildren();
+
+    for (const claim of diagnosis?.supporting_claims || []) {
+      const item = document.createElement("li");
+      renderCitedText(
+        item,
+        claim.statement,
+        claim.evidence_ids,
+        evidenceTargets
+      );
+      byId("claims").append(item);
+    }
+
+    const insufficient = diagnosis?.status === "insufficient_evidence";
+    byId("limitations-title").textContent =
+      insufficient ? "Missing evidence" : "Limitations";
+    renderList(
+      "limitations",
+      insufficient
+        ? diagnosis.missing_evidence
+        : diagnosis?.limitations || []
+    );
+
+    const proposal = state.proposal;
+
+    byId("proposal").textContent = proposal
+      ? `${proposal.service}: rollback ${proposal.current_version} → ` +
+        `${proposal.target_version}`
+      : state.proposal_status === "no_proposal"
+        ? "The workflow did not propose an action."
+        : "No proposal has been saved.";
+
+    const rationale = byId("proposal-rationale");
+    const reason = proposal?.reason || "";
+
+    byId("proposal-reason").textContent = reason;
+    rationale.hidden = !reason;
+    rationale.open = false;
+
+    byId("result").hidden = false;
+  }
+
+  const demoFiles = {
+    checkout_regression: "./demo-data/checkout_regression.json",
+    payment_provider_outage: "./demo-data/payment_provider_outage.json"
+  };
+  
+  let loadingDemo = false;
+  
+  async function loadDemo() {
+    if (loadingDemo) return;
+  
+    const scenario = byId("demo-scenario").value;
+    const url = demoFiles[scenario];
+    if (!url) return;
+  
+    loadingDemo = true;
+    byId("demo-scenario").disabled = true;
+    byId("load-demo").disabled = true;
+    byId("result").hidden = true;
+    byId("demo-notes").hidden = true;
+    byId("message").className = "";
+    byId("message").textContent = "Loading recorded scenario…";
+  
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Unable to load the demo (${response.status}).`);
+      }
+    
+      const data = await response.json();
+      if (
+        data.mode !== "recorded_demo" ||
+        data.synthetic !== true ||
+        data.scenario !== scenario
+      ) {
+        throw new Error("Unexpected demo data.");
+      }
+    
+      renderWorkflow(data.workflow);
+    
+      byId("demo-title").textContent = data.presentation.title;
+      byId("demo-description").textContent = data.presentation.summary;
+      renderList("demo-review-notes", data.presentation.review_notes);
+      byId("demo-notes").hidden = false;
+      byId("message").textContent =
+        "Recorded scenario loaded. No live model calls or actions were made.";
+    } catch (error) {
+      byId("result").hidden = true;
+      byId("demo-notes").hidden = true;
+      byId("message").className = "error";
+      byId("message").textContent =
+        error.message || "Unable to display the recorded scenario.";
+    } finally {
+      loadingDemo = false;
+      byId("demo-scenario").disabled = false;
+      byId("load-demo").disabled = false;
+    }
+  }
+  
+  byId("load-demo").addEventListener("click", loadDemo);
+</script>
+</body>
+</html>

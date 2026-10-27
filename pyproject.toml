@@ -29,7 +29,7 @@ include = ["app", "app.*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-app = ["web/*.html"]
+app = ["web/*.html", "web/demo-data/*.json"]
 
 [tool.pytest.ini_options]
 markers = [
