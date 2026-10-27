@@ -483,6 +483,38 @@
       .brand-row { padding-bottom: 20px; }
       #result > .incident-card { padding: 20px; }
     }
+
+    button.citation {
+      display: inline-block;
+      min-height: 28px;
+      max-width: 100%;
+      margin: 3px 0;
+      padding: 3px 8px;
+      border: 1px solid var(--control-line);
+      border-radius: 6px;
+      background: var(--badge);
+      color: var(--accent);
+      font-size: .8rem;
+      font-weight: 650;
+      line-height: 1.4;
+      vertical-align: baseline;
+      overflow-wrap: anywhere;
+    }
+
+    button.citation:hover:not(:disabled) {
+      background: var(--subtle);
+      border-color: var(--accent);
+    }
+    
+    .evidence-item {
+      scroll-margin-top: 24px;
+    }
+    
+    .evidence-item > summary:focus {
+      outline: 2px solid var(--focus);
+      outline-offset: 5px;
+      border-radius: 3px;
+    }
   </style>
 </head>
 <body>
@@ -656,10 +688,74 @@
     }
   }
 
+  function renderCitedText(element, statement, evidenceIds, targets) {
+    element.replaceChildren(document.createTextNode(statement));
+
+    for (const evidenceId of evidenceIds) {
+      element.append(document.createTextNode(" "));
+
+      const target = targets.get(evidenceId);
+      if (!target) {
+        const missing = document.createElement("span");
+        missing.className = "muted";
+        missing.textContent = `[${evidenceId}: unavailable]`;
+        element.append(missing);
+        continue;
+      }
+
+      const citation = document.createElement("button");
+      citation.type = "button";
+      citation.className = "citation";
+      citation.textContent = evidenceId;
+      citation.setAttribute("aria-label", `Show evidence ${evidenceId}`);
+
+      citation.addEventListener("click", () => {
+        target.details.open = true;
+        target.summary.focus({ preventScroll: true });
+        target.details.scrollIntoView({
+          behavior: "auto",
+          block: "start"
+        });
+      });
+
+      element.append(citation);
+    }
+  }
+
   function renderWorkflow(workflow) {
     clearReview();
     const state = workflow.state;
     const diagnosis = state.diagnosis;
+
+    const evidenceTargets = new Map();
+    const steps = state.investigation?.steps || [];
+
+    byId("evidence").replaceChildren();
+
+    for (const step of steps) {
+      const details = document.createElement("details");
+      details.className = "evidence-item";
+
+      const summary = document.createElement("summary");
+      summary.textContent = `${step.evidence_id} · ${step.decision.tool}`;
+
+      const content = document.createElement("pre");
+      content.textContent = JSON.stringify({
+        arguments: step.decision.arguments,
+        result: step.result
+      }, null, 2);
+
+      details.append(summary, content);
+      byId("evidence").append(details);
+
+      evidenceTargets.set(step.evidence_id, { details, summary });
+    }
+
+    if (!steps.length) {
+      byId("evidence").textContent =
+        "No investigation evidence has been saved.";
+    }
+
     const labels = {
       review_required: "Awaiting review",
       approved: "Approved · not executed",
@@ -672,16 +768,30 @@
       labels[state.proposal_status] ||
       (workflow.next.length ? "Workflow incomplete" : "Workflow ended");
 
-    byId("diagnosis").textContent = diagnosis
-      ? diagnosis.status === "supported"
-        ? diagnosis.root_cause.statement +
-          " [" + diagnosis.root_cause.evidence_ids.join(", ") + "]"
-        : diagnosis.reason
-      : "No diagnosis has been saved.";
+    if (diagnosis?.status === "supported") {
+      renderCitedText(
+        byId("diagnosis"),
+        diagnosis.root_cause.statement,
+        diagnosis.root_cause.evidence_ids,
+        evidenceTargets
+      );
+    } else {
+      byId("diagnosis").textContent =
+        diagnosis?.reason || "No diagnosis has been saved.";
+    }
 
-    renderList("claims", (diagnosis?.supporting_claims || []).map(
-      claim => claim.statement + " [" + claim.evidence_ids.join(", ") + "]"
-    ));
+    byId("claims").replaceChildren();
+
+    for (const claim of diagnosis?.supporting_claims || []) {
+      const item = document.createElement("li");
+      renderCitedText(
+        item,
+        claim.statement,
+        claim.evidence_ids,
+        evidenceTargets
+      );
+      byId("claims").append(item);
+    }
 
     const insufficient = diagnosis?.status === "insufficient_evidence";
     byId("limitations-title").textContent =
@@ -709,25 +819,6 @@
     rationale.hidden = !reason;
     rationale.open = false;
 
-    byId("evidence").replaceChildren();
-    const steps = state.investigation?.steps || [];
-    for (const step of steps) {
-      const details = document.createElement("details");
-      const summary = document.createElement("summary");
-      summary.textContent = `${step.evidence_id} · ${step.decision.tool}`;
-
-      const content = document.createElement("pre");
-      content.textContent = JSON.stringify({
-        arguments: step.decision.arguments,
-        result: step.result
-      }, null, 2);
-
-      details.append(summary, content);
-      byId("evidence").append(details);
-    }
-    if (!steps.length) {
-      byId("evidence").textContent = "No investigation evidence has been saved.";
-    }
     if (
       state.proposal_status === "review_required" &&
       state.proposal &&
