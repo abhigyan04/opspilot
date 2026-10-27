@@ -1,7 +1,9 @@
 from copy import deepcopy
 import pytest
 
-from app.agent.evidence import build_evidence_timeline, build_deployment_timing
+from app.agent.evidence import (
+    build_evidence_timeline, build_deployment_timing, build_deployment_metric_timing,
+)
 
 
 def make_step(evidence_id, tool, records):
@@ -136,3 +138,67 @@ def test_deployment_timing_requires_usable_error_timestamp(timestamp):
     ]
 
     assert build_deployment_timing(steps) == []
+
+
+def test_metric_timing_uses_deployment_not_previous_sample():
+    steps = [
+        make_step("deploy", "get_deployments", [{
+            "service": "checkout", "timestamp": "2026-09-28T13:57:00Z",
+        }]),
+        make_step("metrics", "query_metrics", [
+            {"service": "checkout", "metric": "error_rate", "value": value,
+             "timestamp": timestamp}
+            for timestamp, value in [
+                ("2026-09-28T13:55:00Z", 0.01),
+                ("2026-09-28T14:02:00Z", 0.35),
+                ("2026-09-28T14:05:00Z", 0.4),
+            ]
+        ]),
+    ]
+    original = deepcopy(steps)
+    result = build_deployment_metric_timing(steps)
+    assert [(x["value"], x["seconds_after_deployment"]) for x in result] == [
+        (0.01, -120), (0.35, 300), (0.4, 480),
+    ]
+    assert result[-1] == {
+        "service": "checkout", "deployment_evidence_id": "deploy",
+        "deployment_timestamp": "2026-09-28T13:57:00Z",
+        "metric_evidence_id": "metrics", "sample_timestamp": "2026-09-28T14:05:00Z",
+        "metric": "error_rate", "value": 0.4,
+        "seconds_after_deployment": 480, "minutes_after_deployment": 8,
+    }
+    assert steps == original
+
+
+def test_metric_timing_handles_offsets_and_multiple_deployments():
+    steps = [make_step("deploy", "get_deployments", [
+        {"service": "checkout", "timestamp": timestamp}
+        for timestamp in ("2026-09-28T13:57:00Z", "2026-09-28T14:00:00Z")
+    ]), make_step("metrics", "query_metrics", [{
+        "service": "checkout", "timestamp": "2026-09-28T19:27:00+05:30",
+        "metric": "error_rate", "value": 0,
+    }])]
+    assert [r["seconds_after_deployment"] for r in build_deployment_metric_timing(steps)] == [0, -180]
+
+
+@pytest.mark.parametrize("changes", [
+    {"service": "another-service"}, {"timestamp": "bad"},
+    {"timestamp": "2026-09-28T14:05:00"}, {"metric": ""},
+    {"value": True}, {"value": None}, {"value": float("nan")},
+    {"value": float("inf")},
+])
+def test_metric_timing_skips_unusable_samples(changes):
+    sample = {"service": "checkout", "timestamp": "2026-09-28T14:05:00Z",
+              "metric": "error_rate", "value": 0.4, **changes}
+    steps = [make_step("deploy", "get_deployments", [{
+        "service": "checkout", "timestamp": "2026-09-28T13:57:00Z",
+    }]), make_step("metrics", "query_metrics", [sample])]
+    assert build_deployment_metric_timing(steps) == []
+
+
+def test_metric_timing_requires_a_deployment_and_metric_pair():
+    assert build_deployment_metric_timing([]) == []
+    assert build_deployment_metric_timing([make_step("logs", "search_logs", [{
+        "service": "checkout", "timestamp": "2026-09-28T14:05:00Z",
+        "metric": "error_rate", "value": 0.4,
+    }])]) == []

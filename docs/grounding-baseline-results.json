@@ -1,0 +1,710 @@
+{
+  "format_version": 1,
+  "protocol": "grounding-baseline-v1",
+  "review_method": "AI review by Codex against saved observations; no independent human validation",
+  "reviewed_at": "2026-10-27T11:34:46.572878+00:00",
+  "execution": {
+    "commit": "481647c7a4a205e9f5837435eb466d2a915a5f80",
+    "working_tree": [
+      " M docs/evaluation-plan.md",
+      " M docs/milestone-status.md",
+      "?? docs/grounding-baseline-run.md",
+      "?? docs/grounding-baseline-sources.json"
+    ],
+    "model": "qwen3:8b",
+    "model_digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+    "ollama_version": "0.40.9",
+    "settings": {
+      "num_ctx": 8192,
+      "num_predict": 2048,
+      "temperature": 0.6,
+      "top_p": 0.95,
+      "top_k": 20,
+      "think": true
+    },
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "with_references": false,
+    "code_hashes": [
+      {
+        "path": "app\\__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\main.py",
+        "sha256": "72149929e10e59ee6650cfd5debf7ad2b36e2420e849d5fb9ad36ae59be09d7a"
+      },
+      {
+        "path": "app\\agent\\__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\agent\\agent.py",
+        "sha256": "f6e1a0dc64ec10138bfac925acd98990a5cad26b627b66aa6625fd1f0703181b"
+      },
+      {
+        "path": "app\\agent\\evidence.py",
+        "sha256": "352b871b0b850e15cc642c32df2df6a7e1bef78e167c5ae7c5f52d2726450661"
+      },
+      {
+        "path": "app\\agent\\prompts.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\agent\\remediation.py",
+        "sha256": "30da7995083e4262d91a398d2f7c25fe517dc5e085a1e2ac15d92498ab8aabe4"
+      },
+      {
+        "path": "app\\agent\\schemas.py",
+        "sha256": "f6ca1c9d058550d9bf35e882bcff40df634b266b2d881ed3d2b1d36191c10693"
+      },
+      {
+        "path": "app\\agent\\settings.py",
+        "sha256": "cc343aad5727282f00fd21958d3cfbb1b94dc0b3d0e9b1bf10acf1d40e455d7f"
+      },
+      {
+        "path": "app\\agent\\state.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\agent\\usage.py",
+        "sha256": "94e53dbb9b4ec3e0a42ea98937b3d686117ca82794a4b7286f60a71d857dad24"
+      },
+      {
+        "path": "app\\agent\\verification.py",
+        "sha256": "cce1e99d06b5b570733ff1966f8164aeb0dc3d215234d7f3e1bcec6bd48074dd"
+      },
+      {
+        "path": "app\\agent\\workflow_cli.py",
+        "sha256": "cdd84e36ae38ef9b7d9374c1139b36108391e98f66430108074fc3748b8ca36d"
+      },
+      {
+        "path": "app\\agent\\workflow.py",
+        "sha256": "19348fdadedaee09ad912f614952b312a2fac08bb75aae0d3bad013341a6ecf4"
+      },
+      {
+        "path": "app\\api\\__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\api\\incidents.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\api\\schemas.py",
+        "sha256": "6e8402ffdfa7eb340a84ffc3a640d32459c90716ff4076b07fa5fe275c23571c"
+      },
+      {
+        "path": "app\\mcp_server\\__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\mcp_server\\client.py",
+        "sha256": "ab15877e8b8386acdf54f0f0286c9cf4186a31e4063b3b9a52e3ee37c1b132c1"
+      },
+      {
+        "path": "app\\mcp_server\\server.py",
+        "sha256": "eb624507fd32aac155c2f1e51739aa50a2cf23c0660c520add4c2b70d05e9abb"
+      },
+      {
+        "path": "app\\retrieval\\__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\retrieval\\chunks.py",
+        "sha256": "e881068fc5f5164887419708464db905b4b519bcc803e051a2d9a547dc80c287"
+      },
+      {
+        "path": "app\\retrieval\\context.py",
+        "sha256": "d08246d55c0dd72a6d3083b1bc29b3684331d33d5fd6308de5a346ae1aa09c46"
+      },
+      {
+        "path": "app\\retrieval\\documents.py",
+        "sha256": "cc7c4b6fc2b30959ecf230e66e34390e6f19e33118e1b77f25325b954398dc38"
+      },
+      {
+        "path": "app\\retrieval\\embeddings.py",
+        "sha256": "d7f5542196bff1b7d499a870d941d508e09805906a8478b5434f9783cc8f2258"
+      },
+      {
+        "path": "app\\retrieval\\index.py",
+        "sha256": "1eb1847293ff57f762b829f53d587fb61a01935ece7938f730ef6307781eabb5"
+      },
+      {
+        "path": "app\\retrieval\\pg_retrieve.py",
+        "sha256": "f9b6d18306b08d2175272c2fd997484676161b5d2639530816ffb33f63366575"
+      },
+      {
+        "path": "app\\retrieval\\pg_store.py",
+        "sha256": "91c40cb09aa27eb809f7523c574e5178b82eabbd4396ece3cc3d7318a28df77f"
+      },
+      {
+        "path": "app\\retrieval\\prepare.py",
+        "sha256": "2639c786df993eecf494261a3e566ff67510c2c9a0ccd0bdad4c8d239a9b24b3"
+      },
+      {
+        "path": "app\\retrieval\\provenance.py",
+        "sha256": "f0a9318aac1d604fb3538315dd25890b0d6e20f3e43ac94e5e8689a84744fa2f"
+      },
+      {
+        "path": "app\\retrieval\\query.py",
+        "sha256": "b7e69224b23338a8601e6b30a922f5a521e753eeee8d85585a696b792bf49c31"
+      },
+      {
+        "path": "app\\retrieval\\retrieve.py",
+        "sha256": "a2dcd73a45637a057cc9cbd05fca7b938170629d92026a9b055a44de4b13cce9"
+      },
+      {
+        "path": "app\\retrieval\\search.py",
+        "sha256": "85ff8ab58f4329ef70793eba64a4c1daa9d2fe013386db3d7fd271eb70c32869"
+      },
+      {
+        "path": "app\\services\\llm.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\tools\\__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\tools\\data.py",
+        "sha256": "faccc9fa79ac1398aab29e3d829eff74f43b9d84ddabaf2ac450be4ab108636e"
+      },
+      {
+        "path": "app\\tools\\deployments.py",
+        "sha256": "1fc61ccd7b2406472fd94b9c7b0fff1c214a108fb9c62655c766f1d23fdb5c35"
+      },
+      {
+        "path": "app\\tools\\git.py",
+        "sha256": "454ebd0592334253fb5c03b2e3c205137fe6e946479988d8246ef69fd8ca2c87"
+      },
+      {
+        "path": "app\\tools\\logs.py",
+        "sha256": "786e5eacbc78252956ca2ecd0eb2b61bdf662064afa5440ca8a3e36789eba72a"
+      },
+      {
+        "path": "app\\tools\\metrics.py",
+        "sha256": "31d13741eb63b1049be73f99b267c6c96fa7bf9449bef62af79ff95642cb0b67"
+      },
+      {
+        "path": "app\\tools\\recovery.py",
+        "sha256": "04da54be74699551b9f91c517c9fec3c1be4fe048611bea0bd7252bfd4f255b8"
+      },
+      {
+        "path": "app\\tools\\remediation.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "app\\tools\\runbooks.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "evals\\__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "evals\\assessment.py",
+        "sha256": "d08fbfa0717c1004038bca1bc0c6aaf9f0225d529edac14398c32c62150d1693"
+      },
+      {
+        "path": "evals\\cases.py",
+        "sha256": "84be8efed9aeec05710da3ddf6befa4686a6485269c8fef1b0615e8a8d3c2023"
+      },
+      {
+        "path": "evals\\citations.py",
+        "sha256": "8da838ec6ddd59d4e018bc3d6b944eac84e5f4a9b752c376b45d6180ec832990"
+      },
+      {
+        "path": "evals\\evaluator.py",
+        "sha256": "9c9b684044729c7edd0fc0ea54aaeb7ccf2b618537dfd897940d1a919714b284"
+      },
+      {
+        "path": "evals\\evidence_assessment.py",
+        "sha256": "ba86454566bd2a7b1254ded5bd1bdc6960ea14ab95c0fe2b29c00d7909a6ff9c"
+      },
+      {
+        "path": "evals\\remediation_runner.py",
+        "sha256": "6007fae329d9ea3386a71791c45bad7fbe165e063d0cf9c3fefbdca8a719626c"
+      },
+      {
+        "path": "evals\\remediation.py",
+        "sha256": "87e628510ce832fc856937be137045cd65352505fa7b5cd96f9be865cafa5611"
+      },
+      {
+        "path": "evals\\replay.py",
+        "sha256": "e893d1ed075ad8bd60eae3e5e413ff9f6f005602dd862833853e53281e29766e"
+      },
+      {
+        "path": "evals\\retrieval_cases.py",
+        "sha256": "fcf2a2b8f087637a78523c29b9a53bd76366353cde2e5c5dbca9e4780addf013"
+      },
+      {
+        "path": "evals\\retrieval_evaluator.py",
+        "sha256": "464d79c40ae8bc17f63602e05cf257b72bec2a499c77eedcdce7ee0f3465c53b"
+      },
+      {
+        "path": "evals\\retrieval_runner.py",
+        "sha256": "f06cd6c938e060fc48d39d2acc5b655a84ddd05a26b94a83e080b999d1a5ed11"
+      },
+      {
+        "path": "evals\\review_summary.py",
+        "sha256": "d732960fd6e35607f5d29255e1586a260c7f4f144f8f2f1a55ea3de9aa34d5c2"
+      },
+      {
+        "path": "evals\\review.py",
+        "sha256": "6da23b429710f2c1a103eb35604f86372abfdf1d549b4247bc3f0bd9766e40b6"
+      },
+      {
+        "path": "evals\\runner.py",
+        "sha256": "a969a36b41a702f8d28b9ef466af7635a3a20102fdf93739b1442793e4064b17"
+      },
+      {
+        "path": "evals\\safety_runner.py",
+        "sha256": "ba25573529312c40a508fc272ff3c135be2b9a0776e4d4ac7bd13e0c6d674a8a"
+      },
+      {
+        "path": "evals\\safety.py",
+        "sha256": "f4d5d14738548538410b89be7e812d730dde8c691e68dce83ef14efdf2b065bc"
+      },
+      {
+        "path": "evals\\summary.py",
+        "sha256": "a17095c46ed0846b9390359f7db389bb20fb1aa46ed2f4f4d6de5b56fa123ac4"
+      },
+      {
+        "path": "evals\\tool_assessment.py",
+        "sha256": "07726abf94a5e69e8e8d0673cedb1bfa6b9e46ba2ec994e5d29cd3e882257cf2"
+      }
+    ]
+  },
+  "protocol_sha256": "4fcaaa867f7f418644eaaa9c7cd80b74b88417e56c75f3e07d0507ebe666d6aa",
+  "completion": {
+    "completed": 9,
+    "failed": 0,
+    "cases": [
+      {
+        "case_id": "checkout_regression",
+        "completed": 3,
+        "mean_diagnosis_seconds": 24.41,
+        "input_tokens": 6111,
+        "output_tokens": 2591
+      },
+      {
+        "case_id": "payment_provider_outage",
+        "completed": 3,
+        "mean_diagnosis_seconds": 24.49,
+        "input_tokens": 6558,
+        "output_tokens": 3107
+      },
+      {
+        "case_id": "sparse_evidence",
+        "completed": 3,
+        "mean_diagnosis_seconds": 16.09,
+        "input_tokens": 4149,
+        "output_tokens": 2075
+      }
+    ]
+  },
+  "case_reviews": [
+    {
+      "case_id": "checkout_regression",
+      "total_runs": 3,
+      "reviewed_runs": 3,
+      "unreviewed_runs": 0,
+      "criteria": {
+        "causal_explanation": {
+          "met": 3,
+          "not_met": 0,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 1.0
+        },
+        "deployment_reasoning": {
+          "met": 2,
+          "not_met": 1,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 0.6666666666666666
+        },
+        "evidence_grounding": {
+          "met": 0,
+          "not_met": 3,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 0.0
+        },
+        "uncertainty_handling": {
+          "met": 3,
+          "not_met": 0,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 1.0
+        }
+      }
+    },
+    {
+      "case_id": "payment_provider_outage",
+      "total_runs": 3,
+      "reviewed_runs": 3,
+      "unreviewed_runs": 0,
+      "criteria": {
+        "causal_explanation": {
+          "met": 3,
+          "not_met": 0,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 1.0
+        },
+        "deployment_reasoning": {
+          "met": 3,
+          "not_met": 0,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 1.0
+        },
+        "evidence_grounding": {
+          "met": 2,
+          "not_met": 1,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 0.6666666666666666
+        },
+        "uncertainty_handling": {
+          "met": 2,
+          "not_met": 1,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 0.6666666666666666
+        }
+      }
+    },
+    {
+      "case_id": "sparse_evidence",
+      "total_runs": 3,
+      "reviewed_runs": 3,
+      "unreviewed_runs": 0,
+      "criteria": {
+        "causal_explanation": {
+          "met": 0,
+          "not_met": 0,
+          "not_assessable": 3,
+          "assessable": 0,
+          "met_rate": null
+        },
+        "deployment_reasoning": {
+          "met": 0,
+          "not_met": 0,
+          "not_assessable": 3,
+          "assessable": 0,
+          "met_rate": null
+        },
+        "evidence_grounding": {
+          "met": 3,
+          "not_met": 0,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 1.0
+        },
+        "uncertainty_handling": {
+          "met": 3,
+          "not_met": 0,
+          "not_assessable": 0,
+          "assessable": 3,
+          "met_rate": 1.0
+        }
+      }
+    }
+  ],
+  "records": [
+    {
+      "case_id": "checkout_regression",
+      "seed": 42,
+      "report_json": "{\r\n  \"report_version\": 2,\r\n  \"evaluation_mode\": \"diagnosis_replay\",\r\n  \"diagnosis_model\": \"qwen3:8b\",\r\n  \"diagnosis_settings\": {\r\n    \"num_ctx\": 8192,\r\n    \"num_predict\": 2048,\r\n    \"temperature\": 0.6,\r\n    \"top_p\": 0.95,\r\n    \"top_k\": 20,\r\n    \"seed\": 42,\r\n    \"think\": true\r\n  },\r\n  \"reference_context\": [],\r\n  \"retrieval\": null,\r\n  \"run_id\": \"bb40d83c-7daf-4ce4-b5d2-1747f504b8c2\",\r\n  \"started_at\": \"2026-10-27T11:07:03.622072+00:00\",\r\n  \"case_id\": \"checkout_regression\",\r\n  \"incident\": \"Errors in checkout-service have increased significantly. Investigate.\",\r\n  \"source\": {\r\n    \"report_file\": \"7a3f5342-6a12-4b22-a70d-950ba3c501b6.json\",\r\n    \"run_id\": \"7a3f5342-6a12-4b22-a70d-950ba3c501b6\",\r\n    \"sha256\": \"8ee1e7f85dcab3850127e4dce70952538aa621c81f5856090c2dca42db1b38b0\"\r\n  },\r\n  \"status\": \"completed\",\r\n  \"error\": null,\r\n  \"timing\": {\r\n    \"investigation_seconds\": null,\r\n    \"scoring_seconds\": null,\r\n    \"diagnosis_seconds\": 31.140277099999366,\r\n    \"total_seconds\": 31.14076589999968,\r\n    \"retrieval_seconds\": null\r\n  },\r\n  \"metrics\": null,\r\n  \"diagnosis_assessment\": {\r\n    \"status\": \"not_scored\",\r\n    \"reference_root_cause\": \"The deployed change accesses request.user.customer_id. When request.user is None, this access raises AttributeError. The change does not itself make request.user become None.\"\r\n  },\r\n  \"investigation\": {\r\n    \"status\": \"finished\",\r\n    \"reason\": \"The error logs confirm that the recent deployment (commit a1b2c3d4e5f6g7h8i9j0) introduced a customer lookup refactor that caused 'AttributeError: 'NoneType' object has no attribute 'customer_id' when the user object is missing. This directly explains the error rate spike observed after the deployment, and no further evidence is needed to establish the root cause.\",\r\n    \"steps\": [\r\n      {\r\n        \"evidence_id\": \"evidence-001\",\r\n        \"decision\": {\r\n          \"tool\": \"query_metrics\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"metric_name\": \"error_rate\"\r\n          },\r\n          \"reason\": \"To determine the current error rate and quantify the magnitude of the increase, which is essential for understanding the incident's severity and guiding further investigation.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:55:00Z\",\r\n            \"value\": 0.01\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"value\": 0.35\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:05:00Z\",\r\n            \"value\": 0.4\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-002\",\r\n        \"decision\": {\r\n          \"tool\": \"get_deployments\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\"\r\n          },\r\n          \"reason\": \"To identify recent deployments that might have caused the error rate increase, as deployments are a common source of incidents in production services.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.4\",\r\n            \"timestamp\": \"2026-09-28T13:57:00Z\",\r\n            \"commit_hash\": \"a1b2c3d4e5f6g7h8i9j0\",\r\n            \"rollback_target_version\": \"1.7.3\"\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-003\",\r\n        \"decision\": {\r\n          \"tool\": \"get_commit\",\r\n          \"arguments\": {\r\n            \"commit_hash\": \"a1b2c3d4e5f6g7h8i9j0\"\r\n          },\r\n          \"reason\": \"To determine if the recent deployment commit introduced a specific change that could cause the error rate increase, as the deployment to version 1.7.4 with this commit hash occurred just before the error rate spiked.\"\r\n        },\r\n        \"result\": {\r\n          \"hash\": \"a1b2c3d4e5f6g7h8i9j0\",\r\n          \"message\": \"Refactor customer lookup\",\r\n          \"diff\": \"- customer_id = request.customer_id\\n+ customer_id = request.user.customer_id\"\r\n        }\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-004\",\r\n        \"decision\": {\r\n          \"tool\": \"search_logs\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\"\r\n          },\r\n          \"reason\": \"To identify specific error messages occurring during the error rate spike (after the deployment at 13:57 UTC), which would reveal whether the customer lookup refactor introduced a bug causing checkout failures.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"timestamp\": \"2026-09-28T14:02:13Z\",\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\",\r\n            \"message\": \"AttributeError: 'NoneType' object has no attribute 'customer_id'\"\r\n          }\r\n        ]\r\n      }\r\n    ]\r\n  },\r\n  \"diagnosis\": {\r\n    \"status\": \"supported\",\r\n    \"root_cause\": {\r\n      \"statement\": \"The deployment of version 1.7.4 introduced a bug in the customer lookup refactoring, leading to an AttributeError when accessing 'customer_id' on a NoneType object.\",\r\n      \"evidence_ids\": [\r\n        \"evidence-002\",\r\n        \"evidence-003\",\r\n        \"evidence-004\"\r\n      ]\r\n    },\r\n    \"supporting_claims\": [\r\n      {\r\n        \"statement\": \"The error_rate metric spiked from 0.01 to 0.4 within 7 minutes of the deployment.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-001\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The deployment (version 1.7.4) included a code change that altered how 'customer_id' is assigned, replacing 'request.customer_id' with 'request.user.customer_id'.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-002\",\r\n          \"evidence-003\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The ERROR log directly correlates to the code change, showing an AttributeError caused by accessing 'customer_id' on a NoneType object.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-004\"\r\n        ]\r\n      }\r\n    ],\r\n    \"limitations\": [\r\n      \"The exact timing of the first error occurrence relative to the deployment is not explicitly confirmed by the logs, though the error appears shortly after deployment.\"\r\n    ],\r\n    \"reference_notes\": []\r\n  },\r\n  \"usage\": {\r\n    \"calls\": [\r\n      {\r\n        \"stage\": \"diagnosis\",\r\n        \"model\": \"qwen3:8b\",\r\n        \"input_tokens\": 2037,\r\n        \"output_tokens\": 816\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"attempts\": 1,\r\n      \"input_counted_calls\": 1,\r\n      \"known_input_tokens\": 2037,\r\n      \"input_tokens\": 2037,\r\n      \"output_counted_calls\": 1,\r\n      \"known_output_tokens\": 816,\r\n      \"output_tokens\": 816\r\n    }\r\n  }\r\n}\r\n",
+      "source_sha256": "67ccc6b5254a815c395b04d0b3cd4e55619b787b358469328463b255a9bfbcb9",
+      "review_record": {
+        "source_report": "bb40d83c-7daf-4ce4-b5d2-1747f504b8c2.json",
+        "source_sha256": "67ccc6b5254a815c395b04d0b3cd4e55619b787b358469328463b255a9bfbcb9",
+        "review": {
+          "rubric_version": 1,
+          "run_id": "bb40d83c-7daf-4ce4-b5d2-1747f504b8c2",
+          "case_id": "checkout_regression",
+          "reviewer": "Codex AI review; no independent human validation; grounding-baseline-v1",
+          "causal_explanation": {
+            "verdict": "met",
+            "rationale": "The root cause links 'customer lookup refactoring' and AttributeError using evidence-002/003/004. The diff changes access to request.user.customer_id and the log reports NoneType.customer_id; it does not assert that the refactor created the null user."
+          },
+          "deployment_reasoning": {
+            "verdict": "not_met",
+            "rationale": "'0.4 within 7 minutes of the deployment' conflicts with deployment at 13:57 (evidence-002) and the 0.4 sample at 14:05 (evidence-001): 8 minutes. Overall after-deployment ordering is correct, but the asserted interval is not."
+          },
+          "evidence_grounding": {
+            "verdict": "not_met",
+            "rationale": "The 'within 7 minutes' claim is false and cites only evidence-001, which has no deployment timestamp. The claim 'ERROR log directly correlates to the code change' cites only evidence-004; that log contains no diff. These are claim-level support failures despite valid IDs."
+          },
+          "uncertainty_handling": {
+            "verdict": "met",
+            "rationale": "The limitation says 'exact timing of the first error occurrence ... is not explicitly confirmed'. Interpreted as actual onset, rather than the returned observation's timestamp, this correctly retains uncertainty; it does not infer why the user was null."
+          }
+        }
+      }
+    },
+    {
+      "case_id": "checkout_regression",
+      "seed": 43,
+      "report_json": "{\r\n  \"report_version\": 2,\r\n  \"evaluation_mode\": \"diagnosis_replay\",\r\n  \"diagnosis_model\": \"qwen3:8b\",\r\n  \"diagnosis_settings\": {\r\n    \"num_ctx\": 8192,\r\n    \"num_predict\": 2048,\r\n    \"temperature\": 0.6,\r\n    \"top_p\": 0.95,\r\n    \"top_k\": 20,\r\n    \"seed\": 43,\r\n    \"think\": true\r\n  },\r\n  \"reference_context\": [],\r\n  \"retrieval\": null,\r\n  \"run_id\": \"5543d972-098e-487e-a49e-88c200780741\",\r\n  \"started_at\": \"2026-10-27T11:07:36.601650+00:00\",\r\n  \"case_id\": \"checkout_regression\",\r\n  \"incident\": \"Errors in checkout-service have increased significantly. Investigate.\",\r\n  \"source\": {\r\n    \"report_file\": \"7a3f5342-6a12-4b22-a70d-950ba3c501b6.json\",\r\n    \"run_id\": \"7a3f5342-6a12-4b22-a70d-950ba3c501b6\",\r\n    \"sha256\": \"8ee1e7f85dcab3850127e4dce70952538aa621c81f5856090c2dca42db1b38b0\"\r\n  },\r\n  \"status\": \"completed\",\r\n  \"error\": null,\r\n  \"timing\": {\r\n    \"investigation_seconds\": null,\r\n    \"scoring_seconds\": null,\r\n    \"diagnosis_seconds\": 22.162398100001155,\r\n    \"total_seconds\": 22.16296650000004,\r\n    \"retrieval_seconds\": null\r\n  },\r\n  \"metrics\": null,\r\n  \"diagnosis_assessment\": {\r\n    \"status\": \"not_scored\",\r\n    \"reference_root_cause\": \"The deployed change accesses request.user.customer_id. When request.user is None, this access raises AttributeError. The change does not itself make request.user become None.\"\r\n  },\r\n  \"investigation\": {\r\n    \"status\": \"finished\",\r\n    \"reason\": \"The error logs confirm that the recent deployment (commit a1b2c3d4e5f6g7h8i9j0) introduced a customer lookup refactor that caused 'AttributeError: 'NoneType' object has no attribute 'customer_id' when the user object is missing. This directly explains the error rate spike observed after the deployment, and no further evidence is needed to establish the root cause.\",\r\n    \"steps\": [\r\n      {\r\n        \"evidence_id\": \"evidence-001\",\r\n        \"decision\": {\r\n          \"tool\": \"query_metrics\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"metric_name\": \"error_rate\"\r\n          },\r\n          \"reason\": \"To determine the current error rate and quantify the magnitude of the increase, which is essential for understanding the incident's severity and guiding further investigation.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:55:00Z\",\r\n            \"value\": 0.01\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"value\": 0.35\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:05:00Z\",\r\n            \"value\": 0.4\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-002\",\r\n        \"decision\": {\r\n          \"tool\": \"get_deployments\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\"\r\n          },\r\n          \"reason\": \"To identify recent deployments that might have caused the error rate increase, as deployments are a common source of incidents in production services.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.4\",\r\n            \"timestamp\": \"2026-09-28T13:57:00Z\",\r\n            \"commit_hash\": \"a1b2c3d4e5f6g7h8i9j0\",\r\n            \"rollback_target_version\": \"1.7.3\"\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-003\",\r\n        \"decision\": {\r\n          \"tool\": \"get_commit\",\r\n          \"arguments\": {\r\n            \"commit_hash\": \"a1b2c3d4e5f6g7h8i9j0\"\r\n          },\r\n          \"reason\": \"To determine if the recent deployment commit introduced a specific change that could cause the error rate increase, as the deployment to version 1.7.4 with this commit hash occurred just before the error rate spiked.\"\r\n        },\r\n        \"result\": {\r\n          \"hash\": \"a1b2c3d4e5f6g7h8i9j0\",\r\n          \"message\": \"Refactor customer lookup\",\r\n          \"diff\": \"- customer_id = request.customer_id\\n+ customer_id = request.user.customer_id\"\r\n        }\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-004\",\r\n        \"decision\": {\r\n          \"tool\": \"search_logs\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\"\r\n          },\r\n          \"reason\": \"To identify specific error messages occurring during the error rate spike (after the deployment at 13:57 UTC), which would reveal whether the customer lookup refactor introduced a bug causing checkout failures.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"timestamp\": \"2026-09-28T14:02:13Z\",\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\",\r\n            \"message\": \"AttributeError: 'NoneType' object has no attribute 'customer_id'\"\r\n          }\r\n        ]\r\n      }\r\n    ]\r\n  },\r\n  \"diagnosis\": {\r\n    \"status\": \"supported\",\r\n    \"root_cause\": {\r\n      \"statement\": \"The deployment of version 1.7.4 introduced a code change that caused an AttributeError due to accessing 'request.user.customer_id' without verifying 'request.user' exists.\",\r\n      \"evidence_ids\": [\r\n        \"evidence-002\",\r\n        \"evidence-003\",\r\n        \"evidence-004\"\r\n      ]\r\n    },\r\n    \"supporting_claims\": [\r\n      {\r\n        \"statement\": \"The error rate spiked after the deployment of version 1.7.4.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-001\",\r\n          \"evidence-002\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The deployment's code change refactored customer lookup to use 'request.user.customer_id' instead of 'request.customer_id'.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-003\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The observed error message confirms the failure mechanism: 'AttributeError: 'NoneType' object has no attribute 'customer_id'.'\",\r\n        \"evidence_ids\": [\r\n          \"evidence-004\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The earliest observed error (14:02) occurred after the deployment (13:57).\",\r\n        \"evidence_ids\": [\r\n          \"evidence-002\",\r\n          \"evidence-004\"\r\n        ]\r\n      }\r\n    ],\r\n    \"limitations\": [\r\n      \"The evidence does not confirm whether 'request.user' was unexpectedly None, which could be an upstream issue or a missing null check in the code change.\"\r\n    ],\r\n    \"reference_notes\": []\r\n  },\r\n  \"usage\": {\r\n    \"calls\": [\r\n      {\r\n        \"stage\": \"diagnosis\",\r\n        \"model\": \"qwen3:8b\",\r\n        \"input_tokens\": 2037,\r\n        \"output_tokens\": 944\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"attempts\": 1,\r\n      \"input_counted_calls\": 1,\r\n      \"known_input_tokens\": 2037,\r\n      \"input_tokens\": 2037,\r\n      \"output_counted_calls\": 1,\r\n      \"known_output_tokens\": 944,\r\n      \"output_tokens\": 944\r\n    }\r\n  }\r\n}\r\n",
+      "source_sha256": "26e6e43791c3aa66457973f9dcd1f32ed1e88a99ecb0773bcac561b93c5bd380",
+      "review_record": {
+        "source_report": "5543d972-098e-487e-a49e-88c200780741.json",
+        "source_sha256": "26e6e43791c3aa66457973f9dcd1f32ed1e88a99ecb0773bcac561b93c5bd380",
+        "review": {
+          "rubric_version": 1,
+          "run_id": "5543d972-098e-487e-a49e-88c200780741",
+          "case_id": "checkout_regression",
+          "reviewer": "Codex AI review; no independent human validation; grounding-baseline-v1",
+          "causal_explanation": {
+            "verdict": "met",
+            "rationale": "'accessing request.user.customer_id without verifying request.user exists' matches the shown access and NoneType error in evidence-003/004, linked to deployment by evidence-002. No cause of the null value is asserted."
+          },
+          "deployment_reasoning": {
+            "verdict": "met",
+            "rationale": "'earliest observed error (14:02) occurred after the deployment (13:57)' matches evidence-004 at 14:02:13 and evidence-002 at 13:57. Minute-level formatting preserves the ordering."
+          },
+          "evidence_grounding": {
+            "verdict": "not_met",
+            "rationale": "'The deployment's code change refactored customer lookup' cites evidence-003 only. That response establishes the diff, but evidence-002 is required to connect its commit hash to the deployment. The remaining temporal claims have appropriate evidence; one incomplete claim is enough to fail this strict criterion."
+          },
+          "uncertainty_handling": {
+            "verdict": "met",
+            "rationale": "The limitation says evidence does not confirm whether request.user was 'unexpectedly None' and labels an upstream issue as a possibility. It does not present that hypothesis as an observed cause."
+          }
+        }
+      }
+    },
+    {
+      "case_id": "checkout_regression",
+      "seed": 44,
+      "report_json": "{\r\n  \"report_version\": 2,\r\n  \"evaluation_mode\": \"diagnosis_replay\",\r\n  \"diagnosis_model\": \"qwen3:8b\",\r\n  \"diagnosis_settings\": {\r\n    \"num_ctx\": 8192,\r\n    \"num_predict\": 2048,\r\n    \"temperature\": 0.6,\r\n    \"top_p\": 0.95,\r\n    \"top_k\": 20,\r\n    \"seed\": 44,\r\n    \"think\": true\r\n  },\r\n  \"reference_context\": [],\r\n  \"retrieval\": null,\r\n  \"run_id\": \"a87d0528-ffb3-4260-9cde-0fd3eed74b08\",\r\n  \"started_at\": \"2026-10-27T11:08:01.372284+00:00\",\r\n  \"case_id\": \"checkout_regression\",\r\n  \"incident\": \"Errors in checkout-service have increased significantly. Investigate.\",\r\n  \"source\": {\r\n    \"report_file\": \"7a3f5342-6a12-4b22-a70d-950ba3c501b6.json\",\r\n    \"run_id\": \"7a3f5342-6a12-4b22-a70d-950ba3c501b6\",\r\n    \"sha256\": \"8ee1e7f85dcab3850127e4dce70952538aa621c81f5856090c2dca42db1b38b0\"\r\n  },\r\n  \"status\": \"completed\",\r\n  \"error\": null,\r\n  \"timing\": {\r\n    \"investigation_seconds\": null,\r\n    \"scoring_seconds\": null,\r\n    \"diagnosis_seconds\": 19.922111500000028,\r\n    \"total_seconds\": 19.923900400001003,\r\n    \"retrieval_seconds\": null\r\n  },\r\n  \"metrics\": null,\r\n  \"diagnosis_assessment\": {\r\n    \"status\": \"not_scored\",\r\n    \"reference_root_cause\": \"The deployed change accesses request.user.customer_id. When request.user is None, this access raises AttributeError. The change does not itself make request.user become None.\"\r\n  },\r\n  \"investigation\": {\r\n    \"status\": \"finished\",\r\n    \"reason\": \"The error logs confirm that the recent deployment (commit a1b2c3d4e5f6g7h8i9j0) introduced a customer lookup refactor that caused 'AttributeError: 'NoneType' object has no attribute 'customer_id' when the user object is missing. This directly explains the error rate spike observed after the deployment, and no further evidence is needed to establish the root cause.\",\r\n    \"steps\": [\r\n      {\r\n        \"evidence_id\": \"evidence-001\",\r\n        \"decision\": {\r\n          \"tool\": \"query_metrics\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"metric_name\": \"error_rate\"\r\n          },\r\n          \"reason\": \"To determine the current error rate and quantify the magnitude of the increase, which is essential for understanding the incident's severity and guiding further investigation.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:55:00Z\",\r\n            \"value\": 0.01\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"value\": 0.35\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:05:00Z\",\r\n            \"value\": 0.4\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-002\",\r\n        \"decision\": {\r\n          \"tool\": \"get_deployments\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\"\r\n          },\r\n          \"reason\": \"To identify recent deployments that might have caused the error rate increase, as deployments are a common source of incidents in production services.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.4\",\r\n            \"timestamp\": \"2026-09-28T13:57:00Z\",\r\n            \"commit_hash\": \"a1b2c3d4e5f6g7h8i9j0\",\r\n            \"rollback_target_version\": \"1.7.3\"\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-003\",\r\n        \"decision\": {\r\n          \"tool\": \"get_commit\",\r\n          \"arguments\": {\r\n            \"commit_hash\": \"a1b2c3d4e5f6g7h8i9j0\"\r\n          },\r\n          \"reason\": \"To determine if the recent deployment commit introduced a specific change that could cause the error rate increase, as the deployment to version 1.7.4 with this commit hash occurred just before the error rate spiked.\"\r\n        },\r\n        \"result\": {\r\n          \"hash\": \"a1b2c3d4e5f6g7h8i9j0\",\r\n          \"message\": \"Refactor customer lookup\",\r\n          \"diff\": \"- customer_id = request.customer_id\\n+ customer_id = request.user.customer_id\"\r\n        }\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-004\",\r\n        \"decision\": {\r\n          \"tool\": \"search_logs\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\"\r\n          },\r\n          \"reason\": \"To identify specific error messages occurring during the error rate spike (after the deployment at 13:57 UTC), which would reveal whether the customer lookup refactor introduced a bug causing checkout failures.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"timestamp\": \"2026-09-28T14:02:13Z\",\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\",\r\n            \"message\": \"AttributeError: 'NoneType' object has no attribute 'customer_id'\"\r\n          }\r\n        ]\r\n      }\r\n    ]\r\n  },\r\n  \"diagnosis\": {\r\n    \"status\": \"supported\",\r\n    \"root_cause\": {\r\n      \"statement\": \"The deployment of checkout-service version 1.7.4 introduced a code change that accesses request.user.customer_id without validating the existence of the 'user' attribute, leading to an AttributeError.\",\r\n      \"evidence_ids\": [\r\n        \"evidence-002\",\r\n        \"evidence-003\",\r\n        \"evidence-004\"\r\n      ]\r\n    },\r\n    \"supporting_claims\": [\r\n      {\r\n        \"statement\": \"The error rate spiked after the deployment of version 1.7.4, with the first observed error occurring 5 minutes after deployment.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-001\",\r\n          \"evidence-002\",\r\n          \"evidence-004\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The code change in the deployment removed direct access to request.customer_id and replaced it with request.user.customer_id, which may assume the existence of a 'user' object.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-003\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The observed AttributeError confirms the code is attempting to access 'customer_id' on a 'NoneType' object, which matches the code change's potential side effects.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-004\"\r\n        ]\r\n      }\r\n    ],\r\n    \"limitations\": [\r\n      \"The exact trigger for the 'user' object being None is not determined, but the error mechanism is supported by the code change and error logs.\"\r\n    ],\r\n    \"reference_notes\": []\r\n  },\r\n  \"usage\": {\r\n    \"calls\": [\r\n      {\r\n        \"stage\": \"diagnosis\",\r\n        \"model\": \"qwen3:8b\",\r\n        \"input_tokens\": 2037,\r\n        \"output_tokens\": 831\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"attempts\": 1,\r\n      \"input_counted_calls\": 1,\r\n      \"known_input_tokens\": 2037,\r\n      \"input_tokens\": 2037,\r\n      \"output_counted_calls\": 1,\r\n      \"known_output_tokens\": 831,\r\n      \"output_tokens\": 831\r\n    }\r\n  }\r\n}\r\n",
+      "source_sha256": "9ed3d43091c302e1c31d7d148fa1e8d0e52cd881f4948821477f0072bb84eb86",
+      "review_record": {
+        "source_report": "a87d0528-ffb3-4260-9cde-0fd3eed74b08.json",
+        "source_sha256": "9ed3d43091c302e1c31d7d148fa1e8d0e52cd881f4948821477f0072bb84eb86",
+        "review": {
+          "rubric_version": 1,
+          "run_id": "a87d0528-ffb3-4260-9cde-0fd3eed74b08",
+          "case_id": "checkout_regression",
+          "reviewer": "Codex AI review; no independent human validation; grounding-baseline-v1",
+          "causal_explanation": {
+            "verdict": "met",
+            "rationale": "The root cause describes request.user.customer_id access and AttributeError with evidence-002/003/004. 'existence of the user attribute' is imprecise; read with the explicit limitation 'user object being None', the mechanism is interpreted as a null object rather than a proven missing attribute."
+          },
+          "deployment_reasoning": {
+            "verdict": "met",
+            "rationale": "'first observed error occurring 5 minutes after deployment' preserves the 13:57 to 14:02:13 ordering (evidence-002/004). This review accepts minute-rounded prose; the exact interval is 5 minutes 13 seconds, not exactly 5 minutes."
+          },
+          "evidence_grounding": {
+            "verdict": "not_met",
+            "rationale": "'code change in the deployment' cites only evidence-003, missing the deployment-to-commit link in evidence-002. The claim that the AttributeError 'matches the code change' cites only evidence-004, which establishes the error but not the code change."
+          },
+          "uncertainty_handling": {
+            "verdict": "met",
+            "rationale": "'exact trigger for the user object being None is not determined' correctly limits the mechanism inference. The diagnosis does not invent that trigger."
+          }
+        }
+      }
+    },
+    {
+      "case_id": "payment_provider_outage",
+      "seed": 42,
+      "report_json": "{\r\n  \"report_version\": 2,\r\n  \"evaluation_mode\": \"diagnosis_replay\",\r\n  \"diagnosis_model\": \"qwen3:8b\",\r\n  \"diagnosis_settings\": {\r\n    \"num_ctx\": 8192,\r\n    \"num_predict\": 2048,\r\n    \"temperature\": 0.6,\r\n    \"top_p\": 0.95,\r\n    \"top_k\": 20,\r\n    \"seed\": 42,\r\n    \"think\": true\r\n  },\r\n  \"reference_context\": [],\r\n  \"retrieval\": null,\r\n  \"run_id\": \"d513791b-127d-4b89-a928-d07a377dd247\",\r\n  \"started_at\": \"2026-10-27T11:08:23.006151+00:00\",\r\n  \"case_id\": \"payment_provider_outage\",\r\n  \"incident\": \"Errors in checkout-service have increased significantly. Investigate.\",\r\n  \"source\": {\r\n    \"report_file\": \"88405562-a606-4f8a-b802-2c3257f6a562.json\",\r\n    \"run_id\": \"88405562-a606-4f8a-b802-2c3257f6a562\",\r\n    \"sha256\": \"a9dd4a9cf96bd06dcf6e3033615f9893001e85c58317ec3cc12579839a85b8ce\"\r\n  },\r\n  \"status\": \"completed\",\r\n  \"error\": null,\r\n  \"timing\": {\r\n    \"investigation_seconds\": null,\r\n    \"scoring_seconds\": null,\r\n    \"diagnosis_seconds\": 18.86062900000252,\r\n    \"total_seconds\": 18.8612398999976,\r\n    \"retrieval_seconds\": null\r\n  },\r\n  \"metrics\": null,\r\n  \"diagnosis_assessment\": {\r\n    \"status\": \"not_scored\",\r\n    \"reference_root_cause\": \"Checkout payment authorization fails because PayBridge returns HTTP 503. Failures and elevated error rates began before the checkout deployment and affect both versions 1.7.3 and 1.7.4. The deployment changes logging only and does not explain the onset. Rolling back checkout is not supported as a remedy by this evidence. The provider's internal reason for returning 503 remains unknown.\"\r\n  },\r\n  \"investigation\": {\r\n    \"status\": \"finished\",\r\n    \"reason\": \"The error logs consistently show PayBridge returning 503 responses, indicating an external service issue. However, without additional tools to check PayBridge's status or network conditions, further investigation into the root cause cannot be completed. The available evidence confirms the error pattern but does not provide conclusive confirmation of the external service as the sole cause.\",\r\n    \"steps\": [\r\n      {\r\n        \"evidence_id\": \"evidence-001\",\r\n        \"decision\": {\r\n          \"tool\": \"query_metrics\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"metric_name\": \"error_rate\"\r\n          },\r\n          \"reason\": \"To quantify the current error rate in checkout-service and confirm if the reported increase is significant. The error rate metric provides a direct numerical measure of errors, which is critical for understanding the severity and trend of the issue without assuming root causes.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:50:00Z\",\r\n            \"value\": 0.01\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:54:00Z\",\r\n            \"value\": 0.3\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"value\": 0.4\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-002\",\r\n        \"decision\": {\r\n          \"tool\": \"get_deployments\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\"\r\n          },\r\n          \"reason\": \"To identify recent deployments of checkout-service that could have introduced the error spike. The error rate increased rapidly (from 0.01 to 0.4 in less than an hour), suggesting a recent change like a deployment might be the cause. Checking deployments will help correlate the error increase with specific release versions.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.4\",\r\n            \"timestamp\": \"2026-09-28T13:57:00Z\",\r\n            \"commit_hash\": \"b72d9e1\",\r\n            \"rollback_target_version\": \"1.7.3\"\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-003\",\r\n        \"decision\": {\r\n          \"tool\": \"get_commit\",\r\n          \"arguments\": {\r\n            \"commit_hash\": \"b72d9e1\"\r\n          },\r\n          \"reason\": \"To determine what changes were introduced in the latest deployment commit (b72d9e1) that could have caused the error rate increase. Since the error rate spiked shortly after the deployment (1.7.4), inspecting the commit details will help identify potential faulty code changes, configuration updates, or other modifications that might be responsible for the observed errors.\"\r\n        },\r\n        \"result\": {\r\n          \"hash\": \"b72d9e1\",\r\n          \"message\": \"Add checkout request logging\",\r\n          \"diff\": \" def checkout(request):\\n+    logger.info(\\\"Checkout request received\\\")\\n     return process_checkout(request)\"\r\n        }\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-004\",\r\n        \"decision\": {\r\n          \"tool\": \"search_logs\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\"\r\n          },\r\n          \"reason\": \"To identify recent error logs in checkout-service that may be directly related to the commit that introduced the logging change (b72d9e1). The error rate spiked immediately after deployment, so checking error logs around the deployment timestamp (2026-09-28T13:57:00Z) will help determine if the new logging implementation caused the errors.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"timestamp\": \"2026-09-28T13:54:00Z\",\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.3\",\r\n            \"level\": \"ERROR\",\r\n            \"message\": \"Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE\"\r\n          },\r\n          {\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.4\",\r\n            \"level\": \"ERROR\",\r\n            \"message\": \"Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE\"\r\n          }\r\n        ]\r\n      }\r\n    ]\r\n  },\r\n  \"diagnosis\": {\r\n    \"status\": \"supported\",\r\n    \"root_cause\": {\r\n      \"statement\": \"Payment authorization failures in checkout-service are caused by PayBridge returning HTTP 503 SERVICE_UNAVAILABLE errors.\",\r\n      \"evidence_ids\": [\r\n        \"evidence-004\"\r\n      ]\r\n    },\r\n    \"supporting_claims\": [\r\n      {\r\n        \"statement\": \"Checkout-service errors correlate with PayBridge's 503 SERVICE_UNAVAILABLE responses.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-004\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The error rate spiked from 0.3 to 0.4 coinciding with PayBridge errors.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-001\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The deployment to 1.7.4 did not introduce code changes affecting PayBridge integration.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-003\"\r\n        ]\r\n      }\r\n    ],\r\n    \"limitations\": [\r\n      \"The observations do not establish whether PayBridge's 503 errors were due to its own infrastructure issues or external dependencies.\",\r\n      \"The deployment timing analysis shows errors occurred before and after the 1.7.4 deployment, indicating the issue predates the deployment but persists.\"\r\n    ],\r\n    \"reference_notes\": []\r\n  },\r\n  \"usage\": {\r\n    \"calls\": [\r\n      {\r\n        \"stage\": \"diagnosis\",\r\n        \"model\": \"qwen3:8b\",\r\n        \"input_tokens\": 2186,\r\n        \"output_tokens\": 780\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"attempts\": 1,\r\n      \"input_counted_calls\": 1,\r\n      \"known_input_tokens\": 2186,\r\n      \"input_tokens\": 2186,\r\n      \"output_counted_calls\": 1,\r\n      \"known_output_tokens\": 780,\r\n      \"output_tokens\": 780\r\n    }\r\n  }\r\n}\r\n",
+      "source_sha256": "48d361159638aebd77f84bee27edf21a238a4c2fe536e9ef7b16f648e0032963",
+      "review_record": {
+        "source_report": "d513791b-127d-4b89-a928-d07a377dd247.json",
+        "source_sha256": "48d361159638aebd77f84bee27edf21a238a4c2fe536e9ef7b16f648e0032963",
+        "review": {
+          "rubric_version": 1,
+          "run_id": "d513791b-127d-4b89-a928-d07a377dd247",
+          "case_id": "payment_provider_outage",
+          "reviewer": "Codex AI review; no independent human validation; grounding-baseline-v1",
+          "causal_explanation": {
+            "verdict": "met",
+            "rationale": "'Payment authorization failures ... caused by PayBridge returning HTTP 503' matches evidence-004's explicit payment failure messages without asserting an internal provider cause."
+          },
+          "deployment_reasoning": {
+            "verdict": "met",
+            "rationale": "The limitation explicitly says errors occurred 'before and after' deployment and the issue 'predates the deployment'. This matches evidence-002/004, while evidence-003 shows a logging-only diff."
+          },
+          "evidence_grounding": {
+            "verdict": "not_met",
+            "rationale": "'error rate ... coinciding with PayBridge errors' cites only evidence-001, which has metric samples but no PayBridge observations; evidence-004 is also required. The claim about 'deployment to 1.7.4' cites only evidence-003, missing the deployment link in evidence-002."
+          },
+          "uncertainty_handling": {
+            "verdict": "met",
+            "rationale": "'observations do not establish whether ... infrastructure issues or external dependencies' explicitly preserves uncertainty about the provider's internal cause."
+          }
+        }
+      }
+    },
+    {
+      "case_id": "payment_provider_outage",
+      "seed": 43,
+      "report_json": "{\r\n  \"report_version\": 2,\r\n  \"evaluation_mode\": \"diagnosis_replay\",\r\n  \"diagnosis_model\": \"qwen3:8b\",\r\n  \"diagnosis_settings\": {\r\n    \"num_ctx\": 8192,\r\n    \"num_predict\": 2048,\r\n    \"temperature\": 0.6,\r\n    \"top_p\": 0.95,\r\n    \"top_k\": 20,\r\n    \"seed\": 43,\r\n    \"think\": true\r\n  },\r\n  \"reference_context\": [],\r\n  \"retrieval\": null,\r\n  \"run_id\": \"e589a505-08fe-4f66-a156-1ddc9ae07834\",\r\n  \"started_at\": \"2026-10-27T11:08:43.510661+00:00\",\r\n  \"case_id\": \"payment_provider_outage\",\r\n  \"incident\": \"Errors in checkout-service have increased significantly. Investigate.\",\r\n  \"source\": {\r\n    \"report_file\": \"88405562-a606-4f8a-b802-2c3257f6a562.json\",\r\n    \"run_id\": \"88405562-a606-4f8a-b802-2c3257f6a562\",\r\n    \"sha256\": \"a9dd4a9cf96bd06dcf6e3033615f9893001e85c58317ec3cc12579839a85b8ce\"\r\n  },\r\n  \"status\": \"completed\",\r\n  \"error\": null,\r\n  \"timing\": {\r\n    \"investigation_seconds\": null,\r\n    \"scoring_seconds\": null,\r\n    \"diagnosis_seconds\": 37.95669359999738,\r\n    \"total_seconds\": 37.95699749999767,\r\n    \"retrieval_seconds\": null\r\n  },\r\n  \"metrics\": null,\r\n  \"diagnosis_assessment\": {\r\n    \"status\": \"not_scored\",\r\n    \"reference_root_cause\": \"Checkout payment authorization fails because PayBridge returns HTTP 503. Failures and elevated error rates began before the checkout deployment and affect both versions 1.7.3 and 1.7.4. The deployment changes logging only and does not explain the onset. Rolling back checkout is not supported as a remedy by this evidence. The provider's internal reason for returning 503 remains unknown.\"\r\n  },\r\n  \"investigation\": {\r\n    \"status\": \"finished\",\r\n    \"reason\": \"The error logs consistently show PayBridge returning 503 responses, indicating an external service issue. However, without additional tools to check PayBridge's status or network conditions, further investigation into the root cause cannot be completed. The available evidence confirms the error pattern but does not provide conclusive confirmation of the external service as the sole cause.\",\r\n    \"steps\": [\r\n      {\r\n        \"evidence_id\": \"evidence-001\",\r\n        \"decision\": {\r\n          \"tool\": \"query_metrics\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"metric_name\": \"error_rate\"\r\n          },\r\n          \"reason\": \"To quantify the current error rate in checkout-service and confirm if the reported increase is significant. The error rate metric provides a direct numerical measure of errors, which is critical for understanding the severity and trend of the issue without assuming root causes.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:50:00Z\",\r\n            \"value\": 0.01\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:54:00Z\",\r\n            \"value\": 0.3\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"value\": 0.4\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-002\",\r\n        \"decision\": {\r\n          \"tool\": \"get_deployments\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\"\r\n          },\r\n          \"reason\": \"To identify recent deployments of checkout-service that could have introduced the error spike. The error rate increased rapidly (from 0.01 to 0.4 in less than an hour), suggesting a recent change like a deployment might be the cause. Checking deployments will help correlate the error increase with specific release versions.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.4\",\r\n            \"timestamp\": \"2026-09-28T13:57:00Z\",\r\n            \"commit_hash\": \"b72d9e1\",\r\n            \"rollback_target_version\": \"1.7.3\"\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-003\",\r\n        \"decision\": {\r\n          \"tool\": \"get_commit\",\r\n          \"arguments\": {\r\n            \"commit_hash\": \"b72d9e1\"\r\n          },\r\n          \"reason\": \"To determine what changes were introduced in the latest deployment commit (b72d9e1) that could have caused the error rate increase. Since the error rate spiked shortly after the deployment (1.7.4), inspecting the commit details will help identify potential faulty code changes, configuration updates, or other modifications that might be responsible for the observed errors.\"\r\n        },\r\n        \"result\": {\r\n          \"hash\": \"b72d9e1\",\r\n          \"message\": \"Add checkout request logging\",\r\n          \"diff\": \" def checkout(request):\\n+    logger.info(\\\"Checkout request received\\\")\\n     return process_checkout(request)\"\r\n        }\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-004\",\r\n        \"decision\": {\r\n          \"tool\": \"search_logs\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\"\r\n          },\r\n          \"reason\": \"To identify recent error logs in checkout-service that may be directly related to the commit that introduced the logging change (b72d9e1). The error rate spiked immediately after deployment, so checking error logs around the deployment timestamp (2026-09-28T13:57:00Z) will help determine if the new logging implementation caused the errors.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"timestamp\": \"2026-09-28T13:54:00Z\",\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.3\",\r\n            \"level\": \"ERROR\",\r\n            \"message\": \"Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE\"\r\n          },\r\n          {\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.4\",\r\n            \"level\": \"ERROR\",\r\n            \"message\": \"Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE\"\r\n          }\r\n        ]\r\n      }\r\n    ]\r\n  },\r\n  \"diagnosis\": {\r\n    \"status\": \"supported\",\r\n    \"root_cause\": {\r\n      \"statement\": \"checkout-service encounters HTTP 503 SERVICE_UNAVAILABLE errors from PayBridge, leading to increased error rates.\",\r\n      \"evidence_ids\": [\r\n        \"evidence-004\",\r\n        \"evidence-001\"\r\n      ]\r\n    },\r\n    \"supporting_claims\": [\r\n      {\r\n        \"statement\": \"Error rate in checkout-service increased from 0.01 to 0.4 between 2026-09-28T13:50:00Z and 2026-09-28T14:02:00Z.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-001\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"Checkout-service logs show Payment authorization failed with PayBridge returning HTTP 503 SERVICE_UNAVAILABLE.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-004\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"Deployment of checkout-service 1.7.4 occurred after the earliest observed error (13:54) but did not resolve the error, as it persisted in 1.7.4 version.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-002\",\r\n          \"evidence-004\"\r\n        ]\r\n      }\r\n    ],\r\n    \"limitations\": [\r\n      \"No evidence connects the PayBridge error to internal checkout-service code changes or configuration.\",\r\n      \"Deployment timing analysis shows errors occurred before the 1.7.4 deployment, indicating the deployment is not the root cause.\"\r\n    ],\r\n    \"reference_notes\": []\r\n  },\r\n  \"usage\": {\r\n    \"calls\": [\r\n      {\r\n        \"stage\": \"diagnosis\",\r\n        \"model\": \"qwen3:8b\",\r\n        \"input_tokens\": 2186,\r\n        \"output_tokens\": 1616\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"attempts\": 1,\r\n      \"input_counted_calls\": 1,\r\n      \"known_input_tokens\": 2186,\r\n      \"input_tokens\": 2186,\r\n      \"output_counted_calls\": 1,\r\n      \"known_output_tokens\": 1616,\r\n      \"output_tokens\": 1616\r\n    }\r\n  }\r\n}\r\n",
+      "source_sha256": "dbb9a269968ad1e159496bcd2aae342837d515c9d703482a9748b35dc2fad580",
+      "review_record": {
+        "source_report": "e589a505-08fe-4f66-a156-1ddc9ae07834.json",
+        "source_sha256": "dbb9a269968ad1e159496bcd2aae342837d515c9d703482a9748b35dc2fad580",
+        "review": {
+          "rubric_version": 1,
+          "run_id": "e589a505-08fe-4f66-a156-1ddc9ae07834",
+          "case_id": "payment_provider_outage",
+          "reviewer": "Codex AI review; no independent human validation; grounding-baseline-v1",
+          "causal_explanation": {
+            "verdict": "met",
+            "rationale": "The root cause identifies HTTP 503 responses from PayBridge and increased error rates, citing evidence-004 and evidence-001. It does not invent the provider's internal failure mechanism."
+          },
+          "deployment_reasoning": {
+            "verdict": "met",
+            "rationale": "'deployment ... occurred after the earliest observed error (13:54)' and persistence in version 1.7.4 match evidence-002/004. The limitation excludes deployment as the initiating cause; it is interpreted in that onset context, not as proof that later changes could never worsen an incident."
+          },
+          "evidence_grounding": {
+            "verdict": "met",
+            "rationale": "The metric interval 13:50 to 14:02 and values 0.01 to 0.4 match evidence-001. Payment failure messages match evidence-004. The deployment/order claim cites evidence-002 and evidence-004, supporting both parts."
+          },
+          "uncertainty_handling": {
+            "verdict": "not_met",
+            "rationale": "Limitations discuss lack of evidence for checkout code/configuration and deployment onset, but never identify the unknown internal reason for PayBridge returning 503. Under this protocol's symptom-versus-unknown-cause criterion, that uncertainty is insufficiently stated. This is an omission, not an invented provider cause."
+          }
+        }
+      }
+    },
+    {
+      "case_id": "payment_provider_outage",
+      "seed": 44,
+      "report_json": "{\r\n  \"report_version\": 2,\r\n  \"evaluation_mode\": \"diagnosis_replay\",\r\n  \"diagnosis_model\": \"qwen3:8b\",\r\n  \"diagnosis_settings\": {\r\n    \"num_ctx\": 8192,\r\n    \"num_predict\": 2048,\r\n    \"temperature\": 0.6,\r\n    \"top_p\": 0.95,\r\n    \"top_k\": 20,\r\n    \"seed\": 44,\r\n    \"think\": true\r\n  },\r\n  \"reference_context\": [],\r\n  \"retrieval\": null,\r\n  \"run_id\": \"2947af4d-c531-4235-9ed5-e20458abaa2a\",\r\n  \"started_at\": \"2026-10-27T11:09:23.020339+00:00\",\r\n  \"case_id\": \"payment_provider_outage\",\r\n  \"incident\": \"Errors in checkout-service have increased significantly. Investigate.\",\r\n  \"source\": {\r\n    \"report_file\": \"88405562-a606-4f8a-b802-2c3257f6a562.json\",\r\n    \"run_id\": \"88405562-a606-4f8a-b802-2c3257f6a562\",\r\n    \"sha256\": \"a9dd4a9cf96bd06dcf6e3033615f9893001e85c58317ec3cc12579839a85b8ce\"\r\n  },\r\n  \"status\": \"completed\",\r\n  \"error\": null,\r\n  \"timing\": {\r\n    \"investigation_seconds\": null,\r\n    \"scoring_seconds\": null,\r\n    \"diagnosis_seconds\": 16.658115700000053,\r\n    \"total_seconds\": 16.658406800001103,\r\n    \"retrieval_seconds\": null\r\n  },\r\n  \"metrics\": null,\r\n  \"diagnosis_assessment\": {\r\n    \"status\": \"not_scored\",\r\n    \"reference_root_cause\": \"Checkout payment authorization fails because PayBridge returns HTTP 503. Failures and elevated error rates began before the checkout deployment and affect both versions 1.7.3 and 1.7.4. The deployment changes logging only and does not explain the onset. Rolling back checkout is not supported as a remedy by this evidence. The provider's internal reason for returning 503 remains unknown.\"\r\n  },\r\n  \"investigation\": {\r\n    \"status\": \"finished\",\r\n    \"reason\": \"The error logs consistently show PayBridge returning 503 responses, indicating an external service issue. However, without additional tools to check PayBridge's status or network conditions, further investigation into the root cause cannot be completed. The available evidence confirms the error pattern but does not provide conclusive confirmation of the external service as the sole cause.\",\r\n    \"steps\": [\r\n      {\r\n        \"evidence_id\": \"evidence-001\",\r\n        \"decision\": {\r\n          \"tool\": \"query_metrics\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"metric_name\": \"error_rate\"\r\n          },\r\n          \"reason\": \"To quantify the current error rate in checkout-service and confirm if the reported increase is significant. The error rate metric provides a direct numerical measure of errors, which is critical for understanding the severity and trend of the issue without assuming root causes.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:50:00Z\",\r\n            \"value\": 0.01\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:54:00Z\",\r\n            \"value\": 0.3\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"value\": 0.4\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-002\",\r\n        \"decision\": {\r\n          \"tool\": \"get_deployments\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\"\r\n          },\r\n          \"reason\": \"To identify recent deployments of checkout-service that could have introduced the error spike. The error rate increased rapidly (from 0.01 to 0.4 in less than an hour), suggesting a recent change like a deployment might be the cause. Checking deployments will help correlate the error increase with specific release versions.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.4\",\r\n            \"timestamp\": \"2026-09-28T13:57:00Z\",\r\n            \"commit_hash\": \"b72d9e1\",\r\n            \"rollback_target_version\": \"1.7.3\"\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-003\",\r\n        \"decision\": {\r\n          \"tool\": \"get_commit\",\r\n          \"arguments\": {\r\n            \"commit_hash\": \"b72d9e1\"\r\n          },\r\n          \"reason\": \"To determine what changes were introduced in the latest deployment commit (b72d9e1) that could have caused the error rate increase. Since the error rate spiked shortly after the deployment (1.7.4), inspecting the commit details will help identify potential faulty code changes, configuration updates, or other modifications that might be responsible for the observed errors.\"\r\n        },\r\n        \"result\": {\r\n          \"hash\": \"b72d9e1\",\r\n          \"message\": \"Add checkout request logging\",\r\n          \"diff\": \" def checkout(request):\\n+    logger.info(\\\"Checkout request received\\\")\\n     return process_checkout(request)\"\r\n        }\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-004\",\r\n        \"decision\": {\r\n          \"tool\": \"search_logs\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\"\r\n          },\r\n          \"reason\": \"To identify recent error logs in checkout-service that may be directly related to the commit that introduced the logging change (b72d9e1). The error rate spiked immediately after deployment, so checking error logs around the deployment timestamp (2026-09-28T13:57:00Z) will help determine if the new logging implementation caused the errors.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"timestamp\": \"2026-09-28T13:54:00Z\",\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.3\",\r\n            \"level\": \"ERROR\",\r\n            \"message\": \"Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE\"\r\n          },\r\n          {\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"service\": \"checkout-service\",\r\n            \"version\": \"1.7.4\",\r\n            \"level\": \"ERROR\",\r\n            \"message\": \"Payment authorization failed: provider PayBridge returned HTTP 503, body: SERVICE_UNAVAILABLE\"\r\n          }\r\n        ]\r\n      }\r\n    ]\r\n  },\r\n  \"diagnosis\": {\r\n    \"status\": \"supported\",\r\n    \"root_cause\": {\r\n      \"statement\": \"checkout-service errors are caused by PayBridge returning HTTP 503 SERVICE_UNAVAILABLE responses.\",\r\n      \"evidence_ids\": [\r\n        \"evidence-004\"\r\n      ]\r\n    },\r\n    \"supporting_claims\": [\r\n      {\r\n        \"statement\": \"The error rate increased from 0.01 to 0.4 between 13:50Z and 14:02Z.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-001\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The deployment of checkout-service version 1.7.4 occurred after the first observed error at 13:54Z.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-002\",\r\n          \"evidence-004\"\r\n        ]\r\n      },\r\n      {\r\n        \"statement\": \"The error messages explicitly state PayBridge returned HTTP 503 SERVICE_UNAVAILABLE.\",\r\n        \"evidence_ids\": [\r\n          \"evidence-004\"\r\n        ]\r\n      }\r\n    ],\r\n    \"limitations\": [\r\n      \"The exact reason for PayBridge's SERVICE_UNAVAILABLE status is unknown.\",\r\n      \"The checkout-service code change (commit b72d9e1) does not appear to directly affect PayBridge connectivity.\"\r\n    ],\r\n    \"reference_notes\": []\r\n  },\r\n  \"usage\": {\r\n    \"calls\": [\r\n      {\r\n        \"stage\": \"diagnosis\",\r\n        \"model\": \"qwen3:8b\",\r\n        \"input_tokens\": 2186,\r\n        \"output_tokens\": 711\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"attempts\": 1,\r\n      \"input_counted_calls\": 1,\r\n      \"known_input_tokens\": 2186,\r\n      \"input_tokens\": 2186,\r\n      \"output_counted_calls\": 1,\r\n      \"known_output_tokens\": 711,\r\n      \"output_tokens\": 711\r\n    }\r\n  }\r\n}\r\n",
+      "source_sha256": "4737d2184209e44b9e98935519e13aada30c30513c1a0adf759946e70b9a7e06",
+      "review_record": {
+        "source_report": "2947af4d-c531-4235-9ed5-e20458abaa2a.json",
+        "source_sha256": "4737d2184209e44b9e98935519e13aada30c30513c1a0adf759946e70b9a7e06",
+        "review": {
+          "rubric_version": 1,
+          "run_id": "2947af4d-c531-4235-9ed5-e20458abaa2a",
+          "case_id": "payment_provider_outage",
+          "reviewer": "Codex AI review; no independent human validation; grounding-baseline-v1",
+          "causal_explanation": {
+            "verdict": "met",
+            "rationale": "'PayBridge returning HTTP 503 SERVICE_UNAVAILABLE' is supported by the payment failure messages in evidence-004 and makes no internal provider claim."
+          },
+          "deployment_reasoning": {
+            "verdict": "met",
+            "rationale": "'deployment ... occurred after the first observed error at 13:54Z' cites evidence-002/004 and correctly separates failure onset from deployment. The limitation describes the shown commit as not directly affecting connectivity."
+          },
+          "evidence_grounding": {
+            "verdict": "met",
+            "rationale": "The 13:50 to 14:02 metric values match evidence-001; deployment ordering is supported jointly by evidence-002/004; the PayBridge message is directly supported by evidence-004. The qualified logging-change limitation is consistent with evidence-003."
+          },
+          "uncertainty_handling": {
+            "verdict": "met",
+            "rationale": "'exact reason for PayBridge ... is unknown' explicitly distinguishes the observed dependency failure from its undetermined internal cause."
+          }
+        }
+      }
+    },
+    {
+      "case_id": "sparse_evidence",
+      "seed": 42,
+      "report_json": "{\r\n  \"report_version\": 2,\r\n  \"evaluation_mode\": \"diagnosis_replay\",\r\n  \"diagnosis_model\": \"qwen3:8b\",\r\n  \"diagnosis_settings\": {\r\n    \"num_ctx\": 8192,\r\n    \"num_predict\": 2048,\r\n    \"temperature\": 0.6,\r\n    \"top_p\": 0.95,\r\n    \"top_k\": 20,\r\n    \"seed\": 42,\r\n    \"think\": true\r\n  },\r\n  \"reference_context\": [],\r\n  \"retrieval\": null,\r\n  \"run_id\": \"bbf8b989-f630-4673-aa69-2eaab29f7344\",\r\n  \"started_at\": \"2026-10-27T11:09:41.241765+00:00\",\r\n  \"case_id\": \"sparse_evidence\",\r\n  \"incident\": \"Errors in checkout-service have increased significantly. Investigate.\",\r\n  \"source\": {\r\n    \"report_file\": \"9cff3260-9b7c-4ec1-8c4b-df481c08a876.json\",\r\n    \"run_id\": \"9cff3260-9b7c-4ec1-8c4b-df481c08a876\",\r\n    \"sha256\": \"be947cfa897694b935f6f275eeefe1686bff7dd2ee7ac653ad93602646ffe9f4\"\r\n  },\r\n  \"status\": \"completed\",\r\n  \"error\": null,\r\n  \"timing\": {\r\n    \"investigation_seconds\": null,\r\n    \"scoring_seconds\": null,\r\n    \"diagnosis_seconds\": 16.72759009999936,\r\n    \"total_seconds\": 16.728199299999687,\r\n    \"retrieval_seconds\": null\r\n  },\r\n  \"metrics\": null,\r\n  \"diagnosis_assessment\": {\r\n    \"status\": \"not_scored\",\r\n    \"reference_root_cause\": \"The error rate increased, but the available observations do not establish a specific failure mechanism. No matching logs or deployment records were returned. These empty results do not prove that errors or deployments did not occur. The appropriate diagnosis is insufficient_evidence, requesting error details or other evidence that distinguishes possible causes. Do not invent a code regression, provider outage, or commit hash.\"\r\n  },\r\n  \"investigation\": {\r\n    \"status\": \"finished\",\r\n    \"reason\": \"Evidence gathered shows the error rate has increased significantly (0.01 \\u2192 0.3 \\u2192 0.4), no recent deployments (evidence-002), and no ERROR logs (evidence-003). However, no commit hash is available in the incident or previous tool results to investigate potential code changes. Without a commit hash, the get_commit tool cannot be used to check recent code changes, and no other tools can provide further evidence. The missing evidence prevents determining the root cause.\",\r\n    \"steps\": [\r\n      {\r\n        \"evidence_id\": \"evidence-001\",\r\n        \"decision\": {\r\n          \"tool\": \"query_metrics\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"metric_name\": \"error_rate\"\r\n          },\r\n          \"reason\": \"To quantify the current error rate and understand the magnitude of the increase before proceeding to investigate potential causes like deployments or commits.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:50:00Z\",\r\n            \"value\": 0.01\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:54:00Z\",\r\n            \"value\": 0.3\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"value\": 0.4\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-002\",\r\n        \"decision\": {\r\n          \"tool\": \"get_deployments\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\"\r\n          },\r\n          \"reason\": \"To identify recent deployments of the checkout-service that might have introduced the error rate increase, as deployments are a common cause of service issues.\"\r\n        },\r\n        \"result\": []\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-003\",\r\n        \"decision\": {\r\n          \"tool\": \"search_logs\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\"\r\n          },\r\n          \"reason\": \"After determining there are no recent deployments (evidence-002), the next step is to search for error logs in the checkout-service to identify the specific errors causing the increased error rate, as deployments are ruled out and logs provide direct evidence of the issue.\"\r\n        },\r\n        \"result\": []\r\n      }\r\n    ]\r\n  },\r\n  \"diagnosis\": {\r\n    \"status\": \"insufficient_evidence\",\r\n    \"reason\": \"The observations show an increase in error_rate for checkout-service but do not establish a specific failure mechanism. The error_rate metric alone is a symptom, not a root cause. No deployment records (deployment_timing is empty) or error logs (search_logs returns empty) are available to connect the metric change to a concrete failure mechanism.\",\r\n    \"missing_evidence\": [\r\n      \"Deployment records that could correlate with the error_rate increase\",\r\n      \"Error logs containing detailed error messages or stack traces\",\r\n      \"Dependency health metrics or upstream service status checks\"\r\n    ],\r\n    \"reference_notes\": []\r\n  },\r\n  \"usage\": {\r\n    \"calls\": [\r\n      {\r\n        \"stage\": \"diagnosis\",\r\n        \"model\": \"qwen3:8b\",\r\n        \"input_tokens\": 1383,\r\n        \"output_tokens\": 703\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"attempts\": 1,\r\n      \"input_counted_calls\": 1,\r\n      \"known_input_tokens\": 1383,\r\n      \"input_tokens\": 1383,\r\n      \"output_counted_calls\": 1,\r\n      \"known_output_tokens\": 703,\r\n      \"output_tokens\": 703\r\n    }\r\n  }\r\n}\r\n",
+      "source_sha256": "2f197d791845fefa925d16fe484519a2dde950ff010e95e9b5bd10eb5534c9bb",
+      "review_record": {
+        "source_report": "bbf8b989-f630-4673-aa69-2eaab29f7344.json",
+        "source_sha256": "2f197d791845fefa925d16fe484519a2dde950ff010e95e9b5bd10eb5534c9bb",
+        "review": {
+          "rubric_version": 1,
+          "run_id": "bbf8b989-f630-4673-aa69-2eaab29f7344",
+          "case_id": "sparse_evidence",
+          "reviewer": "Codex AI review; no independent human validation; grounding-baseline-v1",
+          "causal_explanation": {
+            "verdict": "not_assessable",
+            "rationale": "The diagnosis is 'insufficient_evidence' and supplies no causal explanation to score; the metric-only observations cannot establish a mechanism."
+          },
+          "deployment_reasoning": {
+            "verdict": "not_assessable",
+            "rationale": "No deployment attribution is made and evidence-002 returns no deployment records. Describing the missing records is not a deployment-causation claim."
+          },
+          "evidence_grounding": {
+            "verdict": "met",
+            "rationale": "'No deployment records ... or error logs ... are available' describes the returned empty evidence-002/003 and correctly calls the metric a symptom, not a root cause."
+          },
+          "uncertainty_handling": {
+            "verdict": "met",
+            "rationale": "The diagnosis explicitly says the observations do not establish a failure mechanism and requests error logs and deployment records. It abstains rather than inventing a regression or provider outage."
+          }
+        }
+      }
+    },
+    {
+      "case_id": "sparse_evidence",
+      "seed": 43,
+      "report_json": "{\r\n  \"report_version\": 2,\r\n  \"evaluation_mode\": \"diagnosis_replay\",\r\n  \"diagnosis_model\": \"qwen3:8b\",\r\n  \"diagnosis_settings\": {\r\n    \"num_ctx\": 8192,\r\n    \"num_predict\": 2048,\r\n    \"temperature\": 0.6,\r\n    \"top_p\": 0.95,\r\n    \"top_k\": 20,\r\n    \"seed\": 43,\r\n    \"think\": true\r\n  },\r\n  \"reference_context\": [],\r\n  \"retrieval\": null,\r\n  \"run_id\": \"e05da59a-03db-4806-85f5-3be19271154e\",\r\n  \"started_at\": \"2026-10-27T11:09:59.630066+00:00\",\r\n  \"case_id\": \"sparse_evidence\",\r\n  \"incident\": \"Errors in checkout-service have increased significantly. Investigate.\",\r\n  \"source\": {\r\n    \"report_file\": \"9cff3260-9b7c-4ec1-8c4b-df481c08a876.json\",\r\n    \"run_id\": \"9cff3260-9b7c-4ec1-8c4b-df481c08a876\",\r\n    \"sha256\": \"be947cfa897694b935f6f275eeefe1686bff7dd2ee7ac653ad93602646ffe9f4\"\r\n  },\r\n  \"status\": \"completed\",\r\n  \"error\": null,\r\n  \"timing\": {\r\n    \"investigation_seconds\": null,\r\n    \"scoring_seconds\": null,\r\n    \"diagnosis_seconds\": 17.694317199999205,\r\n    \"total_seconds\": 17.694631800000934,\r\n    \"retrieval_seconds\": null\r\n  },\r\n  \"metrics\": null,\r\n  \"diagnosis_assessment\": {\r\n    \"status\": \"not_scored\",\r\n    \"reference_root_cause\": \"The error rate increased, but the available observations do not establish a specific failure mechanism. No matching logs or deployment records were returned. These empty results do not prove that errors or deployments did not occur. The appropriate diagnosis is insufficient_evidence, requesting error details or other evidence that distinguishes possible causes. Do not invent a code regression, provider outage, or commit hash.\"\r\n  },\r\n  \"investigation\": {\r\n    \"status\": \"finished\",\r\n    \"reason\": \"Evidence gathered shows the error rate has increased significantly (0.01 \\u2192 0.3 \\u2192 0.4), no recent deployments (evidence-002), and no ERROR logs (evidence-003). However, no commit hash is available in the incident or previous tool results to investigate potential code changes. Without a commit hash, the get_commit tool cannot be used to check recent code changes, and no other tools can provide further evidence. The missing evidence prevents determining the root cause.\",\r\n    \"steps\": [\r\n      {\r\n        \"evidence_id\": \"evidence-001\",\r\n        \"decision\": {\r\n          \"tool\": \"query_metrics\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"metric_name\": \"error_rate\"\r\n          },\r\n          \"reason\": \"To quantify the current error rate and understand the magnitude of the increase before proceeding to investigate potential causes like deployments or commits.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:50:00Z\",\r\n            \"value\": 0.01\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:54:00Z\",\r\n            \"value\": 0.3\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"value\": 0.4\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-002\",\r\n        \"decision\": {\r\n          \"tool\": \"get_deployments\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\"\r\n          },\r\n          \"reason\": \"To identify recent deployments of the checkout-service that might have introduced the error rate increase, as deployments are a common cause of service issues.\"\r\n        },\r\n        \"result\": []\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-003\",\r\n        \"decision\": {\r\n          \"tool\": \"search_logs\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\"\r\n          },\r\n          \"reason\": \"After determining there are no recent deployments (evidence-002), the next step is to search for error logs in the checkout-service to identify the specific errors causing the increased error rate, as deployments are ruled out and logs provide direct evidence of the issue.\"\r\n        },\r\n        \"result\": []\r\n      }\r\n    ]\r\n  },\r\n  \"diagnosis\": {\r\n    \"status\": \"insufficient_evidence\",\r\n    \"reason\": \"The observations establish a symptom (increased error_rate) but lack evidence of the underlying failure mechanism. No ERROR logs were found (evidence-003) and no deployments are recorded (evidence-002).\",\r\n    \"missing_evidence\": [\r\n      \"error logs\",\r\n      \"deployment records\"\r\n    ],\r\n    \"reference_notes\": []\r\n  },\r\n  \"usage\": {\r\n    \"calls\": [\r\n      {\r\n        \"stage\": \"diagnosis\",\r\n        \"model\": \"qwen3:8b\",\r\n        \"input_tokens\": 1383,\r\n        \"output_tokens\": 770\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"attempts\": 1,\r\n      \"input_counted_calls\": 1,\r\n      \"known_input_tokens\": 1383,\r\n      \"input_tokens\": 1383,\r\n      \"output_counted_calls\": 1,\r\n      \"known_output_tokens\": 770,\r\n      \"output_tokens\": 770\r\n    }\r\n  }\r\n}\r\n",
+      "source_sha256": "c1dbb6f261417e7843a277087e20303fdd9dbcdfda971778d76b98a611aa3c90",
+      "review_record": {
+        "source_report": "e05da59a-03db-4806-85f5-3be19271154e.json",
+        "source_sha256": "c1dbb6f261417e7843a277087e20303fdd9dbcdfda971778d76b98a611aa3c90",
+        "review": {
+          "rubric_version": 1,
+          "run_id": "e05da59a-03db-4806-85f5-3be19271154e",
+          "case_id": "sparse_evidence",
+          "reviewer": "Codex AI review; no independent human validation; grounding-baseline-v1",
+          "causal_explanation": {
+            "verdict": "not_assessable",
+            "rationale": "The diagnosis is 'insufficient_evidence' and supplies no causal explanation to score; the metric-only observations cannot establish a mechanism."
+          },
+          "deployment_reasoning": {
+            "verdict": "not_assessable",
+            "rationale": "No deployment attribution is made and evidence-002 returns no deployment records. Describing the missing records is not a deployment-causation claim."
+          },
+          "evidence_grounding": {
+            "verdict": "met",
+            "rationale": "'No ERROR logs were found ... no deployments are recorded' is read as a statement about the supplied observations, consistent with the introductory reference to observations and empty evidence-002/003. It does not say deployments never occurred."
+          },
+          "uncertainty_handling": {
+            "verdict": "met",
+            "rationale": "The diagnosis explicitly says the observations do not establish a failure mechanism and requests error logs and deployment records. It abstains rather than inventing a regression or provider outage."
+          }
+        }
+      }
+    },
+    {
+      "case_id": "sparse_evidence",
+      "seed": 44,
+      "report_json": "{\r\n  \"report_version\": 2,\r\n  \"evaluation_mode\": \"diagnosis_replay\",\r\n  \"diagnosis_model\": \"qwen3:8b\",\r\n  \"diagnosis_settings\": {\r\n    \"num_ctx\": 8192,\r\n    \"num_predict\": 2048,\r\n    \"temperature\": 0.6,\r\n    \"top_p\": 0.95,\r\n    \"top_k\": 20,\r\n    \"seed\": 44,\r\n    \"think\": true\r\n  },\r\n  \"reference_context\": [],\r\n  \"retrieval\": null,\r\n  \"run_id\": \"3cf319be-db3e-4cf7-a1d2-cf1cd50a0e7d\",\r\n  \"started_at\": \"2026-10-27T11:10:19.008866+00:00\",\r\n  \"case_id\": \"sparse_evidence\",\r\n  \"incident\": \"Errors in checkout-service have increased significantly. Investigate.\",\r\n  \"source\": {\r\n    \"report_file\": \"9cff3260-9b7c-4ec1-8c4b-df481c08a876.json\",\r\n    \"run_id\": \"9cff3260-9b7c-4ec1-8c4b-df481c08a876\",\r\n    \"sha256\": \"be947cfa897694b935f6f275eeefe1686bff7dd2ee7ac653ad93602646ffe9f4\"\r\n  },\r\n  \"status\": \"completed\",\r\n  \"error\": null,\r\n  \"timing\": {\r\n    \"investigation_seconds\": null,\r\n    \"scoring_seconds\": null,\r\n    \"diagnosis_seconds\": 13.850411899999017,\r\n    \"total_seconds\": 13.850701999999728,\r\n    \"retrieval_seconds\": null\r\n  },\r\n  \"metrics\": null,\r\n  \"diagnosis_assessment\": {\r\n    \"status\": \"not_scored\",\r\n    \"reference_root_cause\": \"The error rate increased, but the available observations do not establish a specific failure mechanism. No matching logs or deployment records were returned. These empty results do not prove that errors or deployments did not occur. The appropriate diagnosis is insufficient_evidence, requesting error details or other evidence that distinguishes possible causes. Do not invent a code regression, provider outage, or commit hash.\"\r\n  },\r\n  \"investigation\": {\r\n    \"status\": \"finished\",\r\n    \"reason\": \"Evidence gathered shows the error rate has increased significantly (0.01 \\u2192 0.3 \\u2192 0.4), no recent deployments (evidence-002), and no ERROR logs (evidence-003). However, no commit hash is available in the incident or previous tool results to investigate potential code changes. Without a commit hash, the get_commit tool cannot be used to check recent code changes, and no other tools can provide further evidence. The missing evidence prevents determining the root cause.\",\r\n    \"steps\": [\r\n      {\r\n        \"evidence_id\": \"evidence-001\",\r\n        \"decision\": {\r\n          \"tool\": \"query_metrics\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"metric_name\": \"error_rate\"\r\n          },\r\n          \"reason\": \"To quantify the current error rate and understand the magnitude of the increase before proceeding to investigate potential causes like deployments or commits.\"\r\n        },\r\n        \"result\": [\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:50:00Z\",\r\n            \"value\": 0.01\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T13:54:00Z\",\r\n            \"value\": 0.3\r\n          },\r\n          {\r\n            \"service\": \"checkout-service\",\r\n            \"metric\": \"error_rate\",\r\n            \"timestamp\": \"2026-09-28T14:02:00Z\",\r\n            \"value\": 0.4\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-002\",\r\n        \"decision\": {\r\n          \"tool\": \"get_deployments\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\"\r\n          },\r\n          \"reason\": \"To identify recent deployments of the checkout-service that might have introduced the error rate increase, as deployments are a common cause of service issues.\"\r\n        },\r\n        \"result\": []\r\n      },\r\n      {\r\n        \"evidence_id\": \"evidence-003\",\r\n        \"decision\": {\r\n          \"tool\": \"search_logs\",\r\n          \"arguments\": {\r\n            \"service\": \"checkout-service\",\r\n            \"level\": \"ERROR\"\r\n          },\r\n          \"reason\": \"After determining there are no recent deployments (evidence-002), the next step is to search for error logs in the checkout-service to identify the specific errors causing the increased error rate, as deployments are ruled out and logs provide direct evidence of the issue.\"\r\n        },\r\n        \"result\": []\r\n      }\r\n    ]\r\n  },\r\n  \"diagnosis\": {\r\n    \"status\": \"insufficient_evidence\",\r\n    \"reason\": \"The observations show a significant increase in error_rate for checkout-service (from 0.01 to 0.4) between 2026-09-28T13:50:00Z and 2026-09-28T14:02:00Z, but no evidence connects this to a specific failure mechanism. No ERROR logs (evidence-003) or deployments (evidence-002) are available to explain the error increase. The error_rate metric alone is a symptom, not a mechanism.\",\r\n    \"missing_evidence\": [\r\n      \"ERROR logs for checkout-service during the error increase period\",\r\n      \"Deployment records for checkout-service around the error increase timeframe\"\r\n    ],\r\n    \"reference_notes\": []\r\n  },\r\n  \"usage\": {\r\n    \"calls\": [\r\n      {\r\n        \"stage\": \"diagnosis\",\r\n        \"model\": \"qwen3:8b\",\r\n        \"input_tokens\": 1383,\r\n        \"output_tokens\": 602\r\n      }\r\n    ],\r\n    \"totals\": {\r\n      \"attempts\": 1,\r\n      \"input_counted_calls\": 1,\r\n      \"known_input_tokens\": 1383,\r\n      \"input_tokens\": 1383,\r\n      \"output_counted_calls\": 1,\r\n      \"known_output_tokens\": 602,\r\n      \"output_tokens\": 602\r\n    }\r\n  }\r\n}\r\n",
+      "source_sha256": "f7cd9147c10e9518e64551f1a7c32c47e487d2123b03dc62b192e12f2067ddd6",
+      "review_record": {
+        "source_report": "3cf319be-db3e-4cf7-a1d2-cf1cd50a0e7d.json",
+        "source_sha256": "f7cd9147c10e9518e64551f1a7c32c47e487d2123b03dc62b192e12f2067ddd6",
+        "review": {
+          "rubric_version": 1,
+          "run_id": "3cf319be-db3e-4cf7-a1d2-cf1cd50a0e7d",
+          "case_id": "sparse_evidence",
+          "reviewer": "Codex AI review; no independent human validation; grounding-baseline-v1",
+          "causal_explanation": {
+            "verdict": "not_assessable",
+            "rationale": "The diagnosis is 'insufficient_evidence' and supplies no causal explanation to score; the metric-only observations cannot establish a mechanism."
+          },
+          "deployment_reasoning": {
+            "verdict": "not_assessable",
+            "rationale": "No deployment attribution is made and evidence-002 returns no deployment records. Describing the missing records is not a deployment-causation claim."
+          },
+          "evidence_grounding": {
+            "verdict": "met",
+            "rationale": "'from 0.01 to 0.4 ... 13:50 ... 14:02' matches evidence-001; logs/deployments 'are available' only in the negative is scoped to explaining this incident and matches empty evidence-002/003."
+          },
+          "uncertainty_handling": {
+            "verdict": "met",
+            "rationale": "The diagnosis explicitly says the observations do not establish a failure mechanism and requests error logs and deployment records. It abstains rather than inventing a regression or provider outage."
+          }
+        }
+      }
+    }
+  ]
+}

@@ -15,6 +15,7 @@ from app.tools.data import DEFAULT_SCENARIO_DIR
 from app.agent.settings import DiagnosisSettings
 from app.agent.evidence import (
     build_deployment_timing,
+    build_deployment_metric_timing,
     build_evidence_timeline
 )
 from app.agent.usage import UsageCollector
@@ -329,6 +330,14 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
                     "An error before deployment cannot have been caused by that later "
                     "deployment; an error after deployment does not prove causation. "
                     "An empty comparison list means no usable pair was found. "
+                    "deployment_metric_timing gives calculated intervals from each "
+                    "deployment to each same-service metric sample. Positive intervals "
+                    "mean after deployment; negative intervals mean before; zero means "
+                    "the same instant. When describing a sample's elapsed time, use "
+                    "the interval for that sample's timestamp and value, not the gap "
+                    "between metric samples. Cite both deployment_evidence_id and "
+                    "metric_evidence_id. These are sample times, not proof of exact "
+                    "onset or causation; do not infer when a threshold was first crossed. "
                     
                     "A rollback_target_version records an available target, "
                     "not an executed rollback. Do not claim a rollback occurred, "
@@ -353,6 +362,7 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
                     "incident": incident,
                     "timeline": build_evidence_timeline(steps),
                     "deployment_timing": build_deployment_timing(steps),
+                    "deployment_metric_timing": build_deployment_metric_timing(steps),
                     "observations": [
                         {
                             "evidence_id": step["evidence_id"],

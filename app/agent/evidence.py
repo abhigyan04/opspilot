@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
+from math import isfinite
 
 
 def build_evidence_timeline(steps: list[dict]) -> list[dict]:
@@ -84,4 +85,44 @@ def build_deployment_timing(steps: list[dict]) -> list[dict]:
             "error_relative_to_deployment": relation,
         })
 
+    return comparisons
+
+
+def build_deployment_metric_timing(steps: list[dict]) -> list[dict]:
+    """Calculate sample minus deployment time; ordering does not imply causation."""
+    timeline = build_evidence_timeline(steps)
+    comparisons = []
+    for deployment in timeline:
+        if deployment["tool"] != "get_deployments":
+            continue
+        record = deployment["record"]
+        service = record.get("service")
+        if not isinstance(service, str) or not service.strip():
+            continue
+        deployed_at = datetime.fromisoformat(record["timestamp"])
+        for event in timeline:
+            sample = event["record"]
+            if event["tool"] != "query_metrics" or sample.get("service") != service:
+                continue
+            metric, value = sample.get("metric"), sample.get("value")
+            if not isinstance(metric, str) or not metric.strip():
+                continue
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            if not isfinite(value):
+                continue
+            seconds = (
+                datetime.fromisoformat(sample["timestamp"]) - deployed_at
+            ).total_seconds()
+            comparisons.append({
+                "service": service,
+                "deployment_evidence_id": deployment["evidence_id"],
+                "deployment_timestamp": record["timestamp"],
+                "metric_evidence_id": event["evidence_id"],
+                "sample_timestamp": sample["timestamp"],
+                "metric": metric,
+                "value": value,
+                "seconds_after_deployment": seconds,
+                "minutes_after_deployment": seconds / 60,
+            })
     return comparisons

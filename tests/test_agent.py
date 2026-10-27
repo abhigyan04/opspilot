@@ -358,7 +358,8 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, mod
                 "tool": "search_logs",
                 "record": steps[0]["result"][0]
             }],
-            "deployment_timing": []
+            "deployment_timing": [],
+            "deployment_metric_timing": [],
         }
 
         assert kwargs["model"] == expected_model
@@ -392,6 +393,35 @@ def test_generate_diagnosis_validates_model_citations(monkeypatch, cited_id, mod
             **payload,
             "reference_notes": [],
         }
+
+
+def test_diagnosis_receives_calculated_metric_interval_and_source_ids(monkeypatch):
+    steps = [
+        {"evidence_id": "deploy", "decision": {
+            "tool": "get_deployments", "arguments": {"service": "checkout"},
+        }, "result": [{"service": "checkout", "timestamp": "2026-09-28T13:57:00Z"}]},
+        {"evidence_id": "metrics", "decision": {
+            "tool": "query_metrics", "arguments": {"service": "checkout", "metric_name": "error_rate"},
+        }, "result": [{"service": "checkout", "timestamp": "2026-09-28T14:05:00Z",
+                       "metric": "error_rate", "value": 0.4}]},
+    ]
+
+    def fake_chat(**kwargs):
+        supplied = json.loads(kwargs["messages"][-1]["content"])
+        comparison, = supplied["deployment_metric_timing"]
+        assert comparison["seconds_after_deployment"] == 480
+        assert comparison["minutes_after_deployment"] == 8
+        assert comparison["value"] == 0.4
+        assert comparison["deployment_evidence_id"] == "deploy"
+        assert comparison["metric_evidence_id"] == "metrics"
+        assert [o["result"] for o in supplied["observations"]] == [s["result"] for s in steps]
+        return SimpleNamespace(message=SimpleNamespace(content=json.dumps({
+            "status": "insufficient_evidence", "reason": "No failure mechanism was observed.",
+            "missing_evidence": ["Error logs"],
+        })))
+
+    monkeypatch.setattr(agent, "chat", fake_chat)
+    assert agent.generate_diagnosis("Investigate checkout.", steps).status == "insufficient_evidence"
 
 
 def test_generate_diagnosis_without_evidence_skips_model(monkeypatch):

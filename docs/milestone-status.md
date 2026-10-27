@@ -33,12 +33,32 @@ those checks ran in that invocation or measure model diagnosis accuracy.
 The deployment run above is a specific verified historical run, not a claim
 about CI for every later commit.
 
+## Current grounding baseline
+
+The first nine diagnosis replays and AI reviews are complete. All attempts
+completed, but all three checkout outputs failed the strict evidence-grounding
+criterion. See the [results and preserved evidence](grounding-baseline-results.md).
+These assessments are not independent human validation or production accuracy.
+
 ## Next checkpoint
+
+Address the demonstrated deployment-interval error: checkout seed 42 says the
+0.4 error-rate sample occurred within 7 minutes of deployment; the saved timestamps
+show 8 minutes. Inspect the deterministic timing payload, add a focused regression
+check, and expose the calculated interval and source evidence to diagnosis
+generation where needed. Validate with a separate matched nine-run batch and
+retain the original baseline unchanged.
+
+## Baseline procedure
 
 Establish a current diagnosis-grounding baseline across checkout regression,
 payment-provider outage, and sparse evidence. Existing citation checks validate
 IDs, but known timing and causal-reasoning errors show why semantic assessment
 is also needed.
+
+The [evaluation plan](evaluation-plan.md) defines the first diagnosis-only batch,
+scenario-specific criteria, and reporting requirements. The first results are
+linked above; use the same procedure for matched comparisons.
 
 1. Define evidence-based review criteria for each scenario: causal attribution,
    deployment ordering, timing arithmetic, unsupported claims, and appropriate

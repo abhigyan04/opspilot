@@ -12,6 +12,9 @@ not execute a rollback. A separate CLI supports in-memory remediation simulation
 [Milestone status and next steps](docs/milestone-status.md) ·
 [Reproducible demo guide](docs/milestone-12-demo.md)
 
+The [current diagnosis-grounding baseline](docs/grounding-baseline-results.md)
+records nine completed replays with AI-reviewed claim support and known failures.
+
 ## Explore the recorded demo
 
 [Open the public OpsPilot demo](https://abhigyan04.github.io/opspilot/).

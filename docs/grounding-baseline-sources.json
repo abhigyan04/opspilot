@@ -1,0 +1,256 @@
+{
+  "protocol": "grounding-baseline-v1",
+  "status": "prepared_not_run",
+  "evaluation_mode": "diagnosis_replay",
+  "prepared_from_commit": "481647c7a4a205e9f5837435eb466d2a915a5f80",
+  "diagnosis_model": "qwen3:8b",
+  "diagnosis_settings": {
+    "num_ctx": 8192,
+    "num_predict": 2048,
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "top_k": 20,
+    "think": true
+  },
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "with_references": false,
+  "sources": [
+    {
+      "case_id": "checkout_regression",
+      "path": "out/evals/5f838a10-a72a-4b50-9f29-a76d830538c5/7a3f5342-6a12-4b22-a70d-950ba3c501b6.json",
+      "run_id": "7a3f5342-6a12-4b22-a70d-950ba3c501b6",
+      "sha256": "8ee1e7f85dcab3850127e4dce70952538aa621c81f5856090c2dca42db1b38b0",
+      "evidence_items": 4,
+      "validation": {
+        "case_id": "checkout_regression",
+        "required_tool_coverage": 1.0,
+        "missing_tools": [],
+        "tool_calls": 4,
+        "stopped_by_model": true,
+        "hit_step_limit": false,
+        "tool_arguments": {
+          "status": "scored",
+          "case_id": "checkout_regression",
+          "calls": 4,
+          "assessable_calls": 4,
+          "unassessable_calls": 0,
+          "matching_calls": 4,
+          "argument_match_rate": 1.0,
+          "assessments": [
+            {
+              "step": 1,
+              "tool": "query_metrics",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 2,
+              "tool": "get_deployments",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 3,
+              "tool": "get_commit",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 4,
+              "tool": "search_logs",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            }
+          ]
+        },
+        "evidence_content": {
+          "status": "scored",
+          "case_id": "checkout_regression",
+          "required_nonempty_results": 4,
+          "captured_nonempty_results": 4,
+          "nonempty_result_coverage": 1.0,
+          "expected_empty_lookups": 0,
+          "matched_empty_lookups": 0,
+          "assessments": [
+            {
+              "tool": "search_logs",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "query_metrics",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_deployments",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_commit",
+              "expects_empty": false,
+              "outcome": "matched"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "payment_provider_outage",
+      "path": "out/evals/e50549e7-2c44-4a8a-a3ba-6b4befc78df9/88405562-a606-4f8a-b802-2c3257f6a562.json",
+      "run_id": "88405562-a606-4f8a-b802-2c3257f6a562",
+      "sha256": "a9dd4a9cf96bd06dcf6e3033615f9893001e85c58317ec3cc12579839a85b8ce",
+      "evidence_items": 4,
+      "validation": {
+        "case_id": "payment_provider_outage",
+        "required_tool_coverage": 1.0,
+        "missing_tools": [],
+        "tool_calls": 4,
+        "stopped_by_model": true,
+        "hit_step_limit": false,
+        "tool_arguments": {
+          "status": "scored",
+          "case_id": "payment_provider_outage",
+          "calls": 4,
+          "assessable_calls": 4,
+          "unassessable_calls": 0,
+          "matching_calls": 4,
+          "argument_match_rate": 1.0,
+          "assessments": [
+            {
+              "step": 1,
+              "tool": "query_metrics",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 2,
+              "tool": "get_deployments",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 3,
+              "tool": "get_commit",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 4,
+              "tool": "search_logs",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            }
+          ]
+        },
+        "evidence_content": {
+          "status": "scored",
+          "case_id": "payment_provider_outage",
+          "required_nonempty_results": 4,
+          "captured_nonempty_results": 4,
+          "nonempty_result_coverage": 1.0,
+          "expected_empty_lookups": 0,
+          "matched_empty_lookups": 0,
+          "assessments": [
+            {
+              "tool": "search_logs",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "query_metrics",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_deployments",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_commit",
+              "expects_empty": false,
+              "outcome": "matched"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "sparse_evidence",
+      "path": "out/evals/12a825d7-022a-4a58-a71f-e5386e4567f6/9cff3260-9b7c-4ec1-8c4b-df481c08a876.json",
+      "run_id": "9cff3260-9b7c-4ec1-8c4b-df481c08a876",
+      "sha256": "be947cfa897694b935f6f275eeefe1686bff7dd2ee7ac653ad93602646ffe9f4",
+      "evidence_items": 3,
+      "validation": {
+        "case_id": "sparse_evidence",
+        "required_tool_coverage": 1.0,
+        "missing_tools": [],
+        "tool_calls": 3,
+        "stopped_by_model": true,
+        "hit_step_limit": false,
+        "tool_arguments": {
+          "status": "scored",
+          "case_id": "sparse_evidence",
+          "calls": 3,
+          "assessable_calls": 3,
+          "unassessable_calls": 0,
+          "matching_calls": 3,
+          "argument_match_rate": 1.0,
+          "assessments": [
+            {
+              "step": 1,
+              "tool": "query_metrics",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 2,
+              "tool": "get_deployments",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            },
+            {
+              "step": 3,
+              "tool": "search_logs",
+              "verdict": "met",
+              "reason": "Arguments match this fixture's expectation."
+            }
+          ]
+        },
+        "evidence_content": {
+          "status": "scored",
+          "case_id": "sparse_evidence",
+          "required_nonempty_results": 1,
+          "captured_nonempty_results": 1,
+          "nonempty_result_coverage": 1.0,
+          "expected_empty_lookups": 2,
+          "matched_empty_lookups": 2,
+          "assessments": [
+            {
+              "tool": "search_logs",
+              "expects_empty": true,
+              "outcome": "matched"
+            },
+            {
+              "tool": "query_metrics",
+              "expects_empty": false,
+              "outcome": "matched"
+            },
+            {
+              "tool": "get_deployments",
+              "expects_empty": true,
+              "outcome": "matched"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "runtime_metadata": "Capture commit, working-tree diff, model digest and Ollama version at execution; preparation commit is not execution provenance."
+}
