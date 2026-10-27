@@ -4,8 +4,13 @@ An evaluation-driven incident investigation agent for the fictional Acme
 Commerce platform. The agent investigates synthetic incidents through a bounded
 loop, selecting operational tools with model-generated, validated arguments
 and feeding their results back into subsequent decisions. It then generates a
-structured diagnosis and validates its evidence references. A human can review
-and approve a rollback candidate for in-memory simulation.
+structured diagnosis and validates its evidence references. The local web
+application persists investigations and human review decisions; approval does
+not execute a rollback. A separate CLI supports in-memory remediation simulation.
+
+[Architecture](docs/architecture.md) ·
+[Milestone status and next steps](docs/milestone-status.md) ·
+[Reproducible demo guide](docs/milestone-12-demo.md)
 
 ## Explore the recorded demo
 
@@ -26,6 +31,52 @@ items. These deployed checks verify delivery, not browser interactions.
 was verified through GitHub's API: `Python tests`, `Docker smoke test`, and
 `Deploy recorded demo` all succeeded for commit
 `0cd1572434c6a49281dd811e485236cee85d89ef`.
+
+## Architecture
+
+### Live application
+
+```mermaid
+flowchart TD
+    Browser[Browser: incident, evidence, review] --> API[FastAPI]
+    CLI[Workflow CLI] --> Graph[LangGraph workflow]
+    API --> Graph
+    Graph <--> SQLite[(SQLite checkpoints)]
+    Graph --> Investigate[Bounded investigation loop]
+    Investigate <--> Ollama[Local Ollama models]
+    Investigate --> Direct[Direct Python executor]
+    Investigate --> Client[MCP client]
+    Client -->|stdio| Server[Local MCP server]
+    Direct --> Tools[Logs, metrics, deployments, commits]
+    Server --> Tools
+    Tools --> Fixtures[Synthetic scenario files]
+    Graph --> Diagnose[Structured diagnosis and citation validation]
+    Diagnose <--> Ollama
+    Graph --> Proposal[Rollback proposal checks]
+    Proposal --> Review[Human review interrupt]
+    Review --> End[Persist decision and end]
+```
+
+The persisted graph runs `prepare → investigate → diagnose → propose`, then
+pauses for review when a proposal exists. It ends after the review decision or
+immediately when no action is proposed. Approval does not execute a rollback.
+SQLite checkpoints preserve workflow state across restarts.
+
+### Recorded demo deployment
+
+```mermaid
+flowchart LR
+    Source[Repository commit] --> CI[Python tests and Docker smoke test]
+    CI --> Build[Static demo builder]
+    Build --> Pages[GitHub Pages]
+    Pages --> Visitor[Visitor browser]
+    Assets[Recorded HTML and two reviewed scenario JSON files] --> Build
+```
+
+GitHub Pages serves recorded outputs without a model or API backend. Live
+investigations run in the local application. Optional retrieval and the separate
+remediation simulation are described in the
+[full architecture document](docs/architecture.md).
 
 ## Run locally
 
