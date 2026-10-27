@@ -6,6 +6,8 @@ import asyncio
 from fastapi import Response
 from fastapi.responses import FileResponse
 
+from app.agent.settings import RuntimeSettings
+
 from app.api.schemas import StartWorkflowRequest, ReviewWorkflowRequest
 from fastapi import FastAPI, HTTPException
 
@@ -33,7 +35,8 @@ DEMO_FILES = {
         Path(__file__).resolve().parent / "web" / "demo-data" / "payment_provider_outage.json",
 }
 
-def create_app(*, database: Path = DEFAULT_WORKFLOW_DATABASE) -> FastAPI:
+def create_app(*, database: Path = DEFAULT_WORKFLOW_DATABASE, settings: RuntimeSettings | None = None) -> FastAPI:
+    runtime = RuntimeSettings.from_env() if settings is None else settings
     database = database.resolve()
     review_lock = asyncio.Lock()
 
@@ -119,7 +122,8 @@ def create_app(*, database: Path = DEFAULT_WORKFLOW_DATABASE) -> FastAPI:
                 thread_id=thread_id,
                 incident=request.incident,
                 scenario=request.scenario,
-                model="qwen3:8b",
+                model=runtime.workflow_diagnosis_model,
+                runtime_settings=runtime,
                 tool_backend=request.tool_backend,
             )
         except Exception:

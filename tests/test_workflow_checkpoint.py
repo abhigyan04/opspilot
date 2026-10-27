@@ -35,7 +35,7 @@ def test_resume_retries_diagnosis_without_repeating_investigation(monkeypatch):
         "missing_evidence": ["Error details"],
     })
 
-    async def fake_investigate(incident, *, max_steps, data_dir, usage):
+    async def fake_investigate(incident, *, max_steps, data_dir, usage, model):
         calls["investigation"] += 1
         usage.record(
             stage="investigation",
@@ -104,7 +104,7 @@ def test_checkpoint_threads_keep_state_and_resume_isolated(monkeypatch):
     }
     token_counts = {"incident-a": 10, "incident-b": 30}
 
-    async def fake_investigate(incident, *, max_steps, data_dir, usage):
+    async def fake_investigate(incident, *, max_steps, data_dir, usage, model):
         calls[incident]["investigation"] += 1
         usage.record(
             stage="investigation",
@@ -230,6 +230,7 @@ def test_checkpoint_threads_keep_state_and_resume_isolated(monkeypatch):
     "changed",
     [
         {"diagnosis_model": "qwen3:8b"},
+        {"investigation_model": "custom:investigation"},
         {"diagnosis_settings": DiagnosisSettings(seed=43)},
         {"max_steps": 3},
         {"tool_backend": "mcp"},

@@ -166,6 +166,7 @@ def test_post_workflow_forwards_request_and_generates_ids(tmp_path, monkeypatch)
             "incident": payload["incident"],
             "scenario": "payment_provider_outage",
             "model": "qwen3:8b",
+            "runtime_settings": api.RuntimeSettings(),
             "tool_backend": "mcp",
         }
 

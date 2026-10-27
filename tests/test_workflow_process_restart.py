@@ -40,7 +40,7 @@ WORKER = textwrap.dedent("""
         }],
     }
 
-    async def fake_investigate(incident, *, max_steps, data_dir, usage):
+    async def fake_investigate(incident, *, max_steps, data_dir, usage, model):
         calls["investigation"] += 1
         if phase == "resume":
             raise AssertionError("Investigation repeated after restart.")

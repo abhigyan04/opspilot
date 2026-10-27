@@ -36,7 +36,7 @@ def test_sqlite_resume_after_reopening_storage(monkeypatch, tmp_path):
         "missing_evidence": ["Error details"],
     })
 
-    async def fake_investigate(incident, *, max_steps, data_dir, usage):
+    async def fake_investigate(incident, *, max_steps, data_dir, usage, model):
         calls["investigation"] += 1
         usage.record(
             stage="investigation",

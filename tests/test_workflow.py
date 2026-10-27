@@ -41,7 +41,7 @@ def test_graph_passes_investigation_to_diagnosis(monkeypatch, tmp_path, status):
     settings = DiagnosisSettings(seed=43, think=False)
     calls = []
 
-    async def fake_investigate(received_incident, *, max_steps, data_dir, usage):
+    async def fake_investigate(received_incident, *, max_steps, data_dir, usage, model):
         calls.append("investigate")
         assert received_incident == incident
         assert max_steps == 3
@@ -77,7 +77,8 @@ def test_graph_passes_investigation_to_diagnosis(monkeypatch, tmp_path, status):
             "diagnosis": UsageCollector().snapshot(),
         },
         "workflow_config": {
-            "version": 4,
+            "version": 5,
+            "investigation_model": "qwen3:4b",
             "data_dir": str(tmp_path.resolve()),
             "tool_backend": "direct",
             "max_steps": 3,
@@ -110,7 +111,7 @@ def test_graph_stops_when_investigation_fails(monkeypatch):
 def test_graph_usage_is_isolated_between_runs(monkeypatch):
     collectors = []
 
-    async def fake_investigate(incident, *, max_steps, data_dir, usage):
+    async def fake_investigate(incident, *, max_steps, data_dir, usage, model):
         collectors.append(usage)
         usage.record(
             stage="investigation",
@@ -196,7 +197,7 @@ def test_graph_investigates_through_real_mcp(monkeypatch, scenario):
     ])
     diagnosis_inputs = []
 
-    def fake_choose(messages, *, usage=None):
+    def fake_choose(messages, *, usage=None, model=None):
         return next(decisions)
 
     def fake_diagnose(incident, steps, *, model, settings, usage):

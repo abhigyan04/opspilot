@@ -12,7 +12,7 @@ import psycopg
 
 from evals.runner import save_report
 from app.agent.agent import generate_diagnosis, DEFAULT_DIAGNOSIS_MODEL
-from app.agent.settings import DiagnosisSettings
+from app.agent.settings import DiagnosisSettings, RuntimeSettings
 from app.agent.usage import UsageCollector
 from app.retrieval.context import build_reference_context
 from app.retrieval.search import SearchHit
@@ -48,7 +48,8 @@ def load_replay_source(report_path: Path) -> dict:
     }
 
 
-def replay_diagnosis(report_path: Path, *, model: str = DEFAULT_DIAGNOSIS_MODEL, settings: DiagnosisSettings | None = None, reference_hits: list[SearchHit] | None = None, retrieval_connection: Connection | None = None, retrieval_top_k: int = 3) -> dict:
+def replay_diagnosis(report_path: Path, *, model: str | None = None, settings: DiagnosisSettings | None = None, reference_hits: list[SearchHit] | None = None, retrieval_connection: Connection | None = None, retrieval_top_k: int = 3) -> dict:
+    model = RuntimeSettings.from_env().diagnosis_model if model is None else model
     if retrieval_connection is not None:
         if reference_hits is not None:
             raise ValueError(
@@ -207,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--model",
-        default=DEFAULT_DIAGNOSIS_MODEL,
+        default=RuntimeSettings.from_env().diagnosis_model,
         help=f"Ollama diagnosis model tag (default: %(default)s).",
     )
 

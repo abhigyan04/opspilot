@@ -16,7 +16,7 @@ from app.agent.agent import (
     generate_diagnosis, 
     investigate
 )
-from app.agent.settings import DiagnosisSettings
+from app.agent.settings import DiagnosisSettings, RuntimeSettings
 from app.agent.usage import UsageCollector
 from evals.cases import CASES, EvaluationCase
 from evals.evaluator import evaluate_investigation
@@ -32,7 +32,8 @@ async def investigate_over_mcp(incident: str, *, scenario: str, usage: UsageColl
         )
 
 
-def run_case(case: EvaluationCase, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct") -> dict:
+def run_case(case: EvaluationCase, *, diagnosis_model: str | None = None, diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct") -> dict:
+    diagnosis_model = RuntimeSettings.from_env().diagnosis_model if diagnosis_model is None else diagnosis_model
     if tool_backend not in {"direct", "mcp"}:
         raise ValueError("tool_backend must be 'direct' or 'mcp'")
 
@@ -155,7 +156,8 @@ def save_report(report: dict, output_directory: Path) -> Path:
     return destination
 
 
-def run_batch(case: EvaluationCase, runs: int, output_directory: Path, *, diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL, diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct") -> dict:
+def run_batch(case: EvaluationCase, runs: int, output_directory: Path, *, diagnosis_model: str | None = None, diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct") -> dict:
+    diagnosis_model = RuntimeSettings.from_env().diagnosis_model if diagnosis_model is None else diagnosis_model
     if runs < 1:
         raise ValueError("runs must be at least 1")
 
@@ -206,7 +208,7 @@ def parse_arguments(argv: list[str] | None = None):
     
     parser.add_argument(
         "--model",
-        default=DEFAULT_DIAGNOSIS_MODEL,
+        default=RuntimeSettings.from_env().diagnosis_model,
         help="Ollama diagnosis model tag (default: %(default)s).",
     )
 

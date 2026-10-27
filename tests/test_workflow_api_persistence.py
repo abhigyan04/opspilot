@@ -73,7 +73,7 @@ def test_post_persists_workflow_for_new_app(tmp_path, monkeypatch, supported, de
 
     calls = {"investigate": 0, "diagnose": 0, "propose": 0}
 
-    async def fake_investigate(incident, *, max_steps, data_dir, usage):
+    async def fake_investigate(incident, *, max_steps, data_dir, usage, model):
         calls["investigate"] += 1
         assert incident == "Investigate checkout-service."
         assert data_dir.name == "checkout_regression"

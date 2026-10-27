@@ -6,7 +6,7 @@ from pathlib import Path
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
 
-from app.agent.settings import DiagnosisSettings
+from app.agent.settings import DiagnosisSettings, RuntimeSettings, DEFAULT_INVESTIGATION_MODEL
 from app.agent.workflow import build_investigation_graph
 from app.mcp_server.server import SUPPORTED_SCENARIOS
 from app.tools.data import SCENARIOS_ROOT
@@ -16,7 +16,9 @@ class WorkflowNotFoundError(ValueError):
     pass
 
 
-async def start_workflow(*, database: Path, thread_id: str, incident: str, scenario: str, model: str, tool_backend: str) -> dict:
+async def start_workflow(*, database: Path, thread_id: str, incident: str, scenario: str, model: str | None = None, tool_backend: str = "direct", runtime_settings: RuntimeSettings | None = None) -> dict:
+    runtime = RuntimeSettings.from_env() if runtime_settings is None else runtime_settings
+    model = runtime.workflow_diagnosis_model if model is None else model
     if not thread_id.strip():
         raise ValueError("A nonblank thread ID is required.")
     if not incident.strip():
@@ -42,9 +44,12 @@ async def start_workflow(*, database: Path, thread_id: str, incident: str, scena
         graph = build_investigation_graph(
             data_dir=SCENARIOS_ROOT / scenario,
             diagnosis_model=model,
+            investigation_model=runtime.investigation_model,
+            service=runtime.service,
+            max_steps=runtime.max_steps,
             diagnosis_settings=DiagnosisSettings(
-                num_ctx=8192,
-                num_predict=2048,
+                num_ctx=runtime.workflow_num_ctx,
+                num_predict=runtime.workflow_num_predict,
             ),
             tool_backend=tool_backend,
             checkpointer=saver,
@@ -120,7 +125,11 @@ async def resume_workflow(*, database: Path, thread_id: str, response: str | Non
         saved_config = checkpoint.checkpoint["channel_values"].get(
             "workflow_config"
         )
+        if isinstance(saved_config, dict) and saved_config.get("version") == 4:
+            saved_config = {**saved_config, "version": 5,
+                            "investigation_model": DEFAULT_INVESTIGATION_MODEL}
         expected_keys = {
+            "investigation_model",
             "version",
             "data_dir",
             "tool_backend",
@@ -132,7 +141,7 @@ async def resume_workflow(*, database: Path, thread_id: str, response: str | Non
         if (
             not isinstance(saved_config, dict)
             or set(saved_config) != expected_keys
-            or saved_config["version"] != 4
+            or saved_config["version"] != 5
         ):
             raise ValueError(
                 "Unsupported or missing saved workflow configuration."
@@ -142,6 +151,7 @@ async def resume_workflow(*, database: Path, thread_id: str, response: str | Non
             data_dir=Path(saved_config["data_dir"]),
             max_steps=saved_config["max_steps"],
             diagnosis_model=saved_config["diagnosis_model"],
+            investigation_model=saved_config["investigation_model"],
             diagnosis_settings=DiagnosisSettings.model_validate(
                 saved_config["diagnosis_settings"]
             ),
@@ -211,7 +221,7 @@ def main(argv: list[str] | None = None) -> None:
         choices=SUPPORTED_SCENARIOS,
         default="checkout_regression",
     )
-    start.add_argument("--model", default="qwen3:8b")
+    start.add_argument("--model", default=None, help="Diagnosis model; defaults to runtime configuration.")
     start.add_argument(
         "--tool-backend",
         choices=("direct", "mcp"),

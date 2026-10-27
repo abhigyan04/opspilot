@@ -9,7 +9,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from app.agent import agent
-from app.agent.settings import DiagnosisSettings
+from app.agent.settings import DiagnosisSettings, RuntimeSettings, DEFAULT_INVESTIGATION_MODEL
 from app.agent.usage import UsageCollector
 from app.tools.data import DEFAULT_SCENARIO_DIR, SCENARIOS_ROOT
 from app.mcp_server.client import connect_local_tools
@@ -29,10 +29,17 @@ class InvestigationState(TypedDict):
     proposal_id: NotRequired[str | None]
 
 
-def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_steps: int = 6,
-                              diagnosis_model: str = agent.DEFAULT_DIAGNOSIS_MODEL,
+def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_steps: int | None = None,
+                              diagnosis_model: str | None = None, investigation_model: str | None = None,
                               diagnosis_settings: DiagnosisSettings | None = None, tool_backend: str = "direct",
-                              checkpointer: BaseCheckpointSaver | None = None, service: str = "checkout-service"):
+                              checkpointer: BaseCheckpointSaver | None = None, service: str | None = None):
+    runtime = RuntimeSettings.from_env()
+    max_steps = runtime.max_steps if max_steps is None else max_steps
+    diagnosis_model = runtime.diagnosis_model if diagnosis_model is None else diagnosis_model
+    investigation_model = runtime.investigation_model if investigation_model is None else investigation_model
+    service = runtime.service if service is None else service
+    if not investigation_model.strip():
+        raise ValueError("A nonblank investigation model is required.")
     if max_steps < 1:
         raise ValueError("max_steps must be at least 1")
 
@@ -62,7 +69,8 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
     )
     
     workflow_config = {
-        "version": 4,
+        "version": 5,
+        "investigation_model": investigation_model,
         "data_dir": str(data_dir.resolve()),
         "tool_backend": tool_backend,
         "max_steps": max_steps,
@@ -72,7 +80,10 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
     }
 
     def require_matching_config(state: InvestigationState) -> None:
-        if state.get("workflow_config") != workflow_config:
+        saved = dict(state.get("workflow_config") or {})
+        if saved.get("version") == 4 and "investigation_model" not in saved:
+            saved.update(version=5, investigation_model=DEFAULT_INVESTIGATION_MODEL)
+        if saved != workflow_config:
             raise ValueError(
                 "Workflow configuration does not match the saved checkpoint. "
                 "Resume with the original configuration or use a new thread."
@@ -98,6 +109,7 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
             investigation = await agent.investigate_async(
                 state["incident"],
                 max_steps=max_steps,
+                model=investigation_model,
                 data_dir=data_dir,
                 usage=usage,
             )
@@ -106,6 +118,7 @@ def build_investigation_graph(*, data_dir: Path = DEFAULT_SCENARIO_DIR, max_step
                 investigation = await agent.investigate_async(
                     state["incident"],
                     max_steps=max_steps,
+                    model=investigation_model,
                     usage=usage,
                     tool_executor=executor.execute,
                 )

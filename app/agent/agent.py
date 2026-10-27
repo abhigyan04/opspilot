@@ -12,7 +12,7 @@ from app.tools.git import get_commit
 from app.agent.remediation import (build_rollback_proposal, review_and_execute)
 from app.agent.verification import verify_simulated_remediation
 from app.tools.data import DEFAULT_SCENARIO_DIR
-from app.agent.settings import DiagnosisSettings
+from app.agent.settings import DiagnosisSettings, RuntimeSettings, DEFAULT_DIAGNOSIS_MODEL
 from app.agent.evidence import (
     build_deployment_timing,
     build_deployment_metric_timing,
@@ -22,8 +22,6 @@ from app.agent.usage import UsageCollector
 from app.retrieval.context import build_reference_context
 from app.retrieval.search import SearchHit
 
-
-DEFAULT_DIAGNOSIS_MODEL = "qwen3:4b"
 
 SYSTEM_PROMPT = """
 You are OpsPilot, an AI production incident investigator.
@@ -90,11 +88,11 @@ def chat_with_usage(*, stage: str, usage: UsageCollector | None = None, **kwargs
     return response
 
 
-def choose_next_tool(messages: list[dict[str, str]], *, usage: UsageCollector | None = None) -> AgentDecision:
+def choose_next_tool(messages: list[dict[str, str]], *, model: str | None = None, usage: UsageCollector | None = None) -> AgentDecision:
     response = chat_with_usage(
         stage="investigation",
         usage=usage,
-        model="qwen3:4b",
+        model=RuntimeSettings.from_env().investigation_model if model is None else model,
         messages=messages,
         format=agent_decision_adapter.json_schema(),
     )
@@ -164,7 +162,8 @@ class DiagnosisGenerationLimitError(RuntimeError):
     pass
 
 
-def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT_DIAGNOSIS_MODEL, settings: DiagnosisSettings | None = None, usage: UsageCollector | None = None, reference_hits: list[SearchHit] | None = None) -> Diagnosis:
+def generate_diagnosis(incident: str, steps: list[dict], *, model: str | None = None, settings: DiagnosisSettings | None = None, usage: UsageCollector | None = None, reference_hits: list[SearchHit] | None = None) -> Diagnosis:
+    model = RuntimeSettings.from_env().diagnosis_model if model is None else model
     if not steps:
         return diagnosis_adapter.validate_python({
             "status": "insufficient_evidence",
@@ -395,7 +394,8 @@ def generate_diagnosis(incident: str, steps: list[dict], *, model: str = DEFAULT
     return diagnosis
 
 
-async def investigate_async(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_SCENARIO_DIR, usage: UsageCollector | None = None, tool_executor: Callable[[ToolCall], Awaitable[object]] | None = None) -> dict:
+async def investigate_async(incident: str, max_steps: int | None = None, *, model: str | None = None, data_dir: Path = DEFAULT_SCENARIO_DIR, usage: UsageCollector | None = None, tool_executor: Callable[[ToolCall], Awaitable[object]] | None = None) -> dict:
+    max_steps = RuntimeSettings.from_env().max_steps if max_steps is None else max_steps
     if max_steps < 1:
         raise ValueError("max_steps must be at least 1")
 
@@ -409,7 +409,8 @@ async def investigate_async(incident: str, max_steps: int = 6, *, data_dir: Path
         decision = await asyncio.to_thread(
             choose_next_tool,
             messages,
-            usage=usage
+            usage=usage,
+            **({"model": model} if model is not None else {}),
         )
 
         messages.append({
@@ -459,11 +460,12 @@ async def investigate_async(incident: str, max_steps: int = 6, *, data_dir: Path
     }
 
 
-def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_SCENARIO_DIR, usage: UsageCollector | None = None) -> dict:
+def investigate(incident: str, max_steps: int | None = None, *, model: str | None = None, data_dir: Path = DEFAULT_SCENARIO_DIR, usage: UsageCollector | None = None) -> dict:
     return asyncio.run(
         investigate_async(
             incident,
             max_steps,
+            model=model,
             data_dir=data_dir,
             usage=usage,
         )
@@ -471,7 +473,8 @@ def investigate(incident: str, max_steps: int = 6, *, data_dir: Path = DEFAULT_S
 
 
 if __name__ == "__main__":
-    incident = "Errors in checkout-service have increased significantly. Investigate."
+    service = RuntimeSettings.from_env().service
+    incident = f"Errors in {service} have increased significantly. Investigate."
 
     investigation = investigate(incident)
     diagnosis = generate_diagnosis(incident, investigation["steps"])
@@ -480,7 +483,6 @@ if __name__ == "__main__":
         "investigation": investigation,
         "diagnosis": diagnosis.model_dump(),
     }, indent=2))
-    service = "checkout-service"
     proposal = build_rollback_proposal(
         diagnosis, service, investigation["steps"]
     )
