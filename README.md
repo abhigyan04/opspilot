@@ -7,6 +7,26 @@ and feeding their results back into subsequent decisions. It then generates a
 structured diagnosis and validates its evidence references. A human can review
 and approve a rollback candidate for in-memory simulation.
 
+## Explore the recorded demo
+
+[Open the public OpsPilot demo](https://abhigyan04.github.io/opspilot/).
+Explore two recorded synthetic investigations, inspect their evidence through
+clickable citations, and read the saved proposal outcomes. The demo includes
+dark mode and separate review notes documenting known output limitations.
+It makes no live model calls and cannot start investigations, change review
+decisions, or execute remediation. The working local application is separate.
+
+The static bundle contains only the recorded page and two scenario JSON files.
+On 27 October 2026, direct HTTP checks confirmed the page returned 200 and both
+scenario files were accessible. Checkout contained a recorded declined proposal;
+the provider-outage case contained no proposal. Each included four evidence
+items. These deployed checks verify delivery, not browser interactions.
+
+[Deployment run 40459778780](https://github.com/abhigyan04/opspilot/actions/runs/40459778780)
+was verified through GitHub's API: `Python tests`, `Docker smoke test`, and
+`Deploy recorded demo` all succeeded for commit
+`0cd1572434c6a49281dd811e485236cee85d89ef`.
+
 ## Run locally
 
 From the repository root, using Python 3.11 or newer:
