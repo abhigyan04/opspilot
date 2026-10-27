@@ -111,3 +111,49 @@ jobs:
           if docker container inspect opspilot-ci >/dev/null 2>&1; then
             docker rm -f opspilot-ci
           fi
+
+  deploy-demo:
+    name: Deploy recorded demo
+    needs: [tests, docker-smoke]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build static demo
+        run: python scripts/build_demo.py --output out/pages
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload static demo
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: out/pages
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
